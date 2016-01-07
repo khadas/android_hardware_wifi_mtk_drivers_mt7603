@@ -7218,9 +7218,11 @@ BOOLEAN MlmeEnqueue(
 {
 	INT Tail;
 	MLME_QUEUE	*Queue = (MLME_QUEUE *)&pAd->Mlme.Queue;
-
 	/* Do nothing if the driver is starting halt state.*/
 	/* This might happen when timer already been fired before cancel timer with mlmehalt*/
+	if (Machine == APCLI_CTRL_STATE_MACHINE)
+         DBGPRINT(RT_DEBUG_TRACE, ("army 1debug for the APCLI_CTRL_STATE_MACHINE state:%ld\n",MsgType));
+
 	if (RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_HALT_IN_PROGRESS | fRTMP_ADAPTER_NIC_NOT_EXIST))
 		return FALSE;
 
@@ -7270,6 +7272,9 @@ BOOLEAN MlmeEnqueue(
 		NdisMoveMemory(Queue->Entry[Tail].Msg, Msg, MsgLen);
 	}
 		
+	if (Machine == APCLI_CTRL_STATE_MACHINE)
+		 DBGPRINT(RT_DEBUG_TRACE, ("army 2debug for the APCLI_CTRL_STATE_MACHINE state:%ld\n",MsgType));
+
 	NdisReleaseSpinLock(&(Queue->Lock));
 #ifdef RELEASE_EXCLUDE
 	DBGPRINT(RT_DEBUG_INFO, ("MlmeEnqueue, num=%ld\n",Queue->Num));

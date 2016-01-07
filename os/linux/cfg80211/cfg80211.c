@@ -126,7 +126,7 @@
 #ifdef RT_CFG80211_SUPPORT
 
 #ifdef CONFIG_PM
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,18,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
 static const struct wiphy_wowlan_support mtk_wowlan_support = {
 	.flags = WIPHY_WOWLAN_MAGIC_PKT,
 };
@@ -2296,7 +2296,7 @@ static int CFG80211_OpsTdlsOper(
 #endif /*CFG_TDLS_SUPPORT*/
 #endif /* LINUX_VERSION_CODE: 3.1.10 */
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0))
 static int CFG80211_OpsMgmtTx(
     IN struct wiphy *pWiphy,
     IN struct wireless_dev *wdev,
@@ -2348,7 +2348,7 @@ static int CFG80211_OpsMgmtTx(
     pCfg80211_ctrl = &prAd->cfg80211_ctrl;
     pCfg80211_ctrl->TxStatusSeq = 0;
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,3,0))
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0))
     pCfg80211_ctrl->IsNeedTxStatus = !(params->dont_wait_for_ack);
 #else
     pCfg80211_ctrl->IsNeedTxStatus = !done_wait_for_ack;
@@ -2362,7 +2362,7 @@ static int CFG80211_OpsMgmtTx(
 #endif /* LINUX_VERSION_CODE: 3.6.0 */
 		
     /* get channel number */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0))
     ChanId = ieee80211_frequency_to_channel(params->chan->center_freq);
 #else
     ChanId = ieee80211_frequency_to_channel(pChan->center_freq);
@@ -2371,7 +2371,7 @@ static int CFG80211_OpsMgmtTx(
 
 	/* Send the Frame with basic rate 6 */
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,2,0))
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0))
     if (params->no_cck)
 		; //pAd->isCfgDeviceInP2p = TRUE;
 #else
@@ -2384,7 +2384,7 @@ static int CFG80211_OpsMgmtTx(
 	
     *pCookie = 5678;	
     RTMP_DRIVER_80211_CHANNEL_LOCK(pAd, ChanId);
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0))
     RTMP_DRIVER_80211_MGMT_FRAME_SEND(pAd, (void *)(params->buf), params->len);
 #else
     RTMP_DRIVER_80211_MGMT_FRAME_SEND(pAd, (void *)pBuf, Len);
@@ -2979,7 +2979,7 @@ ralink_mgmt_stypes[NUM_NL80211_IFTYPES] = {
 
 };
 #endif
-
+#if 0
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,0,0))
 static const struct ieee80211_iface_limit ra_p2p_sta_go_limits[] =
 {
@@ -3017,7 +3017,48 @@ ra_iface_combinations_p2p[] = {
 	},
 };
 #endif /* LINUX_VERSION_CODE: 3.8.0 */
+#endif
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,0,0))
+static const struct ieee80211_iface_limit ra_p2p_sta_go_limits[] = 
+{
+        {
+                .max = 3,
+                .types = BIT(NL80211_IFTYPE_STATION)| BIT(NL80211_IFTYPE_AP),
+        },
+        {
+		.max = 1,
+		.types = BIT(NL80211_IFTYPE_P2P_GO) | BIT(NL80211_IFTYPE_P2P_CLIENT),
+	},
+};
 
+static const struct ieee80211_iface_combination 
+ra_iface_combinations_p2p[] = {
+	{
+		.num_different_channels = 1,
+		.max_interfaces = 3,
+		//.beacon_int_infra_match = true,
+		.limits = ra_p2p_sta_go_limits,
+		.n_limits = 1,//ARRAY_SIZE(ra_p2p_sta_go_limits),
+	},
+};
+
+static const struct ieee80211_iface_combination 
+ra_iface_combinations_p2p_GO[] = {
+	{
+		.num_different_channels = 1,
+		.max_interfaces = 3,
+		//.beacon_int_infra_match = true,
+		.limits = ra_p2p_sta_go_limits,
+		.n_limits = ARRAY_SIZE(ra_p2p_sta_go_limits),
+	},
+};
+
+const struct ieee80211_iface_combination *p_ra_iface_combinations_ap_sta = ra_iface_combinations_p2p;
+const INT ra_iface_combinations_ap_sta_num = ARRAY_SIZE(ra_iface_combinations_p2p);
+
+const struct ieee80211_iface_combination *p_ra_iface_combinations_p2p = ra_iface_combinations_p2p_GO;
+const INT ra_iface_combinations_p2p_num = ARRAY_SIZE(ra_iface_combinations_p2p_GO);
+#endif
 struct cfg80211_ops CFG80211_Ops = {
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0))
 	.suspend = CFG80211_OpsSuspend,
@@ -3336,7 +3377,7 @@ static struct wireless_dev *CFG80211_WdevAlloc(
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0))
 #ifdef CONFIG_PM
 #ifdef MT_WOW_SUPPORT
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,18,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
 	pWdev->wiphy->wowlan = &mtk_wowlan_support;
 #else
 	pWdev->wiphy->wowlan.flags = WIPHY_WOWLAN_MAGIC_PKT;

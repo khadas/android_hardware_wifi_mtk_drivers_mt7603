@@ -651,7 +651,6 @@ enum WIFI_MODE{
 #define MAX_AVAILABLE_CLIENT_WCID(__pAd)	(LAST_SPECIFIC_WCID(__pAd) - MAX_MBSSID_NUM(__pAd))
 #else
 #define LAST_SPECIFIC_WCID(__pAd)	(HW_RESERVED_WCID(__pAd) - 2)
-
 /* If MAX_MBSSID_NUM is 8, the maximum available wcid for the associated STA is 211. */
 /* If MAX_MBSSID_NUM is 7, the maximum available wcid for the associated STA is 228. */
 #define MAX_AVAILABLE_CLIENT_WCID(__pAd)	(LAST_SPECIFIC_WCID(__pAd) - MAX_MBSSID_NUM(__pAd) - 1)

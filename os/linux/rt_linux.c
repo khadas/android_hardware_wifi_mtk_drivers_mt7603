@@ -90,7 +90,7 @@ static inline void netdev_priv_set(struct net_device *dev, void *priv)
 }
 
 
-ULONG RTDebugLevel = RT_DEBUG_ERROR;
+ULONG RTDebugLevel = 0;
 ULONG RTDebugFunc = 0;
 
 #ifdef OS_ABL_FUNC_SUPPORT
@@ -1413,8 +1413,9 @@ int RtmpOSWrielessEventSend(
 		wrqu.data.length = dataLen;
 	else
 		wrqu.data.length = 0;
-
+#ifdef CONFIG_WEXT_EXT
 	wireless_send_event(pNetDev, eventType, &wrqu, (char *)pData);
+#endif
 #endif
 	return 0;
 }
@@ -1447,8 +1448,9 @@ int RtmpOSWrielessEventSendExt(
 		wrqu.data.length = dataLen;
 
 	wrqu.addr.sa_family = family;
-
+#ifdef CONFIG_WEXT_EXT
 	wireless_send_event(pNetDev, eventType, &wrqu, (char *)pData);
+#endif
 	return 0;
 }
 
@@ -1936,7 +1938,7 @@ int RtmpOSNetDevAttach(
 /*		pNetDev->get_wireless_stats = rt28xx_get_wireless_stats; */
 		pNetDev->get_wireless_stats = pDevOpHook->get_wstats;
 #endif
-
+#ifdef CONFIG_WIRELESS_EXT
 #ifdef CONFIG_STA_SUPPORT
 #if WIRELESS_EXT >= 12
 		if (OpMode == OPMODE_STA) {
@@ -1945,7 +1947,6 @@ int RtmpOSNetDevAttach(
 		}
 #endif /*WIRELESS_EXT >= 12 */
 #endif /* CONFIG_STA_SUPPORT */
-
 #ifdef CONFIG_APSTA_MIXED_SUPPORT
 #if WIRELESS_EXT >= 12
 		if (OpMode == OPMODE_AP) {
@@ -1954,7 +1955,7 @@ int RtmpOSNetDevAttach(
 		}
 #endif /*WIRELESS_EXT >= 12 */
 #endif /* CONFIG_APSTA_MIXED_SUPPORT */
-
+#endif
 		/* copy the net device mac address to the net_device structure. */
 		NdisMoveMemory(pNetDev->dev_addr, &pDevOpHook->devAddr[0],
 			       MAC_ADDR_LEN);

@@ -281,6 +281,7 @@ static int rt2870_probe(
 	if (USBDevConfigInit(usb_dev, intf, pAd) == FALSE)
 		goto err_out_free_radev;
 
+
 	RTMP_DRIVER_USB_INIT(pAd, usb_dev, dev_id->driver_info);
 	
 	net_dev = RtmpPhyNetDevInit(pAd, &netDevHook);

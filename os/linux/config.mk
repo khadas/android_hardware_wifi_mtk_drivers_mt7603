@@ -71,7 +71,7 @@ HAS_NATIVE_WPA_SUPPLICANT_SUPPORT=n
 #endif // NATIVE_WPA_SUPPLICANT_SUPPORT //
 
 #Support Net interface block while Tx-Sw queue full
-HAS_BLOCK_NET_IF=y
+HAS_BLOCK_NET_IF=n
 
 #Support IGMP-Snooping function.
 HAS_IGMP_SNOOP_SUPPORT=n
@@ -316,7 +316,7 @@ HAS_HT40_DISABLE_SHORT_GI=n
 HAS_BSS_COEX_DISABLE=n
 
 #Treat compile Warning as Error
-HAS_COMPILE_WARNING_AS_ERROR=y
+HAS_COMPILE_WARNING_AS_ERROR=n
 
 #ifdef OS_ABL_FUNC_SUPPORT
 ifeq ($(OSABL),YES)
@@ -532,7 +532,7 @@ WFLAGS += -DCONFIG_RA_NAT_NONE
 WFLAGS += -I$(RT28xx_DIR)/include
 
 ifneq (,$(findstring MSTAR,$(PLATFORM)))
-WFLAGS += -DMSTAR_SUPPORT
+#WFLAGS += -DMSTAR_SUPPORT
 endif
 
 ifeq ($(PREALLOC),YES)

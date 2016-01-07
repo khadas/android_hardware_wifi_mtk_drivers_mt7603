@@ -285,10 +285,12 @@ int rt28xx_open(VOID *dev)
 		if (OpMode == OPMODE_AP)
 			net_dev->wireless_handlers = (struct iw_handler_def *) &rt28xx_ap_iw_handler_def;
 #endif /* CONFIG_APSTA_MIXED_SUPPORT */
+#ifdef CONFIG_WIRELESS_EXT
 #ifdef CONFIG_STA_SUPPORT
 		if (OpMode == OPMODE_STA)
 			net_dev->wireless_handlers = (struct iw_handler_def *) &rt28xx_iw_handler_def;
 #endif /* CONFIG_STA_SUPPORT */
+#endif
 	}
 #endif /* WIRELESS_EXT >= 12 */
 

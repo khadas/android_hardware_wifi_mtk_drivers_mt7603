@@ -154,14 +154,14 @@ NTSTATUS RTUSB_VendorRequest(
 								CONTROL_TIMEOUT_JIFFIES, RET);
 
 			if (RET < 0) {
-				DBGPRINT(RT_DEBUG_OFF, ("#\n"));
+				DBGPRINT(RT_DEBUG_OFF, ("#RET%d\n",RET));
 				if (RET == RTMP_USB_CONTROL_MSG_ENODEV)
 				{
 					RTMP_SET_FLAG(pAd, fRTMP_ADAPTER_NIC_NOT_EXIST);
 					break;
 				}
 				RetryCount++;
-				RtmpusecDelay(5000); /* wait for 5ms*/
+				RtmpusecDelay(50000); /* wait for 5ms*/
 			}
 		} while((RET < 0) && (RetryCount < MAX_VENDOR_REQ_RETRY_COUNT));
 

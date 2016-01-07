@@ -201,7 +201,7 @@ typedef struct usb_ctrlrequest devctrlrequest;
 
 #ifdef CONFIG_STA_SUPPORT
 #ifdef RTMP_MAC_PCI
-#define STA_PROFILE_PATH			"/etc/Wireless/RT2860STA/RT2860STA.dat"
+#define STA_PROFILE_PATH			"/system/etc/wifi/RT2870STA_7603.dat"
 #define STA_DRIVER_VERSION			"3.0.0.0"
 #ifdef MULTIPLE_CARD_SUPPORT
 #define CARD_INFO_PATH			"/etc/Wireless/RT2860STA/RT2860STACard.dat"
@@ -210,12 +210,12 @@ typedef struct usb_ctrlrequest devctrlrequest;
 
 #ifdef RTMP_MAC_USB
 #ifdef HE_BD_CFG80211_SUPPORT 
-#define STA_PROFILE_PATH			"/etc/Wireless/RT2870STA/RT2870STA_MT7603U.dat"
+#define STA_PROFILE_PATH			"/system/etc/wifi/RT2870STA_7603.dat"
 #else
 #ifdef USE_CHIP_DEPENDENT_PROFILE_NAME
-#define STA_PROFILE_PATH                        "/etc/Wireless/RT2870STA/RT2870STA_7603.dat"
+#define STA_PROFILE_PATH                        "/system/etc/wifi/RT2870STA_7603.dat"
 #else
-#define STA_PROFILE_PATH                        "/etc/Wireless/RT2870STA/MT7603USTA.dat"
+#define STA_PROFILE_PATH                        "/system/etc/wifi/RT2870STA_7603.dat"
 #endif /* USE_CHIP_DEPENDENT_PROFILE_NAME */
 #endif /* HE_BD_CFG80211_SUPPORT */
 #define STA_DRIVER_VERSION			"JEDI.L0.MP1.mt7603u.v1.8"
@@ -227,7 +227,7 @@ typedef struct usb_ctrlrequest devctrlrequest;
 
 
 #ifdef RTMP_MAC_SDIO
-#define STA_PROFILE_PATH			"/etc/Wireless/RT2870STA/RT2870STA.dat"
+#define STA_PROFILE_PATH			"/system/etc/wifi/RT2870STA_7603.dat"
 #define STA_DRIVER_VERSION			"3.0.0.0"
 #ifdef MULTIPLE_CARD_SUPPORT
 #define CARD_INFO_PATH			"/etc/Wireless/RT2870STA/RT2870STACard.dat"
@@ -1792,7 +1792,6 @@ USBHST_STATUS RTUSBBulkOutBCNPacketComplete(URBCompleteStatus Status, purbb_t pU
 #define	RTUSB_URB_DMA_MAPPING(pUrb)
 #endif
 
-
 #define RTUSB_CONTROL_MSG(pUsb_Dev, uEndpointAddress, Request, RequestType, Value,Index, tmpBuf, TransferBufferLength, timeout, ret)	\
   		do{	\
 			if ((RequestType == DEVICE_VENDOR_REQUEST_OUT) || (RequestType == DEVICE_CLASS_REQUEST_OUT))	\
@@ -1804,8 +1803,7 @@ USBHST_STATUS RTUSBBulkOutBCNPacketComplete(URBCompleteStatus Status, purbb_t pU
 				DBGPRINT(RT_DEBUG_ERROR, ("vendor request direction is failed\n"));	\
 				ret = -1;	\
 			}	\
-		}while(0)
-
+		}while(0)	
 #define rtusb_urb_context  context
 #define rtusb_urb_status   status
 

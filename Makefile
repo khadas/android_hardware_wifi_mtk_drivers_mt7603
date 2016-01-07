@@ -39,10 +39,10 @@ OSABL = NO
 #Build Prealloc ko
 PREALLOC = NO
 
-ifneq ($(TARGET),THREADX)
+#ifneq ($(TARGET),THREADX)
 #RT28xx_DIR = home directory of RT28xx source code
-RT28xx_DIR = $(shell pwd)
-endif
+RT28xx_DIR = /mnt/nfsroot/rongjun.chen/l-amlogic/hardware/wifi/mtk/drivers/mt7603
+#endif
 
 include $(RT28xx_DIR)/os/linux/config.mk
 
@@ -53,10 +53,9 @@ RTMP_SRC_DIR = $(RT28xx_DIR)/RT$(MODULE)
 #PLATFORM = MSTAR
 #PLATFORM = HISILICON
 #PLATFORM = HE_TV
-
-LINUX_SRC =
-CROSS_COMPILE =
-
+LINUX_SRC = /mnt/nfsroot/rongjun.chen/l-amlogic/out/target/product/p200/obj/KERNEL_OBJ/
+CROSS_COMPILE =aarch64-linux-gnu-
+ARCH =arm64
 #APSOC
 ifeq ($(MODULE),3050)
 PLATFORM = RALINK_3050
@@ -95,7 +94,6 @@ MODULE = $(shell pwd | sed "s/.*\///" ).o
 export MODULE
 endif
 
-
 ifeq ($(PLATFORM),PC)
 PREALLOC = NO
 # Linux 2.6
@@ -105,9 +103,9 @@ LINUX_SRC = /lib/modules/$(shell uname -r)/build
 LINUX_SRC_MODULE = /lib/modules/$(shell uname -r)/kernel/drivers/net/wireless/
 endif
 
-ifeq ($(PLATFORM),MSTAR)
+#ifeq ($(PLATFORM),MSTAR)
 PREALLOC = YES
-endif
+#endif
 
 ifeq ($(PLATFORM),HISILICON)
 PREALLOC = YES
@@ -235,7 +233,7 @@ endif
 ifeq ($(PREALLOC), YES)
 #build prealloc.ko
 	cp -f os/linux/Makefile.6.prealloc os/linux/Makefile
-	$(MAKE) -C $(LINUX_SRC) SUBDIRS=$(RT28xx_DIR)/os/linux modules
+	$(MAKE) ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- -C $(LINUX_SRC) SUBDIRS=$(RT28xx_DIR)/os/linux modules
 endif
 	cp -f os/linux/Makefile.6 $(RT28xx_DIR)/os/linux/Makefile
 ifeq ($(PLATFORM),DM6446)
@@ -244,8 +242,9 @@ else
 ifeq ($(PLATFORM),FREESCALE8377)
 	$(MAKE) ARCH=powerpc CROSS_COMPILE=$(CROSS_COMPILE) -C  $(LINUX_SRC) SUBDIRS=$(RT28xx_DIR)/os/linux modules
 else
-#build mt7603u_sta.ko
-	$(MAKE) -C $(LINUX_SRC) SUBDIRS=$(RT28xx_DIR)/os/linux modules
+#build mt7603usta.ko
+	$(MAKE) ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE) -C $(LINUX_SRC) SUBDIRS=$(RT28xx_DIR)/os/linux modules
+	$(CROSS_COMPILE)strip --strip-debug $(RT28xx_DIR)/os/linux/mt7603usta.ko
 endif
 endif #DM6446
 
@@ -282,7 +281,7 @@ endif #AP
 endif #2.4
 ifeq ($(PLATFORM),MT85XX)
 	mkdir -p $(RT28xx_DIR)/../../../../../BDP_Generic/build_linux_ko/src/driver/wlan/
-	cp -f $(RT28xx_DIR)/os/linux/mt7603u_sta.ko $(RT28xx_DIR)/../../../../../BDP_Generic/build_linux_ko/src/driver/wlan/
+	cp -f $(RT28xx_DIR)/os/linux/mt7603usta.ko $(RT28xx_DIR)/../../../../../BDP_Generic/build_linux_ko/src/driver/wlan/
 endif
 
 plug_in:
@@ -364,7 +363,7 @@ else
 	cp -f os/linux/Makefile.6.util $(RT28xx_DIR)/os/linux/Makefile
 	$(MAKE) -C $(LINUX_SRC) SUBDIRS=$(RT28xx_DIR)/os/linux modules
 ifeq ($(PLATFORM),MT85XX)
-	cp -f $(RT28xx_DIR)/os/linux/mt7603u_sta.ko $(RT28xx_DIR)/../../../../../../BDP_Generic/build_linux_ko/src/driver/wlan/
+	cp -f $(RT28xx_DIR)/os/linux/mt7603usta.ko $(RT28xx_DIR)/../../../../../../BDP_Generic/build_linux_ko/src/driver/wlan/
 endif
 endif
 endif
@@ -378,7 +377,7 @@ else
 	cp -f os/linux/Makefile.6.netif $(RT28xx_DIR)/os/linux/Makefile
 	$(MAKE) -C $(LINUX_SRC) SUBDIRS=$(RT28xx_DIR)/os/linux modules
 ifeq ($(PLATFORM),MT85XX)
-	cp -f $(RT28xx_DIR)/os/linux/mt7603u_sta.ko $(RT28xx_DIR)/../../../../../../BDP_Generic/build_linux_ko/src/driver/wlan/
+	cp -f $(RT28xx_DIR)/os/linux/mt7603usta.ko $(RT28xx_DIR)/../../../../../../BDP_Generic/build_linux_ko/src/driver/wlan/
 endif
 endif
 endif
@@ -392,7 +391,7 @@ else
 	$(MAKE) -C $(LINUX_SRC) SUBDIRS=$(RT28xx_DIR)/os/linux modules
 ifeq ($(PLATFORM),MT85XX)
 ifeq ($(OSABL),YES)
-	cp -f $(RT28xx_DIR)/os/linux/mt7603u_sta.ko $(RT28xx_DIR)/../../../../../../BDP_Generic/build_linux_ko/src/driver/wlan/
+	cp -f $(RT28xx_DIR)/os/linux/mt7603usta.ko $(RT28xx_DIR)/../../../../../../BDP_Generic/build_linux_ko/src/driver/wlan/
 endif
 endif
 endif

@@ -2058,19 +2058,19 @@ NDIS_STATUS MlmeHardTransmitMgmtRing(RTMP_ADAPTER *pAd, UCHAR QueIdx, PNDIS_PACK
 			
 			if ((!RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_BSS_SCAN_IN_PROGRESS)) && RTMPEnterPsmNullBitStatus(&pAd->StaCfg.PwrMgmt))
 			{
-				DBGPRINT(RT_DEBUG_TRACE, ("%s(line=%d)\n", __FUNCTION__, __LINE__));
+				DBGPRINT(RT_DEBUG_INFO, ("%s(line=%d)\n", __FUNCTION__, __LINE__));
 				RTMPClearEnterPsmNullBit(&pAd->StaCfg.PwrMgmt);
 				TxSTypeCtlPerPkt(pAd, mac_info.PID, TXS_FORMAT0, FALSE, TRUE, FALSE, TXS_DUMP_REPEAT); 
 			}
 			else
 			{
-				DBGPRINT(RT_DEBUG_TRACE, ("%s(line=%d)\n", __FUNCTION__, __LINE__));
+				DBGPRINT(RT_DEBUG_INFO, ("%s(line=%d)\n", __FUNCTION__, __LINE__));
 				TxSTypeCtlPerPkt(pAd, mac_info.PID, TXS_FORMAT0, FALSE, FALSE, FALSE, TXS_DUMP_REPEAT); 
 			}
 		}
 #endif /* MT_MAC */
 #endif /* CONFIG_STA_SUPPORT */
-	DBGPRINT(RT_DEBUG_TRACE, ("%s(line=%d), mac_info.PsmBySw(%d)\n", __FUNCTION__, __LINE__, mac_info.PsmBySw));
+	DBGPRINT(RT_DEBUG_INFO, ("%s(line=%d), mac_info.PsmBySw(%d)\n", __FUNCTION__, __LINE__, mac_info.PsmBySw));
 	if(pCfg80211_ctrl->TxStatusInUsed && pCfg80211_ctrl->IsNeedTxStatus)
 	{
 		DBGPRINT(RT_DEBUG_TRACE, ("%s %d, PID (%d)\n", __FUNCTION__, __LINE__, mac_info.PID));

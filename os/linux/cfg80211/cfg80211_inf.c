@@ -1280,6 +1280,17 @@ static INT CFG80211_DummyP2pIf_Close(
 					| BIT(RT_CMD_80211_IFTYPE_P2P_DEVICE)
 #endif /* LINUX_VERSION_CODE: 3.7.0 */
 				       ));
+
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,0,0))
+	{
+		extern const struct ieee80211_iface_combination *p_ra_iface_combinations_ap_sta;
+		extern const INT ra_iface_combinations_ap_sta_num;
+		wdev->wiphy->iface_combinations = p_ra_iface_combinations_ap_sta;
+		wdev->wiphy->n_iface_combinations = ra_iface_combinations_ap_sta_num; 
+	}
+#endif
+
+	wdev->iftype = NL80211_IFTYPE_STATION;
 #ifdef RT_CFG80211_P2P_STATIC_CONCURRENT_DEVICE
 	RT_MOD_DEC_USE_COUNT();
 #endif /* RT_CFG80211_P2P_STATIC_CONCURRENT_DEVICE */
@@ -1545,7 +1556,14 @@ VOID RTMP_CFG80211_DummyP2pIf_Init(
 	{
 		DBGPRINT(RT_DEBUG_ERROR, ("===============> fail register the wdev for dummy p2p\n"));
 	}
-	
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,0,0))
+	{
+	extern const struct ieee80211_iface_combination * p_ra_iface_combinations_p2p;
+	extern const INT ra_iface_combinations_p2p_num;
+	pWdev->wiphy->iface_combinations = p_ra_iface_combinations_p2p;
+	pWdev->wiphy->n_iface_combinations = ra_iface_combinations_p2p_num;
+	}
+#endif 	
 	RtmpOSNetDevAttach(pAd->OpMode, new_dev_p, pNetDevOps); 
 	cfg80211_ctrl->dummy_p2p_net_dev = new_dev_p;
 	cfg80211_ctrl->flg_cfg_dummy_p2p_init = TRUE;

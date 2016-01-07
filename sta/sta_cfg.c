@@ -9875,7 +9875,7 @@ VOID RTMPIoctlShow(
             wrq->u.data.length = strlen(extra) + 1; /* 1: size of '\0' */
             break;
         case SHOW_DRVIER_VERION:
-            snprintf(extra, size, "Driver version-%s, %s %s\n", STA_DRIVER_VERSION, __DATE__, __TIME__ );
+            //snprintf(extra, size, "Driver version-%s, %s %s\n", STA_DRIVER_VERSION, __DATE__, __TIME__ );
 #ifdef MESH_SUPPORT
 	     			sprintf(extra+strlen(extra), "Support MESH \n");
 #endif /* MESH_SUPPORT */

@@ -358,7 +358,7 @@ BOOLEAN CFG80211_SupBandInit(
 			pChannels[IdLoop].flags = 0;
 			CFG80211DBG(RT_DEBUG_TRACE, ("====> Rader Channel %d\n", Cfg80211_Chan[IdLoop]));
 			pChannels[IdLoop].flags |= (IEEE80211_CHAN_RADAR
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0))
 			| IEEE80211_CHAN_NO_IR
 #else
 			| IEEE80211_CHAN_PASSIVE_SCAN
@@ -990,16 +990,17 @@ void CFG80211OS_ConnectResultInform(
 {
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,32))
 	CFG80211_CB *pCfg80211_CB = (CFG80211_CB *)pCB;
-	PNET_DEV pNetDev = pCfg80211_CB->pCfg80211_Wdev->netdev;
+//	PNET_DEV pNetDev = pCfg80211_CB->pCfg80211_Wdev->netdev;
 
 	if ((pCfg80211_CB->pCfg80211_Wdev->netdev == NULL) || (pBSSID == NULL))
 		return;
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3,11,00))
 	if (pNetDev->ieee80211_ptr->sme_state != CFG80211_SME_CONNECTING) {
 		DBGPRINT(RT_DEBUG_OFF,
 			("%s, not indicate! It will cause kernel warning\n", __func__));
 		return;
 	}
-
+#endif
 	if (FlgIsSuccess)
 	{
 		cfg80211_connect_result(pCfg80211_CB->pCfg80211_Wdev->netdev,
@@ -1068,6 +1069,15 @@ BOOLEAN CFG80211OS_RxMgmt(IN PNET_DEV pNetDev, IN INT32 freq, IN PUCHAR frame, I
                 return FALSE;
 	}
 
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,12,0))
+    return cfg80211_rx_mgmt(pNetDev->ieee80211_ptr,
+                                freq,
+                                0,       //CFG_TODO return 0 in dbm
+                                frame,
+                                len,
+								0,
+                                GFP_ATOMIC);
+#else
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,6,0))
 	return cfg80211_rx_mgmt(pNetDev->ieee80211_ptr,
                                 freq,
@@ -1097,6 +1107,7 @@ BOOLEAN CFG80211OS_RxMgmt(IN PNET_DEV pNetDev, IN INT32 freq, IN PUCHAR frame, I
 #endif /* LINUX_VERSION_CODE: 2.6.37 */
 #endif /* LINUX_VERSION_CODE: 3.4.0 */
 #endif /* LINUX_VERSION_CODE: 3.6.0 */
+#endif/* LINUX_VERSION_CODE: 3.12.0 */
 
 }
 
@@ -1204,6 +1215,7 @@ VOID CFG80211OS_InformBSS(
 {
 	CFG80211_CB *pCfg80211_CB = (CFG80211_CB *)pCB;
 	struct wiphy *pWiphy;
+	struct cfg80211_bss *bss = NULL;
 
 	if ((pCfg80211_CB == NULL) || (pCfg80211_CB->pCfg80211_Wdev == NULL))
 	{
@@ -1213,7 +1225,7 @@ VOID CFG80211OS_InformBSS(
 
 	pWiphy = pCfg80211_CB->pCfg80211_Wdev->wiphy;
 	
-	cfg80211_inform_bss(pWiphy, 
+	bss=cfg80211_inform_bss(pWiphy, 
 					pCfg80211_CB->pCfg80211_Channels,
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0))
 					CFG80211_BSS_FTYPE_UNKNOWN,
@@ -1224,6 +1236,10 @@ VOID CFG80211OS_InformBSS(
 					beacon_interval,
 					pBeacon, BeaconLen,
 					0, GFP_KERNEL);
+	if (unlikely(!bss))
+		CFG80211DBG(RT_DEBUG_ERROR, ("%s(%d)> BSS IS NULL, return here.\n", __FUNCTION__, __LINE__));
+	
+	
 }
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0))

@@ -3161,7 +3161,7 @@ INT RtmpRaDevCtrlInit(VOID *pAdSrc, RTMP_INF_TYPE infType)
 #ifdef CONFIG_STA_SUPPORT
 	pAd->OpMode = OPMODE_STA;
 	DBGPRINT(RT_DEBUG_OFF, ("STA Driver version-%s\n", STA_DRIVER_VERSION));
-	DBGPRINT(RT_DEBUG_OFF, ("Compile time-%s,%s\n", __DATE__, __TIME__));
+//	DBGPRINT(RT_DEBUG_OFF, ("Compile time-%s,%s\n", __DATE__, __TIME__));
 #endif /* CONFIG_STA_SUPPORT */
 
 #ifdef CONFIG_AP_SUPPORT
