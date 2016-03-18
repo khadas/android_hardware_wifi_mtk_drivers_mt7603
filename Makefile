@@ -41,7 +41,8 @@ PREALLOC = NO
 
 #ifneq ($(TARGET),THREADX)
 #RT28xx_DIR = home directory of RT28xx source code
-RT28xx_DIR = /mnt/nfsroot/rongjun.chen/l-amlogic/hardware/wifi/mtk/drivers/mt7603
+#RT28xx_DIR ?= /mnt/nfsroot/rongjun.chen/l-amlogic/hardware/wifi/mtk/drivers/mt7603
+RT28xx_DIR ?= $(shell pwd)
 #endif
 
 include $(RT28xx_DIR)/os/linux/config.mk
@@ -53,9 +54,9 @@ RTMP_SRC_DIR = $(RT28xx_DIR)/RT$(MODULE)
 #PLATFORM = MSTAR
 #PLATFORM = HISILICON
 #PLATFORM = HE_TV
-LINUX_SRC = /mnt/nfsroot/rongjun.chen/l-amlogic/out/target/product/p200/obj/KERNEL_OBJ/
-CROSS_COMPILE =aarch64-linux-gnu-
-ARCH =arm64
+LINUX_SRC ?= /mnt/nfsroot/rongjun.chen/Alip200/out/target/product/p200/obj/KERNEL_OBJ/
+CROSS_COMPILE ?=aarch64-linux-gnu-
+ARCH ?=arm64
 #APSOC
 ifeq ($(MODULE),3050)
 PLATFORM = RALINK_3050
@@ -149,7 +150,7 @@ all: $(TARGET)
 endif 
 
 build_tools:
-	$(MAKE) -C tools
+	$(MAKE) -C $(RT28xx_DIR)/tools
 	$(RT28xx_DIR)/tools/bin2h
 
 sdk_build_tools:
@@ -164,12 +165,12 @@ sdk_build_tools:
 	else \
 		cp -f $(RT28xx_DIR)/eeprom/$(EE_TYPE)/MT7603E_EEPROM.bin $(RT28xx_DIR)/eeprom/MT7603E_EEPROM.bin ; \
 	fi
-	$(MAKE) -C tools
+	$(MAKE) -C $(RT28xx_DIR)/tools
 	$(RT28xx_DIR)/tools/bin2h
 #	rm -f $(RT28xx_DIR)/eeprom/SA/MT7603E_EEPROM.bin
 	
 test:
-	$(MAKE) -C tools test
+	$(MAKE) -C $(RT28xx_DIR)tools test
 
 UCOS:
 	$(MAKE) -C os/ucos/ MODE=$(RT28xx_MODE)
@@ -232,10 +233,10 @@ ifeq ($(OSABL),YES)
 endif
 ifeq ($(PREALLOC), YES)
 #build prealloc.ko
-	cp -f os/linux/Makefile.6.prealloc os/linux/Makefile
+	cp -f $(RT28xx_DIR)/os/linux/Makefile.6.prealloc $(RT28xx_DIR)/os/linux/Makefile
 	$(MAKE) ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- -C $(LINUX_SRC) SUBDIRS=$(RT28xx_DIR)/os/linux modules
 endif
-	cp -f os/linux/Makefile.6 $(RT28xx_DIR)/os/linux/Makefile
+	cp -f $(RT28xx_DIR)/os/linux/Makefile.6 $(RT28xx_DIR)/os/linux/Makefile
 ifeq ($(PLATFORM),DM6446)
 	$(MAKE)  ARCH=arm CROSS_COMPILE=arm_v5t_le- -C  $(LINUX_SRC) SUBDIRS=$(RT28xx_DIR)/os/linux modules
 else
@@ -285,7 +286,7 @@ ifeq ($(PLATFORM),MT85XX)
 endif
 
 plug_in:
-	$(MAKE) -C $(LINUX_SRC) SUBDIRS=$(RT28xx_DIR)/tools/plug_in MODULE_FLAGS="$(WFLAGS)"
+	$(MAKE) -C $(LINUX_SRC) ARCH=$(ARCH) SUBDIRS=$(RT28xx_DIR)/tools/plug_in MODULE_FLAGS="$(WFLAGS)"
 
 release: build_tools
 	$(MAKE) -C $(RT28xx_DIR)/striptool -f Makefile.release clean
