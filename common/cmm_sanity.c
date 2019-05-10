@@ -1007,7 +1007,7 @@ BOOLEAN PeerBeaconAndProbeRspSanity_Old(
 
 					/* Copy to pVIE*/
                     Ptr = (PUCHAR) pVIE;
-                    NdisMoveMemory(Ptr + *LengthVIE, &pEid->Eid, pEid->Len + 2);
+		NdisMoveMemory(Ptr + *LengthVIE, pEid, pEid->Len + 2);
                     *LengthVIE += (pEid->Len + 2);
                 }
                 break;
@@ -1136,7 +1136,7 @@ BOOLEAN PeerBeaconAndProbeRspSanity_Old(
 		{
 			UCHAR WscIe[] = {0xdd, 0x00, 0x00, 0x50, 0xF2, 0x04};
 			Ptr = (PUCHAR) pVIE;
-			WscIe[1] = PeerWscIeLen + 4;
+			WscIe[1] = (UCHAR)(PeerWscIeLen + 4);
 			NdisMoveMemory(Ptr + *LengthVIE, WscIe, 6);
 			NdisMoveMemory(Ptr + *LengthVIE + 6, pPeerWscIe, PeerWscIeLen);
 			*LengthVIE += (PeerWscIeLen + 6);
@@ -1921,7 +1921,7 @@ BOOLEAN PeerBeaconAndProbeRspSanity(
 
 				/* Copy to pVIE*/
 				Ptr = (PUCHAR) pVIE;
-				NdisMoveMemory(Ptr + *LengthVIE, &pEid->Eid, pEid->Len + 2);
+				NdisMoveMemory(Ptr + *LengthVIE, pEid, pEid->Len + 2);
 				*LengthVIE += (pEid->Len + 2);
 			}
 			break;
@@ -2062,7 +2062,7 @@ BOOLEAN PeerBeaconAndProbeRspSanity(
 	{
 		UCHAR WscIe[] = {0xdd, 0x00, 0x00, 0x50, 0xF2, 0x04};
 		Ptr = (PUCHAR) pVIE;
-		WscIe[1] = PeerWscIeLen + 4;
+		WscIe[1] = (UCHAR)(PeerWscIeLen + 4);
 		NdisMoveMemory(Ptr + *LengthVIE, WscIe, 6);
 		NdisMoveMemory(Ptr + *LengthVIE + 6, pPeerWscIe, PeerWscIeLen);
 		*LengthVIE += (PeerWscIeLen + 6);

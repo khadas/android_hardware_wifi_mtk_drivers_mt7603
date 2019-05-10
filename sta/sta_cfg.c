@@ -174,7 +174,7 @@ INT mcu_read(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
 
     testaddr = simple_strtol(arg, 0, 16);
     RTMP_MCU_IO_READ32(pAd, testaddr, &mac_val);
-    printk ("mcu_read [0x%08x]=0x%08x\n", testaddr, mac_val);
+	DBGPRINT(RT_DEBUG_OFF, ("mcu_read [0x%08x]=0x%08x\n", testaddr, mac_val));
 
     return TRUE;
 }
@@ -183,7 +183,7 @@ INT mcu_read(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
 INT mcu_write(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
 {
     UINT32 testdata = simple_strtol(arg, 0, 16);
-    printk ("mcu_write addr[0x%08x]=0x%08x\n", testaddr, testdata);
+	DBGPRINT(RT_DEBUG_OFF, ("mcu_write addr[0x%08x]=0x%08x\n", testaddr, testdata));
     RTMP_MCU_IO_WRITE32(pAd, testaddr, testdata);
 
     return TRUE;
@@ -193,7 +193,7 @@ INT	Set_STA_RadioOn_Proc(
 	IN	PRTMP_ADAPTER	pAd,
 	IN	RTMP_STRING *arg)
 {
-	UCHAR radio;
+	UINT32 radio;
 
 	radio = simple_strtol(arg, 0, 10);
 
@@ -672,7 +672,8 @@ static struct {
 	{"wow_hold",                    Set_WOW_Hold},
 	{"wow_inband",                  Set_WOW_InBand},
 	{"wow_interface",               Set_WOW_Interface},
-	{"wow_GPIOHighLow",             Set_WOW_GPIOHighLow},	
+	{"wow_GPIOHighLow",             Set_WOW_GPIOHighLow},
+	{"wow_keepalive",               Set_WOW_KeepAlive_Proc},
 #endif /*#ifdef MT_WOW_SUPPORT*/
 
 #ifdef RTMP_MAC_USB
@@ -763,6 +764,17 @@ static struct {
 	{"MT7603LEDEnhance",		Set_MT7603LED_Enhance_Proc},
 	{"MT7603LEDBehavior",		Set_MT7603LED_Behavor_Proc},
 #endif /* LED_CONTROL_SUPPORT */	
+#ifdef SMART_CARRIER_SENSE_SUPPORT
+	{"SCSEnable", SetSCSEnable_Proc},
+	{"SCSDbgLogEnable", SetSCSDbgLogEnable_Proc},
+	{"SCSCfg", SetSCSCfg_Proc},
+	{"SCSInfo", ShowSCSInfo},
+#endif /* SMART_CARRIER_SENSE_SUPPORT */
+
+	/* GPIO */
+	{"gpio_high", Set_GPIOHigh_Proc},
+	{"gpio_low", Set_GPIOLow_Proc},
+
 	{"ed_chk", Set_ed_chk_proc},
 	{NULL,}
 };
@@ -925,8 +937,15 @@ INT Set_SSID_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
 INT	Set_WmmCapable_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
 {
 	BOOLEAN	bWmmCapable;
+	LONG Value = 0;
+	INT ret = TRUE;
 
-	bWmmCapable = simple_strtol(arg, 0, 10);
+	ret = kstrtol(arg, 10, &Value);
+
+	if (ret < 0)
+		return FALSE;
+
+	bWmmCapable = (BOOLEAN)Value;
 
 	if ((bWmmCapable == 1)
 #ifdef RTMP_MAC_USB
@@ -1267,7 +1286,7 @@ INT Set_EncrypType_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
     else
         return FALSE;
 
-	if (pAd->StaCfg.BssType == BSS_ADHOC)
+    if (pAd->StaCfg.BssType == BSS_ADHOC)
 	{
 		/* Build all corresponding channel information */
 		RTMPSetPhyMode(pAd, pAd->CommonCfg.cfg_wmode);
@@ -1341,7 +1360,7 @@ INT Set_Wep_Key_Proc(
     switch (KeyLen)
     {
         case 5: /* wep 40 Ascii type */
-            pAdapter->SharedKey[BSS0][KeyId].KeyLen = KeyLen;
+			pAdapter->SharedKey[BSS0][KeyId].KeyLen = (UCHAR)KeyLen;
             memcpy(pAdapter->SharedKey[BSS0][KeyId].Key, Key, KeyLen);
             CipherAlg = CIPHER_WEP64;
             break;
@@ -1352,13 +1371,13 @@ INT Set_Wep_Key_Proc(
                 if( !isxdigit(*(Key+i)) )
                     return FALSE;  /*Not Hex value; */
             }
-            pAdapter->SharedKey[BSS0][KeyId].KeyLen = KeyLen / 2 ;
+			pAdapter->SharedKey[BSS0][KeyId].KeyLen = (UCHAR)(KeyLen / 2);
             AtoH(Key, pAdapter->SharedKey[BSS0][KeyId].Key, KeyLen / 2);
             CipherAlg = CIPHER_WEP64;
             break;
 
         case 13: /* wep 104 Ascii type */
-            pAdapter->SharedKey[BSS0][KeyId].KeyLen = KeyLen;
+			pAdapter->SharedKey[BSS0][KeyId].KeyLen = (UCHAR)KeyLen;
             memcpy(pAdapter->SharedKey[BSS0][KeyId].Key, Key, KeyLen);
             CipherAlg = CIPHER_WEP128;
             break;
@@ -1369,7 +1388,7 @@ INT Set_Wep_Key_Proc(
                 if( !isxdigit(*(Key+i)) )
                     return FALSE;  /*Not Hex value; */
             }
-            pAdapter->SharedKey[BSS0][KeyId].KeyLen = KeyLen / 2 ;
+			pAdapter->SharedKey[BSS0][KeyId].KeyLen = (UCHAR)(KeyLen / 2);
             AtoH(Key, pAdapter->SharedKey[BSS0][KeyId].Key, KeyLen / 2);
             CipherAlg = CIPHER_WEP128;
             break;
@@ -1388,7 +1407,7 @@ INT Set_Wep_Key_Proc(
     {
         AsicAddSharedKeyEntry(pAdapter,
                               0,
-                              KeyId,
+							(UCHAR)KeyId,
                               &pAdapter->SharedKey[BSS0][KeyId]);
 #ifdef MT_MAC
 		SetWepKeyForMT(pAdapter, KeyId);
@@ -1408,14 +1427,14 @@ INT Set_Wep_Key_Proc(
 */
 INT Set_Key1_Proc(RTMP_ADAPTER *pAdapter, RTMP_STRING *arg)
 {
-    int                                 KeyLen;
+	UCHAR                               KeyLen;
     int                                 i;
     UCHAR                               CipherAlg=CIPHER_WEP64;
 
     if (pAdapter->StaCfg.wdev.AuthMode >= Ndis802_11AuthModeWPA)
         return TRUE;    /* do nothing */
 
-    KeyLen = strlen(arg);
+    KeyLen = (UCHAR)strlen(arg);
 
     switch (KeyLen)
     {
@@ -1488,14 +1507,14 @@ INT Set_Key1_Proc(RTMP_ADAPTER *pAdapter, RTMP_STRING *arg)
 */
 INT Set_Key2_Proc(RTMP_ADAPTER *pAdapter, RTMP_STRING *arg)
 {
-    int                                 KeyLen;
+	UCHAR                               KeyLen;
     int                                 i;
     UCHAR                               CipherAlg=CIPHER_WEP64;
 
     if (pAdapter->StaCfg.wdev.AuthMode >= Ndis802_11AuthModeWPA)
         return TRUE;    /* do nothing */
 
-    KeyLen = strlen(arg);
+    KeyLen = (UCHAR)strlen(arg);
 
     switch (KeyLen)
     {
@@ -1566,14 +1585,14 @@ INT Set_Key2_Proc(RTMP_ADAPTER *pAdapter, RTMP_STRING *arg)
 */
 INT Set_Key3_Proc(RTMP_ADAPTER *pAdapter, RTMP_STRING *arg)
 {
-    int                                 KeyLen;
+	UCHAR                               KeyLen;
     int                                 i;
     UCHAR                               CipherAlg=CIPHER_WEP64;
 
     if (pAdapter->StaCfg.wdev.AuthMode >= Ndis802_11AuthModeWPA)
         return TRUE;    /* do nothing */
 
-    KeyLen = strlen(arg);
+    KeyLen = (UCHAR)strlen(arg);
 
     switch (KeyLen)
     {
@@ -1644,14 +1663,14 @@ INT Set_Key3_Proc(RTMP_ADAPTER *pAdapter, RTMP_STRING *arg)
 */
 INT Set_Key4_Proc(RTMP_ADAPTER *pAdapter, RTMP_STRING *arg)
 {
-    int                                 KeyLen;
+	UCHAR                               KeyLen;
     int                                 i;
     UCHAR                               CipherAlg=CIPHER_WEP64;
 
     if (pAdapter->StaCfg.wdev.AuthMode >= Ndis802_11AuthModeWPA)
         return TRUE;    /* do nothing */
 
-    KeyLen = strlen(arg);
+    KeyLen = (UCHAR)strlen(arg);
 
     switch (KeyLen)
     {
@@ -3144,11 +3163,11 @@ VOID RTMPAddKey(RTMP_ADAPTER *pAd, PNDIS_802_11_KEY pKey)
 
 					/* update WCID attribute table and IVEIV table for this entry */
 					RTMPSetWcidSecurityInfo(pAd,
-											BSS0,
-											KeyIdx,
-											pEntry->PairwiseKey.CipherAlg,
-											pEntry->wcid,
-											PAIRWISEKEYTABLE);
+						BSS0,
+						(UINT8)KeyIdx,
+						pEntry->PairwiseKey.CipherAlg,
+						pEntry->wcid,
+						PAIRWISEKEYTABLE);
 				}
 			}
 			else
@@ -3170,7 +3189,8 @@ VOID RTMPAddKey(RTMP_ADAPTER *pAd, PNDIS_802_11_KEY pKey)
     			Key = pAd->SharedKey[BSS0][KeyIdx].Key;
 
 				/* Set Group key material to Asic */
-    			AsicAddSharedKeyEntry(pAd, BSS0, KeyIdx, &pAd->SharedKey[BSS0][KeyIdx]);
+				AsicAddSharedKeyEntry(pAd, BSS0,
+					(UCHAR)KeyIdx, &pAd->SharedKey[BSS0][KeyIdx]);
 
 #if 0
 				/* STA doesn't need to set WCID attribute for group key */
@@ -3318,7 +3338,7 @@ VOID StaSiteSurvey(
 		INT32 cli_idx = 0;
 		for (cli_idx=0; cli_idx < MAX_APCLI_NUM; cli_idx++)
 		{
-			if (pAd && pAd->ApCfg.ApCliTab[cli_idx].CtrlCurrState == APCLI_CTRL_CONNECTED)
+			if (pAd->ApCfg.ApCliTab[cli_idx].CtrlCurrState == APCLI_CTRL_CONNECTED)
 			{
 				pAd->StaCfg.bImprovedScan = TRUE;
 				pAd->StaCfg.ScanChannelCnt = 0; /* reset channel counter to 0 */
@@ -3577,7 +3597,58 @@ INT Set_WOW_GPIOHighLow(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
 
 	return TRUE;
 }
+
+/* set WOW keep alive null frame period */
+INT Set_WOW_KeepAlive_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
+{
+	ULONG Value = simple_strtol(arg, 0, 10);
+
+	DBGPRINT(RT_DEBUG_OFF, ("keep alive enter: arg=%s\n", arg));
+
+	/* if 0: NOT to configure. non-0: set value 1~15 */
+	pAd->WOW_Cfg.nKeepAlivePeriod = ((UINT8)Value) & 0xf;
+
+	DBGPRINT(RT_DEBUG_OFF, ("keep alive period = %d\n", pAd->WOW_Cfg.nKeepAlivePeriod));
+
+	return TRUE;
+}
 #endif /*#ifdef MT_WOW_SUPPORT*/
+
+INT Set_GPIOHigh_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
+{
+	LONG input = 0;
+
+	int bEnable = kstrtol(arg, 10, &input);
+
+	if (bEnable < 0)
+		return FALSE;
+
+	if (input > GPIO16)
+		return FALSE;
+
+	GPIODirectionOuput(pAd, (UINT32)input, OUTPUT_HIGH);
+
+	DBGPRINT(RT_DEBUG_TRACE, ("[%s] gpio=%lu\n", __func__, input));
+	return TRUE;
+}
+
+INT Set_GPIOLow_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
+{
+	LONG input = 0;
+
+	int bEnable = kstrtol(arg, 10, &input);
+
+	if (bEnable < 0)
+		return FALSE;
+
+	if (input > GPIO16)
+		return FALSE;
+
+	GPIODirectionOuput(pAd, (UINT32)input, OUTPUT_LOW);
+
+	DBGPRINT(RT_DEBUG_TRACE, ("[%s] gpio=%lu\n", __func__, input));
+	return TRUE;
+}
 
 #ifdef RTMP_MAC_USB
 /* Sets the FW into WOW Suspend mode */
@@ -3819,7 +3890,9 @@ INT RTMPSetInformation(
 	    				NdisMoveMemory(pAd->StaCfg.WpaPassPhrase, &ppassphrase->KeyMaterial, ppassphrase->KeyLength);
 	   					pAd->StaCfg.WpaPassPhraseLen = ppassphrase->KeyLength;
 						hex_dump("pAd->StaCfg.WpaPassPhrase", pAd->StaCfg.WpaPassPhrase, 64);
-						printk("WpaPassPhrase=%s\n",pAd->StaCfg.WpaPassPhrase);
+						DBGPRINT(RT_DEBUG_OFF,
+							("WpaPassPhrase=%s\n",
+							pAd->StaCfg.WpaPassPhrase));
 					}
                 }
             }
@@ -3904,7 +3977,7 @@ INT RTMPSetInformation(
 			Status = copy_from_user(&PhyMode, wrq->u.data.pointer, wrq->u.data.length);
 			if (PhyMode <= MaxPhyMode)
 			{
-				pAd->CommonCfg.cfg_wmode = PhyMode;
+				pAd->CommonCfg.cfg_wmode = (UCHAR)PhyMode;
 				RTMPSetPhyMode(pAd, PhyMode);
 			}
 			DBGPRINT(RT_DEBUG_TRACE, ("Set::RT_OID_802_11_PHY_MODE (=%d)\n", PhyMode));
@@ -3916,7 +3989,7 @@ INT RTMPSetInformation(
             else
             {
                 Status = copy_from_user(&StaConfig, wrq->u.data.pointer, wrq->u.data.length);
-                pAd->CommonCfg.bEnableTxBurst = StaConfig.EnableTxBurst;
+				pAd->CommonCfg.bEnableTxBurst = (BOOLEAN)StaConfig.EnableTxBurst;
                 pAd->CommonCfg.UseBGProtection = StaConfig.UseBGProtection;
                 pAd->CommonCfg.bUseShortSlotTime = 1; /* 2003-10-30 always SHORT SLOT capable */
                 if ((pAd->CommonCfg.PhyMode != StaConfig.AdhocMode) &&
@@ -4790,7 +4863,8 @@ INT RTMPSetInformation(
                         NdisMoveMemory(pAd->StaCfg.wpa_supplicant_info.DesireSharedKey[KeyIdx].Key,
 								&pWepKey->KeyMaterial,
 								pWepKey->KeyLength);
-                        pAd->StaCfg.wpa_supplicant_info.DesireSharedKeyId = KeyIdx;
+						pAd->StaCfg.wpa_supplicant_info.DesireSharedKeyId =
+							(UCHAR)KeyIdx;
                         pAd->StaCfg.wpa_supplicant_info.DesireSharedKey[KeyIdx].CipherAlg = CipherAlg;
 #endif /* WPA_SUPPLICANT_SUPPORT */
                         wdev->DefaultKeyId = (UCHAR) KeyIdx;
@@ -4803,7 +4877,9 @@ INT RTMPSetInformation(
 						Key = pWepKey->KeyMaterial;
 
 						/* Set Group key material to Asic */
-    					AsicAddSharedKeyEntry(pAd, BSS0, KeyIdx, &pAd->SharedKey[BSS0][KeyIdx]);
+						AsicAddSharedKeyEntry(pAd, BSS0,
+							(UCHAR)KeyIdx,
+							&pAd->SharedKey[BSS0][KeyIdx]);
 
 #if 0
 						/* STA doesn't need to set WCID attribute for group key */
@@ -4818,7 +4894,9 @@ INT RTMPSetInformation(
                         Key = pAd->SharedKey[BSS0][KeyIdx].Key;
 
                         /* Set key material and cipherAlg to Asic */
-        				AsicAddSharedKeyEntry(pAd, BSS0, KeyIdx, &pAd->SharedKey[BSS0][KeyIdx]);
+						AsicAddSharedKeyEntry(pAd, BSS0,
+							(UCHAR)KeyIdx,
+							&pAd->SharedKey[BSS0][KeyIdx]);
 
                         if (pWepKey->KeyIndex & 0x80000000)
                         {
@@ -4829,11 +4907,11 @@ INT RTMPSetInformation(
 #endif
     						/* Assign pairwise key info */
     						RTMPSetWcidSecurityInfo(pAd,
-												 BSS0,
-												 KeyIdx,
-												 CipherAlg,
-												 BSSID_WCID,
-												 SHAREDKEYTABLE);
+								BSS0,
+								(UINT8)KeyIdx,
+								CipherAlg,
+								BSSID_WCID,
+								SHAREDKEYTABLE);
                         }
                     }
 					DBGPRINT(RT_DEBUG_TRACE, ("Set::OID_802_11_ADD_WEP (id=0x%x, Len=%d-byte), Port %s Secured\n",
@@ -6659,7 +6737,7 @@ ACM_BANDWIDTH_INFO BwInfo, *pInfo;
             DBGPRINT(RT_DEBUG_TRACE, ("Query::OID_802_11_WEP_STATUS(=%d)\n", WepStatus));
             break;
         case OID_802_11_TX_POWER_LEVEL:
-			wrq->u.data.length = sizeof(ULONG);
+			wrq->u.data.length = sizeof(UCHAR);
 			Status = copy_to_user(wrq->u.data.pointer, &pAd->CommonCfg.TxPower, wrq->u.data.length);
 			DBGPRINT(RT_DEBUG_TRACE, ("Query::OID_802_11_TX_POWER_LEVEL %x\n",pAd->CommonCfg.TxPower));
 			break;
@@ -6782,7 +6860,7 @@ ACM_BANDWIDTH_INFO BwInfo, *pInfo;
 				apsd,pAd->StaCfg.wdev.UapsdInfo.bAPSDCapable,pAd->CommonCfg.bAPSDAC_BE,pAd->CommonCfg.bAPSDAC_BK,pAd->CommonCfg.bAPSDAC_VI,pAd->CommonCfg.bAPSDAC_VO,pAd->CommonCfg.MaxSPLength));
 			break;
 		case RT_OID_802_11_QUERY_APSD_PSM:
-			wrq->u.data.length = sizeof(ULONG);
+			wrq->u.data.length = sizeof(BOOLEAN);
 			Status = copy_to_user(wrq->u.data.pointer, &pAd->CommonCfg.bAPSDForcePowerSave, wrq->u.data.length);
 			DBGPRINT(RT_DEBUG_TRACE, ("Query::RT_OID_802_11_QUERY_APSD_PSM (=%d)\n", pAd->CommonCfg.bAPSDForcePowerSave));
 			break;
@@ -7359,7 +7437,7 @@ ACM_BANDWIDTH_INFO BwInfo, *pInfo;
 					pUICli = &pUI_table->Client[i];
 	 				NdisMoveMemory(pUICli, pPAdCli, sizeof(RT_P2P_CLIENT_ENTRY));
 				}
-				printk("Query::OID_802_11_P2P_SCAN_LIST\n");
+				DBGPRINT(RT_DEBUG_OFF, ("Query::OID_802_11_P2P_SCAN_LIST\n"));
 				Status = copy_to_user(wrq->u.data.pointer, pUI_table, sizeof(RT_P2P_UI_TABLE));
 				DBGPRINT(RT_DEBUG_TRACE, ("Query::OID_802_11_P2P_SCAN_LIST (Len=%d, Rule=%s)\n", sizeof(char),pAd->P2pCfg.GroupOpChannel));
 				os_free_mem(NULL, pUI_table);
@@ -7993,16 +8071,20 @@ ACM_BANDWIDTH_INFO BwInfo, *pInfo;
 				Status = copy_from_user(pBuf, wrq->u.data.pointer, wrq->u.data.length);
 				Info = (struct bbp32_info *)pBuf;
 
-				printk("Info->bbp_start = %x\n",  Info->bbp_start);
-				printk("Info->bbp_end = %x\n",  Info->bbp_end);
+				DBGPRINT(RT_DEBUG_OFF,
+					("Info->bbp_start = %x\n",
+					Info->bbp_start));
+				DBGPRINT(RT_DEBUG_OFF, ("Info->bbp_end = %x\n",  Info->bbp_end));
 
 
 				for (Index = Info->bbp_start; Index <= Info->bbp_end; Index += 4)
 				{
 					UINT32 Value;
 					RTMP_IO_READ32(pAd, Index + pAd->chipCap.BBPMemMapOffset, &Value);
-					printk("Offset = %x\n", Index + pAd->chipCap.BBPMemMapOffset);
-					printk("Value = %x\n", Value);
+					DBGPRINT(RT_DEBUG_OFF,
+						("Offset = %x\n",
+						Index + pAd->chipCap.BBPMemMapOffset));
+					DBGPRINT(RT_DEBUG_OFF, ("Value = %x\n", Value));
 					NdisMoveMemory(Info->bbp_value + j, &Value, 4);
 					j++;
 				}
@@ -8114,9 +8196,13 @@ ACM_BANDWIDTH_INFO BwInfo, *pInfo;
 				Status = copy_from_user(pBuf, wrq->u.data.pointer, wrq->u.data.length);
 				Info = (struct mem_map_info *)pBuf;
 
-				printk("Info->base = %x\n", Info->base);
-				printk("Info->mem_map_start = %x\n",  Info->mem_map_start);
-				printk("Info->mem_map_end = %x\n",  Info->mem_map_end);
+				DBGPRINT(RT_DEBUG_OFF, ("Info->base = %x\n", Info->base));
+				DBGPRINT(RT_DEBUG_OFF,
+					("Info->mem_map_start = %x\n",
+					Info->mem_map_start));
+				DBGPRINT(RT_DEBUG_OFF,
+					("Info->mem_map_end = %x\n",
+					Info->mem_map_end));
 
 
 				for (Index = Info->mem_map_start; Index <= Info->mem_map_end; Index += 4)
@@ -8150,8 +8236,12 @@ ACM_BANDWIDTH_INFO BwInfo, *pInfo;
 				Status = copy_from_user(pBuf, wrq->u.data.pointer, wrq->u.data.length);
 				Info = (struct e2p_info *)pBuf;
 
-				printk("Info->e2p_start = %x\n",  Info->e2p_start);
-				printk("Info->e2p_end = %x\n",  Info->e2p_end);
+				DBGPRINT(RT_DEBUG_OFF,
+					("Info->e2p_start = %x\n",
+					Info->e2p_start));
+				DBGPRINT(RT_DEBUG_OFF,
+					("Info->e2p_end = %x\n",
+					Info->e2p_end));
 
 
 				for (Index = Info->e2p_start; Index <= Info->e2p_end; Index += 2)
@@ -8185,16 +8275,19 @@ ACM_BANDWIDTH_INFO BwInfo, *pInfo;
 				Status = copy_from_user(pBuf, wrq->u.data.pointer, wrq->u.data.length);
 				Info = (struct mac_info *)pBuf;
 
-				printk("Info->mac_start = %x\n",  Info->mac_start);
-				printk("Info->mac_end = %x\n",  Info->mac_end);
+				DBGPRINT(RT_DEBUG_OFF,
+					("Info->mac_start = %x\n",
+					Info->mac_start));
+				DBGPRINT(RT_DEBUG_OFF, ("Info->mac_end = %x\n",  Info->mac_end));
 
 
 				for (Index = Info->mac_start; Index <= Info->mac_end; Index += 4)
 				{
 					UINT32 Value;
 					RTMP_IO_READ32(pAd, Index + pAd->chipCap.MacMemMapOffset, &Value);
-					printk("Offset = %x\n", Index + pAd->chipCap.MacMemMapOffset);
-					printk("Value = %x\n", Value);
+					DBGPRINT(RT_DEBUG_OFF, ("Offset = %x\n",
+						Index + pAd->chipCap.MacMemMapOffset));
+					DBGPRINT(RT_DEBUG_OFF, ("Value = %x\n", Value));
 					NdisMoveMemory(Info->mac_value + j, &Value, 4);
 					j++;
 				}
@@ -8601,7 +8694,7 @@ next:
 					/* write data to file */
 					file_w->f_op->write(file_w, msg, strlen(msg), &file_w->f_pos);
 
-					printk("%s", msg);
+					DBGPRINT(RT_DEBUG_OFF, ("%s", msg));
 					eepAddr += 2;
 				}
 				sprintf(msg, "\nDump all EEPROM values to %s\n", fileName);
@@ -8619,7 +8712,7 @@ next:
 #endif /* RELEASE_EXCLUDE */
 
 	/* Copy the information into the user buffer */
-	wrq->u.data.length = strlen(msg);
+	wrq->u.data.length = (UINT16)strlen(msg);
 	Status = copy_to_user(wrq->u.data.pointer, msg, wrq->u.data.length);
 
 LabelOK:
@@ -8915,19 +9008,21 @@ VOID RTMPAPIoctlRF_mt7603(RTMP_ADAPTER *pAd, RTMP_IOCTL_INPUT_STRUCT *wrq)
 	if (bIsPrintAllRF)
 	{
 		RTMPZeroMemory(msg, memLen);
-		sprintf(msg, "WF0 : \n");
+		snprintf(msg, memLen, "WF0 :\n");
 		for (offset = 0; offset < 0x1000; offset+=4)
 		{
 			CmdRFRegAccessRead(pAd, (UINT32)0, (UINT32)offset, (UINT32 *)&regRF);
-			sprintf(msg+strlen(msg), "0x%08X = 0x%08X\n", offset, regRF);
+			snprintf(msg+strlen(msg), memLen-strlen(msg),
+				"0x%08X = 0x%08X\n", offset, regRF);
 		}
 
-		sprintf(msg+strlen(msg), "\n");
-		sprintf(msg+strlen(msg), "WF1 : \n");
+		snprintf(msg+strlen(msg), memLen-strlen(msg), "\n");
+		snprintf(msg+strlen(msg), memLen-strlen(msg), "WF1 :\n");
 		for (offset = 0; offset < 0x1000; offset+=4)
 		{
 			CmdRFRegAccessRead(pAd, (UINT32)1, (UINT32)offset, (UINT32 *)&regRF);
-			sprintf(msg+strlen(msg), "0x%08X = 0x%08X\n", offset, regRF);
+			snprintf(msg+strlen(msg), memLen-strlen(msg),
+				"0x%08X = 0x%08X\n", offset, regRF);
 		}
 
 		RtmpDrvAllRFPrint(NULL, msg, strlen(msg));
@@ -8935,7 +9030,7 @@ VOID RTMPAPIoctlRF_mt7603(RTMP_ADAPTER *pAd, RTMP_IOCTL_INPUT_STRUCT *wrq)
 		DBGPRINT(RT_DEBUG_TRACE, ("strlen(msg)=%d\n", (UINT32)strlen(msg)));
 		/* Copy the information into the user buffer */
 #ifdef LINUX
-		wrq->u.data.length = strlen("Dump to RFDump.txt");
+		wrq->u.data.length = (UINT16)strlen("Dump to RFDump.txt");
 		if (copy_to_user(wrq->u.data.pointer, "Dump to RFDump.txt", wrq->u.data.length))
 		{
 			DBGPRINT(RT_DEBUG_TRACE, ("%s: copy_to_user() fail\n", __FUNCTION__));
@@ -9849,42 +9944,40 @@ VOID RTMPIoctlShow(
             }
             else
             {
-                if (pAd->IndicateMediaState == NdisMediaStateConnected)
-            	{
-            	    if (INFRA_ON(pAd))
-                    {
-                    snprintf(extra, size, "Connected(AP: %s[%02X:%02X:%02X:%02X:%02X:%02X])\n",
-                                    pAd->CommonCfg.Ssid,
-                                    pAd->CommonCfg.Bssid[0],
-                                    pAd->CommonCfg.Bssid[1],
-                                    pAd->CommonCfg.Bssid[2],
-                                    pAd->CommonCfg.Bssid[3],
-                                    pAd->CommonCfg.Bssid[4],
-                                    pAd->CommonCfg.Bssid[5]);
-            		DBGPRINT(RT_DEBUG_TRACE ,("Ssid=%s ,Ssidlen = %d\n",pAd->CommonCfg.Ssid, pAd->CommonCfg.SsidLen));
-            	}
-                    else if (ADHOC_ON(pAd))
-                        snprintf(extra, size, "Connected\n");
-            	}
-            	else
-            	{
-            	    snprintf(extra, size, "Disconnected\n");
-            		DBGPRINT(RT_DEBUG_TRACE ,("ConnStatus is not connected\n"));
-            	}
+				if (INFRA_ON(pAd)) {
+					snprintf(extra, size,
+						"Connected(AP: %s[%02X:%02X:%02X:%02X:%02X:%02X])\n",
+						pAd->CommonCfg.Ssid,
+						pAd->CommonCfg.Bssid[0],
+						pAd->CommonCfg.Bssid[1],
+						pAd->CommonCfg.Bssid[2],
+						pAd->CommonCfg.Bssid[3],
+						pAd->CommonCfg.Bssid[4],
+						pAd->CommonCfg.Bssid[5]);
+					DBGPRINT(RT_DEBUG_TRACE,
+						("Ssid=%s ,Ssidlen = %d\n",
+						pAd->CommonCfg.Ssid,
+						pAd->CommonCfg.SsidLen));
+				} else if (ADHOC_ON(pAd)) {
+					snprintf(extra, size, "Connected\n");
+				} else {
+					snprintf(extra, size, "Disconnected\n");
+					DBGPRINT(RT_DEBUG_TRACE, ("ConnStatus is not connected\n"));
+				}
             }
-            wrq->u.data.length = strlen(extra) + 1; /* 1: size of '\0' */
+			wrq->u.data.length = (UINT16)(strlen(extra) + 1); /* 1: size of '\0' */
             break;
         case SHOW_DRVIER_VERION:
-            //snprintf(extra, size, "Driver version-%s, %s %s\n", STA_DRIVER_VERSION, __DATE__, __TIME__ );
+			snprintf(extra, size, "Driver version-%s\n", STA_DRIVER_VERSION);
 #ifdef MESH_SUPPORT
 	     			sprintf(extra+strlen(extra), "Support MESH \n");
 #endif /* MESH_SUPPORT */
-            wrq->u.data.length = strlen(extra) + 1; /* 1: size of '\0' */
+			wrq->u.data.length = (UINT16)(strlen(extra) + 1); /* 1: size of '\0' */
             break;
 #ifdef DOT11_N_SUPPORT
         case SHOW_BA_INFO:
             getBaInfo(pAd, extra, size);
-            wrq->u.data.length = strlen(extra) + 1; /* 1: size of '\0' */
+			wrq->u.data.length = (UINT16)(strlen(extra) + 1); /* 1: size of '\0' */
             break;
 #endif /* DOT11_N_SUPPORT */
 		case SHOW_DESC_INFO:
@@ -9959,7 +10052,7 @@ VOID RTMPIoctlShow(
                 }
             }
             snprintf(extra, size, "Radio Off\n");
-            wrq->u.data.length = strlen(extra) + 1; /* 1: size of '\0' */
+			wrq->u.data.length = (UINT16)(strlen(extra) + 1); /* 1: size of '\0' */
             break;
         case RAIO_ON:
             pAd->StaCfg.bSwRadio = TRUE;
@@ -9975,7 +10068,7 @@ VOID RTMPIoctlShow(
                 }
             }
             snprintf(extra, size, "Radio On\n");
-            wrq->u.data.length = strlen(extra) + 1; /* 1: size of '\0' */
+			wrq->u.data.length = (UINT16)(strlen(extra) + 1); /* 1: size of '\0' */
             break;
 
 #ifdef MESH_SUPPORT
@@ -10060,15 +10153,16 @@ VOID RTMPIoctlShow(
 
 		case SHOW_CFG_VALUE:
 			{
-				Status = RTMPShowCfgValue(pAd, (RTMP_STRING *) wrq->u.data.pointer,
-										extra, pIoctlShow->MaxSize);
+				Status = RTMPShowCfgValue(pAd,
+					(RTMP_STRING *) wrq->u.data.pointer,
+					extra, pIoctlShow->MaxSize);
 				if (Status == 0)
-					wrq->u.data.length = strlen(extra) + 1; /* 1: size of '\0' */
+					wrq->u.data.length = (UINT16)(strlen(extra) + 1); /* 1: size of '\0' */
 			}
 			break;
 		case SHOW_ADHOC_ENTRY_INFO:
 			Show_Adhoc_MacTable_Proc(pAd, extra, size);
-			wrq->u.data.length = strlen(extra) + 1; /* 1: size of '\0' */
+			wrq->u.data.length = (UINT16)(strlen(extra) + 1); /* 1: size of '\0' */
 			break;
 
 #ifdef WMM_ACM_SUPPORT
@@ -10081,7 +10175,9 @@ VOID RTMPIoctlShow(
         case SHOW_ACM_STREAM:
             AcmCmdStreamGuiDisplay(pAd, extra, size);
             wrq->u.data.length = strlen(extra) + 1; /* 1: size of '\0' */
-            printk("SHOW_ACM_STREAM - wrq->length = %d\n", wrq->u.data.length);
+			DBGPRINT(RT_DEBUG_OFF,
+				("SHOW_ACM_STREAM - wrq->length = %d\n",
+				wrq->u.data.length));
             break;
 
 #endif
@@ -10250,9 +10346,9 @@ RtmpIoctl_rt_ioctl_siwfreq(
 		MAP_KHZ_TO_CHANNEL_ID( freq , chan); /* Setting by frequency - search the table , like 2.412G, 2.422G, */
 	}
 
-    if (ChannelSanity(pAd, chan) == TRUE)
+	if (ChannelSanity(pAd, (UCHAR)chan) == TRUE)
     {
-	pAd->CommonCfg.Channel = chan;
+	pAd->CommonCfg.Channel = (UCHAR)chan;
 		/* Save the channel on MlmeAux for CntlOidRTBssidProc used. */
 		pAd->MlmeAux.Channel = pAd->CommonCfg.Channel;
 		/*save connect info*/
@@ -10262,7 +10358,7 @@ RtmpIoctl_rt_ioctl_siwfreq(
     else
         return NDIS_STATUS_FAILURE;
 
-	return NDIS_STATUS_SUCCESS;
+    return NDIS_STATUS_SUCCESS;
 }
 
 
@@ -10574,11 +10670,15 @@ INT RtmpIoctl_rt_ioctl_siwscan(RTMP_ADAPTER *pAd, VOID *pData, ULONG Data)
 		{
 				NDIS_802_11_SSID          Ssid;
 				Ssid.SsidLength = pConfig->SsidLen;
+
+				if (Ssid.SsidLength > MAX_LEN_OF_SSID)
+					Ssid.SsidLength = MAX_LEN_OF_SSID;
+
 				DBGPRINT(RT_DEBUG_TRACE, ("rt_ioctl_siwscan:: req.essid_len-%d, essid-%s\n", pConfig->SsidLen, pConfig->pSsid));
 				NdisZeroMemory(&Ssid.Ssid, NDIS_802_11_LENGTH_SSID);
 				NdisMoveMemory(Ssid.Ssid, pConfig->pSsid, Ssid.SsidLength);
 				pAd->MlmeAux.params.FlgScanThisSsid = pConfig->FlgScanThisSsid;
-				StaSiteSurvey(pAd, &Ssid, scanType);
+				StaSiteSurvey(pAd, &Ssid, (UCHAR)scanType);
 		}
 		else
 #endif /* WPA_SUPPLICANT_SUPPORT */
@@ -10591,7 +10691,7 @@ INT RtmpIoctl_rt_ioctl_siwscan(RTMP_ADAPTER *pAd, VOID *pData, ULONG Data)
                }
                else
 #endif
-		StaSiteSurvey(pAd, NULL, scanType);
+		StaSiteSurvey(pAd, NULL, (UCHAR)scanType);
 	}while(0);
 
 	pConfig->Status = Status;
@@ -10718,9 +10818,9 @@ RtmpIoctl_rt_ioctl_giwscan(
 		pBssTable->SsidLen = pBssEntry->SsidLen;
 		memcpy(pBssTable->Ssid, pBssEntry->Ssid, 32);
 		pBssTable->CapabilityInfo = pBssEntry->CapabilityInfo;
-		pBssTable->ChannelWidth = capInfo.ChannelWidth;
-		pBssTable->ShortGIfor40 = capInfo.ShortGIfor40;
-		pBssTable->ShortGIfor20 = capInfo.ShortGIfor20;
+		pBssTable->ChannelWidth = (UCHAR)capInfo.ChannelWidth;
+		pBssTable->ShortGIfor40 = (UCHAR)capInfo.ShortGIfor40;
+		pBssTable->ShortGIfor20 = (UCHAR)capInfo.ShortGIfor20;
 		pBssTable->MCSSet = pBssEntry->HtCapability.MCSSet[1];
 		pBssTable->WpaIeLen = pBssEntry->WpaIE.IELen;
 		pBssTable->pWpaIe = pBssEntry->WpaIE.IE;
@@ -10942,7 +11042,7 @@ RtmpIoctl_rt_ioctl_siwrts(
 	IN	VOID					*pData,
 	IN	ULONG					Data)
 {
-	pAd->CommonCfg.RtsThreshold = Data;
+	pAd->CommonCfg.RtsThreshold = (USHORT)Data;
 	return NDIS_STATUS_SUCCESS;
 }
 
@@ -10996,7 +11096,7 @@ RtmpIoctl_rt_ioctl_siwfrag(
 	IN	VOID					*pData,
 	IN	ULONG					Data)
 {
-	pAd->CommonCfg.FragmentThreshold = Data;
+	pAd->CommonCfg.FragmentThreshold = (USHORT)Data;
 	return NDIS_STATUS_SUCCESS;
 }
 
@@ -11093,7 +11193,7 @@ INT RtmpIoctl_rt_ioctl_siwencode(RTMP_ADAPTER *pAd, VOID *pData, ULONG Data)
 			keyIdx = wdev->DefaultKeyId;
         }
 		else
-			wdev->DefaultKeyId = keyIdx;
+			wdev->DefaultKeyId = (UCHAR)keyIdx;
 
         NdisZeroMemory(pAd->SharedKey[BSS0][keyIdx].Key,  16);
 
@@ -11124,7 +11224,7 @@ INT RtmpIoctl_rt_ioctl_siwencode(RTMP_ADAPTER *pAd, VOID *pData, ULONG Data)
 		int index = pIoctlSec->KeyIdx; /*(erq->flags & IW_ENCODE_INDEX) - 1; */
 		if ((index >= 0) && (index < 4))
         {
-			pAd->StaCfg.wdev.DefaultKeyId = index;
+			pAd->StaCfg.wdev.DefaultKeyId = (UCHAR)index;
             }
         else
 			/* Don't complain if only change the mode */
@@ -11257,7 +11357,7 @@ RtmpIoctl_rt_ioctl_siwmlme(
 		case RT_CMD_STA_IOCTL_IW_MLME_DEAUTH:
 			DBGPRINT(RT_DEBUG_TRACE, ("====> %s - IW_MLME_DEAUTH\n", __FUNCTION__));
 			COPY_MAC_ADDR(DeAuthReq.Addr, pAd->CommonCfg.Bssid);
-			DeAuthReq.Reason = reason_code;
+			DeAuthReq.Reason = (USHORT)reason_code;
 			pMsgElem->MsgLen = sizeof(MLME_DEAUTH_REQ_STRUCT);
 			NdisMoveMemory(pMsgElem->Msg, &DeAuthReq, sizeof(MLME_DEAUTH_REQ_STRUCT));
 			MlmeDeauthReqAction(pAd, pMsgElem);
@@ -11276,7 +11376,7 @@ RtmpIoctl_rt_ioctl_siwmlme(
 			pAd->StaCfg.ConnectinfoChannel = 0;
 
 			COPY_MAC_ADDR(DisAssocReq.Addr, pAd->CommonCfg.Bssid);
-			DisAssocReq.Reason =  reason_code;
+			DisAssocReq.Reason =  (USHORT)reason_code;
 
 			pMsgElem->Machine = ASSOC_STATE_MACHINE;
 			pMsgElem->MsgType = MT2_MLME_DISASSOC_REQ;
@@ -11565,11 +11665,11 @@ void fnSetCipherKey(
 	}
 	else
 	{
-			pAd->StaCfg.wdev.DefaultKeyId = keyIdx;
+			pAd->StaCfg.wdev.DefaultKeyId = (UCHAR)keyIdx;
 		    	/* Update group key information to ASIC Shared Key Table */
 			AsicAddSharedKeyEntry(pAd,
-								  BSS0,
-								  keyIdx,
+								  (UCHAR)BSS0,
+								  (UCHAR)keyIdx,
 								  &pAd->SharedKey[BSS0][keyIdx]);
 #ifdef MT_MAC
     	if (pAd->chipCap.hif_type == HIF_MT)
@@ -11629,7 +11729,7 @@ INT RtmpIoctl_rt_ioctl_siwencodeext(RTMP_ADAPTER *pAd, VOID *pData, ULONG Data)
 
         if (pIoctlSec->ext_flags & RT_CMD_STA_IOCTL_SECURTIY_EXT_SET_TX_KEY)
         {
-            wdev->DefaultKeyId = keyIdx;
+			wdev->DefaultKeyId = (UCHAR)keyIdx;
             DBGPRINT(RT_DEBUG_TRACE, ("%s::DefaultKeyId = %d\n", __FUNCTION__, wdev->DefaultKeyId));
         }
 
@@ -11660,7 +11760,8 @@ INT RtmpIoctl_rt_ioctl_siwencodeext(RTMP_ADAPTER *pAd, VOID *pData, ULONG Data)
 					(pAd->StaCfg.GroupCipher == Ndis802_11GroupWEP104Enabled))
 				{
 					/* Set Group key material to Asic */
-					AsicAddSharedKeyEntry(pAd, BSS0, keyIdx, &pAd->SharedKey[BSS0][keyIdx]);
+					AsicAddSharedKeyEntry(pAd, BSS0,
+						(UCHAR)keyIdx, &pAd->SharedKey[BSS0][keyIdx]);
 
 /*
 	STA doesn't need to set WCID attribute for group key
@@ -12185,9 +12286,9 @@ RtmpIoctl_rt_ioctl_giwrate(RTMP_ADAPTER *pAd, VOID *pData, ULONG Data)
     if (rate_index >= rate_count)
         rate_index = rate_count-1;
 
-	*(ULONG *)pData = ralinkrate[rate_index] * 500000;
+    *(ULONG *)pData = ralinkrate[rate_index] * 500000;
 
-	return NDIS_STATUS_SUCCESS;
+    return NDIS_STATUS_SUCCESS;
 }
 
 
@@ -13149,14 +13250,14 @@ INT RTMP_STA_IoctlHandle(
 	/* handle by command */
 	switch(Command)
 	{
-		case CMD_RT_PRIV_IOCTL:
+		case (UINT)CMD_RT_PRIV_IOCTL:
 			if (Subcmd & OID_GET_SET_TOGGLE)
 				Status = RTMPSetInformation(pAd, pRequest,  Subcmd);
 			else
 				Status = RTMPQueryInformation(pAd, pRequest, Subcmd);
 			break;
 
-		case CMD_RTPRIV_IOCTL_PARAM_SET:
+		case (UINT)CMD_RTPRIV_IOCTL_PARAM_SET:
 		{
 			RT_CMD_PARAM_SET *pCmdParam = (RT_CMD_PARAM_SET *)pData;
 			RTMP_STRING *this_char = pCmdParam->pThisChar;
@@ -13166,46 +13267,46 @@ INT RTMP_STA_IoctlHandle(
 		}
 			break;
 
-		case CMD_RTPRIV_IOCTL_SITESURVEY_GET:
+		case (UINT)CMD_RTPRIV_IOCTL_SITESURVEY_GET:
 			RTMPIoctlGetSiteSurvey(pAd, pRequest);
 			break;
 
-		case CMD_RTPRIV_IOCTL_MAC:
+		case (UINT)CMD_RTPRIV_IOCTL_MAC:
 			RTMPIoctlMAC(pAd, pRequest);
 			break;
 
-		case CMD_RTPRIV_IOCTL_E2P:
+		case (UINT)CMD_RTPRIV_IOCTL_E2P:
 			RTMPIoctlE2PROM(pAd, pRequest);
 			break;
 
-		case CMD_RTPRIV_IOCTL_RF:
+		case (UINT)CMD_RTPRIV_IOCTL_RF:
 #ifdef RTMP_RF_RW_SUPPORT
 			RTMPIoctlRF(pAd, pRequest);
 #endif /* RTMP_RF_RW_SUPPORT */
 			break;
 
-		case CMD_RTPRIV_IOCTL_BBP:
+		case (UINT)CMD_RTPRIV_IOCTL_BBP:
 			RTMPIoctlBbp(pAd, pRequest, pData, Data);
 			break;
 
-		case CMD_RTPRIV_IOCTL_SHOW:
+		case (UINT)CMD_RTPRIV_IOCTL_SHOW:
 			RTMPIoctlShow(pAd, pRequest, Subcmd, pData, Data);
 			break;
 
-		case CMD_RTPRIV_IOCTL_SITESURVEY:
-			StaSiteSurvey(pAd, (NDIS_802_11_SSID *)pData, Data);
+		case (UINT)CMD_RTPRIV_IOCTL_SITESURVEY:
+			StaSiteSurvey(pAd, (NDIS_802_11_SSID *)pData, (UCHAR)Data);
 			break;
 
-		case CMD_RTPRIV_IOCTL_CHID_2_FREQ:
-			RTMP_MapChannelID2KHZ(Data, (UINT32 *)pData);
+		case (UINT)CMD_RTPRIV_IOCTL_CHID_2_FREQ:
+			RTMP_MapChannelID2KHZ((UCHAR)Data, (UINT32 *)pData);
 			break;
 
-		case CMD_RTPRIV_IOCTL_FREQ_2_CHID:
+		case (UINT)CMD_RTPRIV_IOCTL_FREQ_2_CHID:
 			RTMP_MapKHZ2ChannelID(Data, (UINT32 *)pData);
 			break;
 
-		case CMD_RTPRIV_IOCTL_ORI_DEV_TYPE_SET:
-			pAd->StaCfg.OriDevType = Data;
+		case (UINT)CMD_RTPRIV_IOCTL_ORI_DEV_TYPE_SET:
+			pAd->StaCfg.OriDevType = (USHORT)Data;
 #ifdef CONFIG_STA_SUPPORT
 #ifdef CREDENTIAL_STORE
 	NdisAllocateSpinLock(pAd, &pAd->StaCtIf.Lock);
@@ -13226,7 +13327,7 @@ INT RTMP_STA_IoctlHandle(
 #ifdef P2P_SUPPORT
 			if (Data & INT_P2P)
 			{
-				printk("Data & INT_P2P\n");
+				DBGPRINT(RT_DEBUG_OFF, ("Data & INT_P2P\n"));
 				pObj->ioctl_if_type = INT_P2P;
 				pObj->ioctl_if = 0;
 			} else
@@ -13238,7 +13339,7 @@ INT RTMP_STA_IoctlHandle(
 
 			break;
 #endif // #if 0
-		case CMD_RTPRIV_IOCTL_STA_SCAN_SANITY_CHECK:
+		case (UINT)CMD_RTPRIV_IOCTL_STA_SCAN_SANITY_CHECK:
 			if (RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_BSS_SCAN_IN_PROGRESS))
 		    {
 				/*
@@ -13258,12 +13359,12 @@ INT RTMP_STA_IoctlHandle(
 			}
 			break;
 
-		case CMD_RTPRIV_IOCTL_STA_SCAN_END:
+		case (UINT)CMD_RTPRIV_IOCTL_STA_SCAN_END:
 		    pAd->StaCfg.bSkipAutoScanConn = FALSE;
 			DBGPRINT(RT_DEBUG_ERROR ,("===>rt_ioctl_giwscan. %d(%d) BSS returned, data->length = %ld\n",pAd->ScanTab.BssNr , pAd->ScanTab.BssNr, Data));
 			break;
 
-		case CMD_RTPRIV_IOCTL_BSS_LIST_GET:
+		case (UINT)CMD_RTPRIV_IOCTL_BSS_LIST_GET:
 		{
 			RT_CMD_STA_IOCTL_BSS_LIST *pBssList = (RT_CMD_STA_IOCTL_BSS_LIST *)pData;
 			RT_CMD_STA_IOCTL_BSS *pList;

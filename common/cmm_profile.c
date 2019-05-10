@@ -534,7 +534,7 @@ INT RTMPGetKeyParameterWithOffset(
         return (FALSE);
     }
 
-	*end_offset = end_ptr - buffer;
+	*end_offset = (USHORT)(end_ptr - buffer);
 
     NdisMoveMemory(temp_buf2, start_ptr, end_ptr-start_ptr);
     temp_buf2[end_ptr-start_ptr]='\0';
@@ -880,7 +880,8 @@ static void rtmp_read_ap_client_from_file(
 				wdev->AuthMode = Ndis802_11AuthModeOpen;
 
 			DBGPRINT(RT_DEBUG_TRACE, ("I/F(apcli%d) ApCli_AuthMode=%d \n", i, wdev->AuthMode));
-			RTMPMakeRSNIE(pAd, wdev->AuthMode, wdev->WepStatus, (i + MIN_NET_DEVICE_FOR_APCLI));
+			RTMPMakeRSNIE(pAd, wdev->AuthMode,
+				wdev->WepStatus, (UCHAR)(i + MIN_NET_DEVICE_FOR_APCLI));
 		}
 
 	}
@@ -919,7 +920,8 @@ static void rtmp_read_ap_client_from_file(
 			pApCliEntry->bMixCipher		= FALSE;
 			
 			DBGPRINT(RT_DEBUG_TRACE, ("I/F(apcli%d) APCli_EncrypType = %d \n", i, wdev->WepStatus));
-			RTMPMakeRSNIE(pAd, wdev->AuthMode, wdev->WepStatus, (i + MIN_NET_DEVICE_FOR_APCLI));
+			RTMPMakeRSNIE(pAd, wdev->AuthMode,
+				wdev->WepStatus, (UCHAR)(i + MIN_NET_DEVICE_FOR_APCLI));
 		}
 
 	}
@@ -940,7 +942,7 @@ static void rtmp_read_ap_client_from_file(
 			}
 			
 			NdisMoveMemory(pApCliEntry->PSK, macptr, strlen(macptr));
-			pApCliEntry->PSKLen = strlen(macptr);
+			pApCliEntry->PSKLen = (UCHAR)strlen(macptr);
 			DBGPRINT(RT_DEBUG_TRACE, ("I/F(apcli%d) APCli_WPAPSK_KEY=%s, Len=%d\n", i, pApCliEntry->PSK, pApCliEntry->PSKLen));
 
 			if ((pApCliEntry->wdev.AuthMode != Ndis802_11AuthModeWPAPSK) &&
@@ -1047,7 +1049,7 @@ static void rtmp_read_ap_client_from_file(
 			wdev = &pAd->ApCfg.ApCliTab[i].wdev;
 			
 			wdev->DesiredTransmitSetting.field.FixedTxMode = 
-										RT_CfgSetFixedTxPhyMode(macptr);
+				(USHORT)RT_CfgSetFixedTxPhyMode(macptr);
 			DBGPRINT(RT_DEBUG_TRACE, ("I/F(apcli%d) Tx Mode = %d\n", i,
 											wdev->DesiredTransmitSetting.field.FixedTxMode));					
 		}	
@@ -1061,7 +1063,7 @@ static void rtmp_read_ap_client_from_file(
 			wdev = &pAd->ApCfg.ApCliTab[i].wdev;
 			
 			wdev->DesiredTransmitSetting.field.MCS = 
-					RT_CfgSetTxMCSProc(macptr, &wdev->bAutoTxRateSwitch);
+					(UCHAR)RT_CfgSetTxMCSProc(macptr, &wdev->bAutoTxRateSwitch);
 
 			DBGPRINT(RT_DEBUG_TRACE, ("I/F(apcli%d) Tx MCS = %s(%d)\n", i,
 						(wdev->DesiredTransmitSetting.field.MCS == MCS_AUTO ? "AUTO" : ""),
@@ -2192,7 +2194,7 @@ static void HTParametersHook(
 			for (i = 0, Bufptr = rstrtok(pValueStr,";"); (Bufptr && i < MAX_MBSSID_NUM(pAd)); Bufptr = rstrtok(NULL,";"), i++) 	
 			{
 				pAd->ApCfg.MBSSID[i].wdev.DesiredTransmitSetting.field.FixedTxMode = 
-														RT_CfgSetFixedTxPhyMode(Bufptr);																	
+					(USHORT)RT_CfgSetFixedTxPhyMode(Bufptr);
 				DBGPRINT(RT_DEBUG_TRACE, ("(IF-ra%d) Fixed Tx Mode = %d\n", i, 
 											pAd->ApCfg.MBSSID[i].wdev.DesiredTransmitSetting.field.FixedTxMode));
 			}
@@ -2202,7 +2204,7 @@ static void HTParametersHook(
 		IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 		{
 			pAd->StaCfg.wdev.DesiredTransmitSetting.field.FixedTxMode = 
-										RT_CfgSetFixedTxPhyMode(pValueStr);
+				(USHORT)RT_CfgSetFixedTxPhyMode(pValueStr);
 			DBGPRINT(RT_DEBUG_TRACE, ("Fixed Tx Mode = %d\n", 
 											pAd->StaCfg.wdev.DesiredTransmitSetting.field.FixedTxMode));			
 		}
@@ -2249,7 +2251,7 @@ static void HTParametersHook(
 				struct wifi_dev *wdev = &pAd->ApCfg.MBSSID[i].wdev;
 				Value = simple_strtol(Bufptr, 0, 10);			
 				if ((Value >= 0 && Value <= 23) || (Value == 32))
-					wdev->DesiredTransmitSetting.field.MCS = Value;
+					wdev->DesiredTransmitSetting.field.MCS = (USHORT)Value;
 				else
 					wdev->DesiredTransmitSetting.field.MCS = MCS_AUTO;
 				DBGPRINT(RT_DEBUG_TRACE, ("(IF-ra%d) HT: MCS = %s(%d)\n", i, 
@@ -2266,7 +2268,7 @@ static void HTParametersHook(
 			Value = simple_strtol(pValueStr, 0, 10);
 			if ((Value >= 0 && Value <= 23) || (Value == 32))
 			{
-				wdev->DesiredTransmitSetting.field.MCS  = Value;
+				wdev->DesiredTransmitSetting.field.MCS  = (USHORT)Value;
 #ifdef P2P_SUPPORT
 				pAd->ApCfg.MBSSID[MAIN_MBSSID].wdev.DesiredTransmitSetting.field.MCS  = Value;
 #endif /* P2P_SUPPORT */
@@ -2502,10 +2504,10 @@ static void HTParametersHook(
 	}
 #endif /* DOT11_N_SUPPORT */
 
-    if (RTMPGetKeyParameter("TXRX_RXV_ON", pValueStr, 25, pInput, TRUE)) {
+	if (RTMPGetKeyParameter("TXRX_RXV_ON", pValueStr, 25, pInput, TRUE)) {
 
 		Value = simple_strtol(pValueStr, 0, 10);
-        pAd->CommonCfg.bTXRX_RXV_ON = Value;
+	pAd->CommonCfg.bTXRX_RXV_ON = (BOOLEAN)Value;
 
 		DBGPRINT(RT_DEBUG_TRACE, ("TXRX_RXV_ON = %s\n", (Value == 1) ? "ON" : "OFF" ));
     }
@@ -2695,7 +2697,7 @@ NDIS_STATUS StoreConnectInfo(
 void RTMPSetCountryCode(RTMP_ADAPTER *pAd, RTMP_STRING *CountryCode)
 {
 	NdisMoveMemory(pAd->CommonCfg.CountryCode, CountryCode , 2);
-	pAd->CommonCfg.CountryCode[2] = ' ';
+	pAd->CommonCfg.CountryCode[2] = 0;
 #ifdef CONFIG_STA_SUPPORT
 #ifdef EXT_BUILD_CHANNEL_LIST
 	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
@@ -2858,7 +2860,8 @@ NDIS_STATUS	RTMPSetProfileParameters(
 						{
 							NdisMoveMemory(pAd->ApCfg.MBSSID[i].Ssid, tmpbuf , strlen(tmpbuf));
 					    	pAd->ApCfg.MBSSID[i].Ssid[strlen(tmpbuf)] = '\0';
-							pAd->ApCfg.MBSSID[i].SsidLen = strlen((RTMP_STRING *) pAd->ApCfg.MBSSID[i].Ssid);
+					pAd->ApCfg.MBSSID[i].SsidLen =
+					(UCHAR)strlen((RTMP_STRING *) pAd->ApCfg.MBSSID[i].Ssid);
 							if (bSSIDxIsUsed == FALSE)
 							{
 								bSSIDxIsUsed = TRUE;
@@ -2870,7 +2873,8 @@ NDIS_STATUS	RTMPSetProfileParameters(
 				{
 					if(RTMPGetKeyParameter("SSID", tmpbuf, 256, pBuffer, FALSE))
 					{			
-						BssidCountSupposed = delimitcnt(tmpbuf, ";") + 1;
+						BssidCountSupposed =
+							(UCHAR)(delimitcnt(tmpbuf, ";") + 1);
 						if (pAd->ApCfg.BssidNum != BssidCountSupposed)
 						{
 							DBGPRINT_ERR(("Your no. of SSIDs( = %d) does not match your BssidNum( = %d)!\n", BssidCountSupposed, pAd->ApCfg.BssidNum));
@@ -2893,7 +2897,8 @@ NDIS_STATUS	RTMPSetProfileParameters(
 
 								NdisMoveMemory(pAd->ApCfg.MBSSID[apidx].Ssid, macptr , strlen(macptr));
 				    			pAd->ApCfg.MBSSID[apidx].Ssid[strlen(macptr)] = '\0';
-							   pAd->ApCfg.MBSSID[apidx].SsidLen = strlen((RTMP_STRING *)pAd->ApCfg.MBSSID[apidx].Ssid);
+					pAd->ApCfg.MBSSID[apidx].SsidLen =
+					(UCHAR)strlen((RTMP_STRING *)pAd->ApCfg.MBSSID[apidx].Ssid);
 
 				    			DBGPRINT(RT_DEBUG_TRACE, ("SSID[%d]=%s\n", i, pAd->ApCfg.MBSSID[apidx].Ssid));
 							}
@@ -2904,7 +2909,8 @@ NDIS_STATUS	RTMPSetProfileParameters(
 							{
 								NdisMoveMemory(pAd->ApCfg.MBSSID[BSS0].Ssid, tmpbuf , strlen(tmpbuf));
 						    	pAd->ApCfg.MBSSID[BSS0].Ssid[strlen(tmpbuf)] = '\0';
-									    	pAd->ApCfg.MBSSID[BSS0].SsidLen = strlen((RTMP_STRING *) pAd->ApCfg.MBSSID[BSS0].Ssid);
+					pAd->ApCfg.MBSSID[BSS0].SsidLen =
+					(UCHAR)strlen((RTMP_STRING *) pAd->ApCfg.MBSSID[BSS0].Ssid);
 								DBGPRINT(RT_DEBUG_TRACE, ("SSID=%s\n", pAd->ApCfg.MBSSID[BSS0].Ssid));
 							}
 						}
@@ -3463,7 +3469,8 @@ NDIS_STATUS	RTMPSetProfileParameters(
 			/*AutoChannelSkipList*/
 			if (RTMPGetKeyParameter("AutoChannelSkipList", tmpbuf, 50, pBuffer, FALSE))
 			{		
-				pAd->ApCfg.AutoChannelSkipListNum = delimitcnt(tmpbuf, ";") + 1;
+				pAd->ApCfg.AutoChannelSkipListNum =
+					(UCHAR)(delimitcnt(tmpbuf, ";") + 1);
 				if ( pAd->ApCfg.AutoChannelSkipListNum > 10 )
 				{
 					DBGPRINT(RT_DEBUG_TRACE, ("Your no. of AutoChannelSkipList( %d ) is larger than 10 (boundary)\n",pAd->ApCfg.AutoChannelSkipListNum));
@@ -4198,7 +4205,7 @@ NDIS_STATUS	RTMPSetProfileParameters(
 				{
 					ULONG fpga_on = simple_strtol(tmpbuf, 0, 10);
 					
-					pAd->fpga_ctl.fpga_on = fpga_on > 0 ? fpga_on : 0;
+					pAd->fpga_ctl.fpga_on = (UINT8)(fpga_on > 0 ? fpga_on : 0);
 					DBGPRINT(RT_DEBUG_OFF, ("%s(): FPGA_ON=%d\n",
 								__FUNCTION__, pAd->fpga_ctl.fpga_on));
 				}
@@ -4208,7 +4215,7 @@ NDIS_STATUS	RTMPSetProfileParameters(
 				{
 					ULONG dma_sch = simple_strtol(tmpbuf, 0, 10);
 
-					pAd->fpga_ctl.dma_mode = dma_sch > 0 ? dma_sch : 0;
+					pAd->fpga_ctl.dma_mode = (UINT8)(dma_sch > 0 ? dma_sch : 0);
 					DBGPRINT(RT_DEBUG_OFF, ("%s(): DMA Scheduler=%d\n",
 								__FUNCTION__, pAd->fpga_ctl.dma_mode));
 				}
@@ -4529,7 +4536,7 @@ NDIS_STATUS	RTMPSetProfileParameters(
 						if (lInfo > 90 || lInfo < 60)
 							pAd->StaCfg.dBmToRoam = -70;
 						else    
-							pAd->StaCfg.dBmToRoam = (CHAR)(-1)*lInfo;
+							pAd->StaCfg.dBmToRoam = (CHAR)((-1)*lInfo);
 
 						DBGPRINT(RT_DEBUG_TRACE, ("RoamThreshold=%d  dBm\n", pAd->StaCfg.dBmToRoam));
 					}
@@ -5266,8 +5273,12 @@ NDIS_STATUS	RTMPSetProfileParameters(
 		/* set GPIO High Low */
 		if (RTMPGetKeyParameter("WOW_GPIOHighLow", tmpbuf, 10, pBuffer, TRUE))
 			Set_WOW_GPIOHighLow(pAd, tmpbuf);
-		
-#endif /* (defined(WOW_SUPPORT) && defined(RTMP_MAC_USB)) || defined(NEW_WOW_SUPPORT) || defined(MT_WOW_SUPPORT)*/
+
+		/* set GPIO High Low */
+		if (RTMPGetKeyParameter("WOW_KeepAlive", tmpbuf, 10, pBuffer, TRUE))
+			Set_WOW_KeepAlive_Proc(pAd, tmpbuf);
+
+#endif /* (defined(WOW_SUPPORT) && defined(RTMP_MAC_USB)) || defined(MT_WOW_SUPPORT)*/
 
 #ifdef MICROWAVE_OVEN_SUPPORT
 		if (RTMPGetKeyParameter("MO_FalseCCATh", tmpbuf, 10, pBuffer, TRUE))
@@ -5294,9 +5305,17 @@ NDIS_STATUS	RTMPSetProfileParameters(
       {   
          long PS_RETRIEVE;
          PS_RETRIEVE = simple_strtol(tmpbuf, 0, 10);
-         pAd->bPS_Retrieve = PS_RETRIEVE;
+	pAd->bPS_Retrieve = (BOOLEAN)PS_RETRIEVE;
          DBGPRINT(RT_DEBUG_OFF, ("PS_RETRIEVE = %lx\n",PS_RETRIEVE));
       }
+#ifdef SMART_CARRIER_SENSE_SUPPORT
+		if (RTMPGetKeyParameter("SCSEnable", tmpbuf, 10, pBuffer, TRUE)) {
+		   long SCSEnable;
+		   SCSEnable = simple_strtol(tmpbuf, 0, 10);
+		   pAd->SCSCtrl.SCSEnable = (BOOLEAN)SCSEnable;
+		   DBGPRINT(RT_DEBUG_OFF, ("Smart Carrier Sense = %lx\n", SCSEnable));
+		}
+#endif /* SMART_CARRIER_SENSE_SUPPORT */
 
 	}while(0);
 
@@ -5886,16 +5905,13 @@ NDIS_STATUS	RTMPSetSingleSKUParameters(
 	int index, i;
 	CH_POWER *StartCh = NULL;
 	UCHAR channel, *temp;
+	CH_POWER *pwr = NULL;
+	NDIS_STATUS status = NDIS_STATUS_FAILURE;
 	RTMP_OS_FS_INFO osFSInfo;
 
 	DlListInit(&pAd->SingleSkuPwrList);
-
-	/* init*/
-	os_alloc_mem(NULL, (UCHAR **)&buffer, MAX_INI_BUFFER_SIZE);
-	if (buffer == NULL)
-		return FALSE;
-
 	RtmpOSFSInfoChange(&osFSInfo, TRUE);
+
 	/* open card information file*/
 	srcf = RtmpOSFileOpen(SINGLE_SKU_TABLE_FILE_NAME, O_RDONLY, 0);
 	if (IS_FILE_OPEN_ERR(srcf)) 
@@ -5903,9 +5919,16 @@ NDIS_STATUS	RTMPSetSingleSKUParameters(
 		/* card information file does not exist */
 			DBGPRINT(RT_DEBUG_TRACE,
 				("--> Error opening %s\n", SINGLE_SKU_TABLE_FILE_NAME));
-		goto  free_resource;
+		goto  open_fail;
 	}
 
+	/* init*/
+	os_alloc_mem(NULL, (UCHAR **)&buffer, MAX_INI_BUFFER_SIZE);
+	if (buffer == NULL) {
+		DBGPRINT(RT_DEBUG_ERROR, ("%s alloc %d fail\n", __func__,
+			 MAX_INI_BUFFER_SIZE));
+		goto  alloc_fail;
+	}
 
 #ifdef RTMP_INTERNAL_TX_ALC
 	if (pAd->TxPowerCtrl.bInternalTxALC != TRUE)
@@ -5920,172 +5943,200 @@ NDIS_STATUS	RTMPSetSingleSKUParameters(
 	/* card information file exists so reading the card information */
 	NdisZeroMemory(buffer, MAX_INI_BUFFER_SIZE);
 	retval = RtmpOSFileRead(srcf, buffer, MAX_INI_BUFFER_SIZE);
-	if (retval < 0)
-	{
+	if (retval < 0) {
 		/* read fail */
 		DBGPRINT(RT_DEBUG_TRACE,("--> Read %s error %d\n", SINGLE_SKU_TABLE_FILE_NAME, -retval));
+		goto read_fail;
 	}
-	else
-	{
-		for ( readline = ptr = buffer, index=0; (ptr = strchr(readline, '\n')) != NULL; readline = ptr + 1, index++ )
-		{
-			*ptr = '\0';
-			
-			if ( readline[0] == '#' )
-				continue;
+	for (readline = ptr = buffer, index = 0; (ptr = strchr(readline, '\n')) != NULL; readline = ptr + 1, index++) {
+		*ptr = '\0';
 
-			if ( !strncmp(readline, "ch", 2) )
-			{
+		if (readline[0] == '#')
+			continue;
 
-				CH_POWER *pwr = NULL;
+		if (!strncmp(readline, "ch", 2)) {
 
-				os_alloc_mem(NULL, (UCHAR **)&pwr, sizeof(*pwr));
-				NdisZeroMemory(pwr, sizeof(*pwr));
+			CH_POWER *pwr = NULL;
 
-				token= rstrtok(readline +2 ," ");
-				channel = simple_strtol(token, 0, 10);
-				pwr->StartChannel = channel;
+			os_alloc_mem(NULL, (UCHAR **)&pwr, sizeof(*pwr));
+			if (pwr == NULL) {
+				DBGPRINT(RT_DEBUG_ERROR, ("%s alloc pwr fail\n", __func__));
+				goto read_fail;
+			}
 
-				if (pwr->StartChannel <= 14)
-				{
-				for ( i= 0 ; i < SINGLE_SKU_TABLE_CCK_LENGTH ; i++ )
-				{
+			NdisZeroMemory(pwr, sizeof(*pwr));
+
+			token = rstrtok(readline + 2, " ");
+			if (token == NULL) {
+				DBGPRINT(RT_DEBUG_WARN, ("%s: token is NULL\n", __func__));
+				goto parse_fail;
+			}
+			channel = simple_strtol(token, 0, 10);
+			pwr->StartChannel = channel;
+			if (pwr->StartChannel <= 0) {
+				DBGPRINT(RT_DEBUG_ERROR, ("[Incorrect SingleSKU DAT]: Channel <= 0\n"));
+				goto parse_fail;
+			}
+
+			if (pwr->StartChannel <= 14) {
+				for (i = 0 ; i < SINGLE_SKU_TABLE_CCK_LENGTH ; i++) {
 					token = rstrtok(NULL ," ");
-					if ( token == NULL )
-						break;
+					if (token == NULL) {
+						DBGPRINT(RT_DEBUG_ERROR,
+							("[Incorrect SingleSKU DAT]: (Channel, CCK Index) = (%d, %d) token is NULL\n", channel, i));
+						goto parse_fail;
+					}
+					if (simple_strtol(token, 0, 10) == (long int) 0) { /* No Value or Value=0 */
+						DBGPRINT(RT_DEBUG_ERROR,
+							("[Incorrect SingleSKU DAT]: (Channel, CCK Index) = (%d, %d) value is invalid\n", channel, i));
+						goto parse_fail;
+					}
 					pwr->PwrCCK[i] = simple_strtol(token, 0, 10) * 2;
 				}
-				}
+			}
 
-				for ( i= 0 ; i < SINGLE_SKU_TABLE_OFDM_LENGTH ; i++ )
-				{
-					token = rstrtok(NULL ," ");
-					if ( token == NULL )
-						break;
-					pwr->PwrOFDM[i] = simple_strtol(token, 0, 10) *2;
+			for (i = 0 ; i < SINGLE_SKU_TABLE_OFDM_LENGTH ; i++) {
+				token = rstrtok(NULL, " ");
+				if (token == NULL) {
+					DBGPRINT(RT_DEBUG_ERROR,
+						("[Incorrect SingleSKU DAT]: (Channel, OFDM Index) = (%d, %d) token is NULL\n", channel, i));
+					goto parse_fail;
 				}
+				if (simple_strtol(token, 0, 10) == (long int) 0) {
+					DBGPRINT(RT_DEBUG_ERROR,
+						("[Incorrect SingleSKU DAT]: (Channel, OFDM Index) = (%d, %d) value is invalid\n", channel, i));
+					goto parse_fail;
+				}
+				pwr->PwrOFDM[i] = simple_strtol(token, 0, 10) * 2;
+			}
 
-				for ( i= 0 ; i < SINGLE_SKU_TABLE_HT_LENGTH ; i++ )
-				{
-					token = rstrtok(NULL ," ");
-					if ( token == NULL )
-						break;
-					pwr->PwrHT20[i] = simple_strtol(token, 0, 10) *2;
+			for (i = 0 ; i < SINGLE_SKU_TABLE_HT_LENGTH ; i++) {
+				token = rstrtok(NULL, " ");
+				if (token == NULL) {
+					DBGPRINT(RT_DEBUG_ERROR,
+						("[Incorrect SingleSKU DAT]: (Channel, HT20 Index) = (%d, %d) token is NULL\n", channel, i));
+					goto parse_fail;
 				}
+				if (simple_strtol(token, 0, 10) == (long int) 0) {
+					DBGPRINT(RT_DEBUG_ERROR,
+						("[Incorrect SingleSKU DAT]: (Channel, HT20 Index) = (%d, %d) value is invalid\n", channel, i));
+					goto parse_fail;
+				}
+				pwr->PwrHT20[i] = simple_strtol(token, 0, 10) * 2;
+			}
 
-				for ( i= 0 ; i < SINGLE_SKU_TABLE_HT_LENGTH ; i++ )
-				{
-					token = rstrtok(NULL ," ");
-					if ( token == NULL )
-						break;
-					pwr->PwrHT40[i] = simple_strtol(token, 0, 10) *2;
+			for (i = 0 ; i < SINGLE_SKU_TABLE_HT_LENGTH ; i++) {
+				token = rstrtok(NULL, " ");
+				if (token == NULL) {
+					if (pAd->CommonCfg.RegTransmitSetting.field.BW == HT_BW_40) {
+						DBGPRINT(RT_DEBUG_ERROR,
+							("[Incorrect SingleSKU DAT]: Channel=%d Support BW40 but no declare power\n", channel));
+						goto parse_fail;
+					}
+					break;
 				}
+				if (simple_strtol(token, 0, 10) == (long int) 0) {
+					DBGPRINT(RT_DEBUG_ERROR,
+						("[Incorrect SingleSKU DAT]: (Channel, HT40 Index) = (%d, %d) value is invalid\n", channel, i));
+					goto parse_fail;
+				}
+				pwr->PwrHT40[i] = simple_strtol(token, 0, 10) * 2;
+			}
 #ifdef DOT11_VHT_AC
-				if (pwr->StartChannel > 14)
+			if (pwr->StartChannel > 14) {
+				for (i = 0 ; i < SINGLE_SKU_TABLE_VHT_LENGTH ; i++)
 				{
-					for ( i= 0 ; i < SINGLE_SKU_TABLE_VHT_LENGTH ; i++ )
-					{
-						token = rstrtok(NULL ," ");
-						if ( token == NULL )
-							break;
-						pwr->PwrVHT80[i] = simple_strtol(token, 0, 10) *2;
+					token = rstrtok(NULL, " ");
+					if (token == NULL) {
+						DBGPRINT(RT_DEBUG_ERROR,
+							("[Incorrect SingleSKU DAT]: (Channel, VHT Index) = (%d, %d) token is NULL\n", channel, i));
+						goto parse_fail;
 					}
+					if (simple_strtol(token, 0, 10) == 0) {
+						DBGPRINT(RT_DEBUG_ERROR,
+							("[Incorrect SingleSKU DAT]: (Channel, VHT Index) = (%d, %d) value is invalid\n", channel, i));
+						goto parse_fail;
+					}
+					pwr->PwrVHT80[i] = simple_strtol(token, 0, 10) * 2;
 				}
+			}
 #endif /* DOT11_VHT_AC */
-				if ( StartCh == NULL )
-				{
-					StartCh = pwr;
-					DlListAddTail(&pAd->SingleSkuPwrList, &pwr->List);
-				}
-				else
-				{
-					BOOLEAN isSame = TRUE;
+			if (StartCh == NULL) {
+				StartCh = pwr;
+				DlListAddTail(&pAd->SingleSkuPwrList, &pwr->List);
+			} else {
+				BOOLEAN isSame = TRUE;
 
-					if (pwr->StartChannel <= 14)
-					{
-				for ( i= 0 ; i < SINGLE_SKU_TABLE_CCK_LENGTH ; i++ )
-				{
-						if ( StartCh->PwrCCK[i] != pwr->PwrCCK[i] )
-						{
-							isSame = FALSE;
-						break;
-						}
-				}
-					}
-
-				if ( isSame == TRUE )
-				{
-					for ( i= 0 ; i < SINGLE_SKU_TABLE_OFDM_LENGTH ; i++ )
-					{
-						if ( StartCh->PwrOFDM[i] != pwr->PwrOFDM[i] )
-						{
+				if (pwr->StartChannel <= 14) {
+					for (i = 0 ; i < SINGLE_SKU_TABLE_CCK_LENGTH ; i++) {
+						if (StartCh->PwrCCK[i] != pwr->PwrCCK[i]) {
 							isSame = FALSE;
 							break;
 						}
 					}
 				}
 
-				if ( isSame == TRUE )
-				{
-					for ( i= 0 ; i < SINGLE_SKU_TABLE_HT_LENGTH ; i++ )
-					{
-						if ( StartCh->PwrHT20[i] != pwr->PwrHT20[i] )
-						{
+				if (isSame == TRUE) {
+					for (i = 0 ; i < SINGLE_SKU_TABLE_OFDM_LENGTH ; i++) {
+						if (StartCh->PwrOFDM[i] != pwr->PwrOFDM[i]) {
 							isSame = FALSE;
 							break;
 						}
 					}
 				}
 
-				if ( isSame == TRUE )
-				{
-					for ( i= 0 ; i < SINGLE_SKU_TABLE_HT_LENGTH ; i++ )
-					{
-						if ( StartCh->PwrHT40[i] != pwr->PwrHT40[i] )
-						{
-							isSame = FALSE;
-							break;
-						}
-					}
-				}
-			
-				if ( isSame == TRUE )
-				{
-					for ( i= 0 ; i < SINGLE_SKU_TABLE_VHT_LENGTH ; i++ )
-					{
-						if ( StartCh->PwrVHT80[i] != pwr->PwrVHT80[i] )
-						{
+				if (isSame == TRUE) {
+					for (i = 0 ; i < SINGLE_SKU_TABLE_HT_LENGTH ; i++) {
+						if (StartCh->PwrHT20[i] != pwr->PwrHT20[i]) {
 							isSame = FALSE;
 							break;
 						}
 					}
 				}
 
-				if ( isSame == TRUE )
-				{
+				if (isSame == TRUE) {
+					for (i = 0 ; i < SINGLE_SKU_TABLE_HT_LENGTH ; i++) {
+						if (StartCh->PwrHT40[i] != pwr->PwrHT40[i]) {
+							isSame = FALSE;
+							break;
+						}
+					}
+				}
+
+				if (isSame == TRUE) {
+					for (i = 0 ; i < SINGLE_SKU_TABLE_VHT_LENGTH ; i++) {
+						if (StartCh->PwrVHT80[i] != pwr->PwrVHT80[i]) {
+							isSame = FALSE;
+							break;
+						}
+					}
+				}
+
+				if (isSame == TRUE) {
 					os_free_mem(NULL, pwr);
-				}
-				else
-				{
+					pwr = NULL;
+				} else {
 					StartCh = pwr;
 					DlListAddTail(&pAd->SingleSkuPwrList, &StartCh->List);
 					pwr = NULL;
 				}
 
-				}
-				StartCh->num ++;
-				os_alloc_mem(pAd, (PUCHAR *)&temp, StartCh->num);
-				if ( StartCh->Channel != NULL )
-				{
-					NdisMoveMemory(temp, StartCh->Channel, StartCh->num-1);
-					os_free_mem(pAd, StartCh->Channel);
-				}
-				StartCh->Channel = temp;
-				StartCh->Channel[StartCh->num-1] = channel;
 			}
-				}
+			StartCh->num++;
+			os_alloc_mem(pAd, (PUCHAR *)&temp, StartCh->num);
+			if (temp == NULL) {
+				DBGPRINT(RT_DEBUG_ERROR, ("%s alloc temp fail\n", __func__));
+				goto parse_fail;
 			}
-
+			if (StartCh->Channel != NULL) {
+				NdisMoveMemory(temp, StartCh->Channel, StartCh->num - 1);
+				os_free_mem(pAd, StartCh->Channel);
+			}
+			StartCh->Channel = temp;
+			StartCh->Channel[StartCh->num-1] = channel;
+		}
+	}
+	status = NDIS_STATUS_SUCCESS;
 	{
 		CH_POWER *ch, *ch_temp;
 		DlListForEachSafe(ch, ch_temp, &pAd->SingleSkuPwrList, CH_POWER, List)
@@ -6102,14 +6153,14 @@ NDIS_STATUS	RTMPSetSingleSKUParameters(
 			for ( i= 0 ; i < SINGLE_SKU_TABLE_CCK_LENGTH ; i++ )
 			{
 				DBGPRINT(RT_DEBUG_TRACE,("%d ", ch->PwrCCK[i]));
-	}
+			}
 			DBGPRINT(RT_DEBUG_TRACE,("\n"));
 
 			DBGPRINT(RT_DEBUG_TRACE, ("OFDM: "));
 			for ( i= 0 ; i < SINGLE_SKU_TABLE_OFDM_LENGTH ; i++ )
 			{
 				DBGPRINT(RT_DEBUG_TRACE,("%d ", ch->PwrOFDM[i]));
-	}
+			}
 			DBGPRINT(RT_DEBUG_TRACE,("\n"));
 
 			DBGPRINT(RT_DEBUG_TRACE, ("HT20: "));
@@ -6135,14 +6186,24 @@ NDIS_STATUS	RTMPSetSingleSKUParameters(
 		}
 	}
 
+parse_fail:
+	if (pwr) {
+		os_free_mem(NULL, pwr);
+		pwr = NULL;
+	}
+read_fail:
+	if (buffer) {
+		os_free_mem(NULL, buffer);
+		buffer = NULL;
+	}
+alloc_fail:
 	/* close file*/
 	retval = RtmpOSFileClose(srcf);
 
-free_resource:
+open_fail:
 	RtmpOSFSInfoChange(&osFSInfo, FALSE);
 
-	os_free_mem(NULL, buffer);
-	return TRUE;
+	return status;
 }
 
 

@@ -64,7 +64,9 @@ BOOLEAN CFG80211DRV_OpsChgVirtualInf(RTMP_ADAPTER *pAd, VOID *pData)
 	CHAR tr_tb_idx = MAX_LEN_OF_MAC_TABLE + apidx;
 
 
-	printk(" CFG80211DRV_OpsChgVirtualInf  newType %d  oldType %d \n",newType,oldType);
+	DBGPRINT(RT_DEBUG_OFF,
+		(" CFG80211DRV_OpsChgVirtualInf  newType %d  oldType %d\n",
+		newType, oldType));
    if (strcmp(pVifParm->net_dev->name, "p2p0") == 0) 
    {
  
@@ -198,7 +200,7 @@ BOOLEAN CFG80211DRV_OpsChgVirtualInf(RTMP_ADAPTER *pAd, VOID *pData)
 		pAd->flg_apcli_init = FALSE;
 		RT_MOD_INC_USE_COUNT();
 
-		printk("iverson ApCli_Close \n");
+		DBGPRINT(RT_DEBUG_OFF, ("iverson ApCli_Close\n"));
 		AsicSetBssid(pAd, pAd->cfg80211_ctrl.P2PCurrentAddress, 0x1); 
 		AsicSetBssid(pAd, pAd->CurrentAddress, 0x0); 
 		pAd->cfg80211_ctrl.isCfgInApMode = RT_CMD_80211_IFTYPE_STATION;
@@ -605,13 +607,13 @@ static INT CFG80211_PacketSend(PNDIS_PACKET pPktSrc, PNET_DEV pDev, RTMP_NET_PAC
 	ASSERT(pAd);
 
 	/* To Indicate from Which VIF */
-	switch (pDev->ieee80211_ptr->iftype)
+	switch ((UINT)(pDev->ieee80211_ptr->iftype))
 	{
-		case RT_CMD_80211_IFTYPE_AP:
+		case ((UINT)(RT_CMD_80211_IFTYPE_AP)):
 			RTMP_SET_PACKET_OPMODE(pPktSrc, OPMODE_AP);
 			break;
 
-		case RT_CMD_80211_IFTYPE_P2P_GO:;
+		case ((UINT)(RT_CMD_80211_IFTYPE_P2P_GO)):
 			if(!OPSTATUS_TEST_FLAG(pAd, fOP_AP_STATUS_MEDIA_STATE_CONNECTED)) 
 			{
 		        DBGPRINT(RT_DEBUG_TRACE, ("Drop the Packet due P2P GO not in ready state\n"));
@@ -621,10 +623,12 @@ static INT CFG80211_PacketSend(PNDIS_PACKET pPktSrc, PNET_DEV pDev, RTMP_NET_PAC
 			RTMP_SET_PACKET_OPMODE(pPktSrc, OPMODE_AP);
 			break;	
 
-		case RT_CMD_80211_IFTYPE_P2P_CLIENT:
-		case RT_CMD_80211_IFTYPE_STATION:
+		case ((UINT)(RT_CMD_80211_IFTYPE_P2P_CLIENT)):
+		case ((UINT)(RT_CMD_80211_IFTYPE_STATION)):
 			RTMP_SET_PACKET_OPMODE(pPktSrc, OPMODE_AP);
-			//printk("%s: tx ==> %d\n", __FUNCTION__, RTMP_GET_PACKET_OPMODE(pPktSrc));
+			/* DBGPRINT(RT_DEBUG_OFF,
+			* ("%s: tx ==> %d\n", __FUNCTION__, RTMP_GET_PACKET_OPMODE(pPktSrc)));
+			*/
 			break;				
 
 		default:
@@ -705,9 +709,9 @@ VOID RTMP_CFG80211_VirtualIF_Init(
 	APCLI_STRUCT	*pApCliEntry;
 	struct wifi_dev *wdev;
 #ifdef RT_CFG80211_P2P_SUPPORT
-	UINT apidx = CFG_GO_BSSID_IDX;
+	CHAR apidx = CFG_GO_BSSID_IDX;
 #else
-	UINT apidx = MAIN_MBSSID;
+	CHAR apidx = MAIN_MBSSID;
 #endif /*RT_CFG80211_P2P_SUPPORT*/
 
 #ifdef MT_MAC
@@ -724,7 +728,8 @@ VOID RTMP_CFG80211_VirtualIF_Init(
 	UINT32 MC_RowID = 0, IoctlIF = 0, Inf = INT_P2P;
 
 	memset(preIfName, 0, sizeof(preIfName));
-	NdisCopyMemory(preIfName, pDevName, devNameLen-1);
+	NdisCopyMemory(preIfName, pDevName,
+	(devNameLen <= IFNAMSIZ) ? (devNameLen - 1) : (IFNAMSIZ - 1));
 
 	pNetDevOps=&netDevHook;
 
@@ -777,7 +782,7 @@ VOID RTMP_CFG80211_VirtualIF_Init(
     RTMP_IO_READ32(pAd, LPON_BTEIR, &Value);//read BTEIR bit[31:29] for determine to choose which byte to extend BSSID mac address.
     Value = Value | (0x2 << 29);//Note: Carter, make default will use byte4 bit[31:28] to extend Mac Address
     RTMP_IO_WRITE32(pAd, LPON_BTEIR, Value);
-    MacByte = Value >> 29;
+	MacByte = (UCHAR)(Value >> 29);
 	
 	pNetDevOps->devAddr[0] |= 0x2;
 	
@@ -853,7 +858,9 @@ VOID RTMP_CFG80211_VirtualIF_Init(
 				DBGPRINT(RT_DEBUG_ERROR, ("%s: Assign wdev idx for %s failed, free net device!\n",
 								__FUNCTION__,RTMP_OS_NETDEV_GET_DEVNAME(new_dev_p)));
 				RtmpOSNetDevFree(new_dev_p);
-				break;
+				new_dev_p = NULL;
+				wdev->if_dev = NULL;
+				return;
 			}
 			
 			/* init MAC address of virtual network interface */
@@ -900,7 +907,9 @@ VOID RTMP_CFG80211_VirtualIF_Init(
 	            DBGPRINT(RT_DEBUG_ERROR, ("%s: Assign wdev idx for %s failed, free net device!\n",
 	                                            __FUNCTION__,RTMP_OS_NETDEV_GET_DEVNAME(new_dev_p)));
 	            RtmpOSNetDevFree(new_dev_p);
-	            break;
+				new_dev_p = NULL;
+				wdev->if_dev = NULL;
+				return;
             }
 
 			COPY_MAC_ADDR(pAd->ApCfg.MBSSID[apidx].wdev.if_addr, pNetDevOps->devAddr);
@@ -944,7 +953,8 @@ VOID RTMP_CFG80211_VirtualIF_Init(
 VOID RTMP_CFG80211_VirtualIF_Remove(
 	IN  VOID 				 *pAdSrc,
 	IN	PNET_DEV			  dev_p,
-	IN  UINT32                DevType)
+	IN  UINT32                DevType,
+	BOOLEAN 	rtnl_lock)
 {
 
 	PRTMP_ADAPTER pAd = (PRTMP_ADAPTER)pAdSrc;
@@ -999,7 +1009,10 @@ VOID RTMP_CFG80211_VirtualIF_Remove(
 			SetCommonHT(pAd);
 
 			wdev_bcn_buf_deinit(pAd, &pAd->ApCfg.MBSSID[apidx].bcn_buf);
-			RtmpOSNetDevDetach(dev_p);
+			if (rtnl_lock)
+				RtmpOSNetDevDetach(dev_p);
+			else
+				RtmpOSNetDevDetach_WithoutLock(dev_p);
 			rtmp_wdev_idx_unreg(pAd, wdev);
 			wdev->if_dev = NULL;
 		}
@@ -1012,7 +1025,9 @@ VOID RTMP_CFG80211_VirtualIF_Remove(
 			//actually not mcc still need to check this!
 			if (pAd->Mlme.bStartScc == TRUE)
 			{
-				printk("GC remove & switch to Infra BW = %d  pAd->StaCfg.wdev.CentralChannel %d \n",pAd->StaCfg.wdev.bw,pAd->StaCfg.wdev.CentralChannel);
+				DBGPRINT(RT_DEBUG_OFF,
+					("GC remove & switch to Infra BW = %d  CentralChannel %d\n",
+					pAd->StaCfg.wdev.bw, pAd->StaCfg.wdev.CentralChannel));
 				pAd->Mlme.bStartScc = FALSE;
 				AsicSwitchChannel(pAd, pAd->StaCfg.wdev.CentralChannel, FALSE);
 				AsicLockChannel(pAd, pAd->StaCfg.wdev.CentralChannel);					
@@ -1026,17 +1041,27 @@ VOID RTMP_CFG80211_VirtualIF_Remove(
 	
 
 			OPSTATUS_CLEAR_FLAG(pAd, fOP_AP_STATUS_MEDIA_STATE_CONNECTED);
-			cfg80211_disconnected(dev_p, 0, NULL, 0, GFP_KERNEL);
+				cfg80211_disconnected(dev_p, WLAN_REASON_DEAUTH_LEAVING, NULL, 0,
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 2, 0))
+				TRUE,/* locally_generated */
+#endif
+				GFP_KERNEL);
 			
 			NdisZeroMemory(pAd->ApCfg.ApCliTab[MAIN_MBSSID].CfgApCliBssid, MAC_ADDR_LEN);
-			RtmpOSNetDevDetach(dev_p);
+			if (rtnl_lock)
+				RtmpOSNetDevDetach(dev_p);
+			else
+				RtmpOSNetDevDetach_WithoutLock(dev_p);
 			rtmp_wdev_idx_unreg(pAd, wdev);
 			pAd->flg_apcli_init = FALSE;
 			wdev->if_dev = NULL;
 		}
 		else /* Never Opened When New Netdevice on */
 		{
-			RtmpOSNetDevDetach(dev_p);
+			if (rtnl_lock)
+				RtmpOSNetDevDetach(dev_p);
+			else
+				RtmpOSNetDevDetach_WithoutLock(dev_p);
 		}
 
 		if (dev_p->ieee80211_ptr)
@@ -1066,9 +1091,11 @@ VOID RTMP_CFG80211_AllVirtualIF_Remove(
 
 	while ((pDevEntry != NULL) && (pCacheList->size != 0))
 	{   
-		RtmpOSNetDevProtect(1);
-		RTMP_CFG80211_VirtualIF_Remove(pAd, pDevEntry->net_dev, pDevEntry->net_dev->ieee80211_ptr->iftype);
-		RtmpOSNetDevProtect(0);
+		/* Remove wifi dirver to lock the rtnl_lock here.
+		*  It will cause kernel crash sometimes.
+		*  The lock action leave to kernel.
+		*/
+		RTMP_CFG80211_VirtualIF_Remove(pAd, pDevEntry->net_dev, pDevEntry->net_dev->ieee80211_ptr->iftype, TRUE);
 
 		pListEntry = pListEntry->pNext;
 		pDevEntry = (PCFG80211_VIF_DEV)pListEntry;
@@ -1163,7 +1190,7 @@ static INT CFG80211_DummyP2pIf_Open(
 	struct wireless_dev *wdev = dev_p->ieee80211_ptr;
 #ifdef RT_CFG80211_P2P_STATIC_CONCURRENT_DEVICE
 	VOID *pAdSrc;
-	printk("CFG80211_DummyP2pIf_Open=======> Open\n");
+	DBGPRINT(RT_DEBUG_OFF, ("CFG80211_DummyP2pIf_Open=======> Open\n"));
 	pAdSrc = RTMP_OS_NETDEV_GET_PRIV(dev_p);
 	PRTMP_ADAPTER pAd = (PRTMP_ADAPTER)pAdSrc;
 #endif /* RT_CFG80211_P2P_STATIC_CONCURRENT_DEVICE */
@@ -1281,16 +1308,13 @@ static INT CFG80211_DummyP2pIf_Close(
 #endif /* LINUX_VERSION_CODE: 3.7.0 */
 				       ));
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,0,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0))
 	{
-		extern const struct ieee80211_iface_combination *p_ra_iface_combinations_ap_sta;
-		extern const INT ra_iface_combinations_ap_sta_num;
+		DBGPRINT(RT_DEBUG_TRACE, ("[%s] Change to AP/STA combination mode!!\n", __func__));
 		wdev->wiphy->iface_combinations = p_ra_iface_combinations_ap_sta;
-		wdev->wiphy->n_iface_combinations = ra_iface_combinations_ap_sta_num; 
+		wdev->wiphy->n_iface_combinations = ra_iface_combinations_ap_sta_num;
 	}
-#endif
-
-	wdev->iftype = NL80211_IFTYPE_STATION;
+#endif /* endif */
 #ifdef RT_CFG80211_P2P_STATIC_CONCURRENT_DEVICE
 	RT_MOD_DEC_USE_COUNT();
 #endif /* RT_CFG80211_P2P_STATIC_CONCURRENT_DEVICE */
@@ -1367,7 +1391,10 @@ VOID RTMP_CFG80211_DummyP2pIf_Remove(
 	struct wifi_dev *wdev = &cfg80211_ctrl->dummy_p2p_wdev;
 
 	DBGPRINT(RT_DEBUG_TRACE, (" %s =====> \n", __FUNCTION__));
-	RtmpOSNetDevProtect(1);
+	/* Remove wifi dirver to lock the rtnl_lock here.
+	*  It will cause kernel crash sometimes.
+	*  The lock action leave to kernel.
+	*/
 	if (dummy_p2p_net_dev)
 	{
 
@@ -1392,14 +1419,11 @@ VOID RTMP_CFG80211_DummyP2pIf_Remove(
         	kfree(dummy_p2p_net_dev->ieee80211_ptr);
             dummy_p2p_net_dev->ieee80211_ptr = NULL;
         }
-		
-		RtmpOSNetDevProtect(0);		
-		RtmpOSNetDevFree(dummy_p2p_net_dev);	
-		RtmpOSNetDevProtect(1);		
-		
+
+		RtmpOSNetDevFree(dummy_p2p_net_dev);
+
 		cfg80211_ctrl->flg_cfg_dummy_p2p_init = FALSE;
 	}
-	RtmpOSNetDevProtect(0);
 	DBGPRINT(RT_DEBUG_TRACE, (" %s <=====\n", __FUNCTION__));
 }
 	
@@ -1417,10 +1441,33 @@ VOID RTMP_CFG80211_DummyP2pIf_Init(
 	UINT preIfIndex = 0;
 	struct wireless_dev *pWdev;
 	struct wifi_dev *wdev = NULL;
+	PNET_DEV pNetDev = NULL;
 
 	DBGPRINT(RT_DEBUG_TRACE, (" %s =====> \n", __FUNCTION__));
-	if (cfg80211_ctrl->flg_cfg_dummy_p2p_init != FALSE)
+	if (cfg80211_ctrl->flg_cfg_dummy_p2p_init != FALSE) {
+		/*  To fix the P2P functionality fail when
+		 *  wpa_supplicant TERMINATE and RE-START issue,
+		 *  Due to the interface mode has changed to AP/STA.
+		 */
+		DBGPRINT(RT_DEBUG_WARN, ("Change the interface mode to avoid the p2p functionality fail!\n"));
+		pNetDev = cfg80211_ctrl->dummy_p2p_net_dev;
+		pWdev = pNetDev->ieee80211_ptr;
+		pWdev->wiphy->interface_modes |= (BIT(NL80211_IFTYPE_P2P_CLIENT)
+		| BIT(NL80211_IFTYPE_P2P_GO));
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0))
+		{
+			extern const struct ieee80211_iface_combination
+			*p_ra_iface_combinations_p2p;
+			extern const INT ra_iface_combinations_p2p_num;
+
+			DBGPRINT(RT_DEBUG_TRACE, ("[%s] Change to P2P combination mode!!\n", __func__));
+			pWdev->wiphy->iface_combinations = p_ra_iface_combinations_p2p;
+			pWdev->wiphy->n_iface_combinations = ra_iface_combinations_p2p_num;
+		}
+#endif /* KERNEL_VERSION >= 3.8.0 */
+
 		return;
+	}
 
 #ifdef RT_CFG80211_P2P_SINGLE_DEVICE 
 	cfg80211_ctrl->P2POpStatusFlags	= CFG_P2P_DISABLE;
@@ -1536,12 +1583,21 @@ VOID RTMP_CFG80211_DummyP2pIf_Init(
 		/* interface_modes move from IF open to init */
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,37))
 		pWdev->wiphy->interface_modes |= (BIT(NL80211_IFTYPE_P2P_CLIENT)
-										| BIT(NL80211_IFTYPE_P2P_GO));
+						| BIT(NL80211_IFTYPE_P2P_GO));
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,7,0))
 		pWdev->wiphy->software_iftypes |= BIT(NL80211_IFTYPE_P2P_DEVICE);
 #endif /* LINUX_VERSION_CODE 3.7.0 */
 #endif /* LINUX_VERSION_CODE 2.6.37 */
-	
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0))
+	{
+		extern const struct ieee80211_iface_combination *p_ra_iface_combinations_p2p;
+		extern const INT ra_iface_combinations_p2p_num;
+
+		DBGPRINT(RT_DEBUG_TRACE, ("[%s] Change to P2P combination mode!!\n", __func__));
+		pWdev->wiphy->iface_combinations = p_ra_iface_combinations_p2p;
+		pWdev->wiphy->n_iface_combinations = ra_iface_combinations_p2p_num;
+	}
+#endif /* KERNEL_VERSION >= 3.8.0 */
 
 	wdev = &cfg80211_ctrl->dummy_p2p_wdev;
 	wdev->wdev_type = WDEV_TYPE_STA;
@@ -1556,14 +1612,7 @@ VOID RTMP_CFG80211_DummyP2pIf_Init(
 	{
 		DBGPRINT(RT_DEBUG_ERROR, ("===============> fail register the wdev for dummy p2p\n"));
 	}
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,0,0))
-	{
-	extern const struct ieee80211_iface_combination * p_ra_iface_combinations_p2p;
-	extern const INT ra_iface_combinations_p2p_num;
-	pWdev->wiphy->iface_combinations = p_ra_iface_combinations_p2p;
-	pWdev->wiphy->n_iface_combinations = ra_iface_combinations_p2p_num;
-	}
-#endif 	
+	
 	RtmpOSNetDevAttach(pAd->OpMode, new_dev_p, pNetDevOps); 
 	cfg80211_ctrl->dummy_p2p_net_dev = new_dev_p;
 	cfg80211_ctrl->flg_cfg_dummy_p2p_init = TRUE;
@@ -1614,7 +1663,7 @@ BOOLEAN RTMP_CFG80211_MULTI_STA_ON(VOID *pAdSrc, PNET_DEV pNewNetDev)
 
 VOID RTMP_CFG80211_MutliStaIf_Init(VOID *pAdSrc)
 {
-	printk("%s()\n", __FUNCTION__);
+	DBGPRINT(RT_DEBUG_OFF, ("%s()\n", __func__));
 #define INF_CFG80211_MULTI_STA_NAME "muti-sta0"
 	PRTMP_ADAPTER pAd = (PRTMP_ADAPTER)pAdSrc;
 	CMD_RTPRIV_IOCTL_80211_VIF_SET vifInfo;
@@ -1638,16 +1687,17 @@ VOID RTMP_CFG80211_MutliStaIf_Init(VOID *pAdSrc)
 
 VOID RTMP_CFG80211_MutliStaIf_Remove(VOID *pAdSrc)
 {
-	printk("%s()\n", __FUNCTION__);
+	DBGPRINT(RT_DEBUG_OFF, ("%s()\n", __func__));
 	PRTMP_ADAPTER pAd = (PRTMP_ADAPTER)pAdSrc;
 	PCFG80211_CTRL cfg80211_ctrl = &pAd->cfg80211_ctrl;
 	
 	if (cfg80211_ctrl->multi_sta_net_dev)
 	{
-		RtmpOSNetDevProtect(1);
-		RTMP_DRIVER_80211_VIF_DEL(pAd, cfg80211_ctrl->multi_sta_net_dev, 
-					RT_CMD_80211_IFTYPE_STATION);
-		RtmpOSNetDevProtect(0);
+		/* Remove wifi dirver to lock the rtnl_lock here.
+		*  It will cause kernel crash sometimes.
+		*  The lock action leave to kernel.
+		*/
+		RTMP_CFG80211_VirtualIF_Remove(pAd, cfg80211_ctrl->multi_sta_net_dev, DevType, TRUE);
 		cfg80211_ctrl->flg_cfg_multi_sta_init = FALSE;
 	}
 }

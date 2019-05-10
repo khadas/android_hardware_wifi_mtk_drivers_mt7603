@@ -27,6 +27,8 @@
 
 #include "rt_config.h"
 
+extern int RtmpIoctl_rt_ioctl_siwgenie(RTMP_ADAPTER *pAd, const u8 *ie, size_t ie_len);
+
 #if defined (HE_BD_CFG80211_SUPPORT) && defined (BD_KERNEL_VER)
 #undef  LINUX_VERSION_CODE
 #define LINUX_VERSION_CODE KERNEL_VERSION(2,6,39)
@@ -81,12 +83,12 @@ INT CFG80211DRV_IoctlHandle(
 			break;
 
 		case CMD_RTPRIV_IOCTL_80211_SCAN:
-			if (CFG80211DRV_OpsScanCheckStatus(pAd, Data) != TRUE) 
+			if (CFG80211DRV_OpsScanCheckStatus(pAd, (UINT8)Data) != TRUE)
 				return NDIS_STATUS_FAILURE;
 			break;
 
 		case CMD_RTPRIV_IOCTL_80211_SCAN_STATUS_LOCK_INIT:
-			CFG80211_ScanStatusLockInit(pAd, Data);
+			CFG80211_ScanStatusLockInit(pAd, (UINT)Data);
 			break;
 			
 		case CMD_RTPRIV_IOCTL_80211_IBSS_JOIN:
@@ -103,7 +105,7 @@ INT CFG80211DRV_IoctlHandle(
 			break;
 #ifdef CFG_TDLS_SUPPORT
 		case CMD_RTPRIV_IOCTL_80211_STA_TDLS_INSERT_PENTRY:
-			CFG80211DRV_StaTdlsInsertDeletepEntry(pAd, pData, Data);
+			CFG80211DRV_StaTdlsInsertDeletepEntry(pAd, pData, (UINT)Data);
 			break;
 #endif /* CFG_TDLS_SUPPORT */
 
@@ -128,12 +130,12 @@ INT CFG80211DRV_IoctlHandle(
 
 #ifdef CONFIG_STA_SUPPORT			
 		case CMD_RTPRIV_IOCTL_80211_STA_KEY_DEFAULT_SET:
-			CFG80211_setStaDefaultKey(pAd, Data);
+			CFG80211_setStaDefaultKey(pAd, (UINT)Data);
 			break;
 
 #ifdef DOT11W_PMF_SUPPORT
 		case CMD_RTPRIV_IOCTL_80211_STA_MGMT_KEY_DEFAULT_SET:
-			CFG80211_setStaMgmtDefaultKey(pAd, Data);
+			CFG80211_setStaMgmtDefaultKey(pAd, (UINT)Data);
 			break;
 #endif /* DOT11W_PMF_SUPPORT */
 
@@ -180,22 +182,22 @@ INT CFG80211DRV_IoctlHandle(
 			break;
 #ifdef RT_CFG80211_P2P_SUPPORT
 		case CMD_RTPRIV_IOCTL_80211_REMAIN_ON_CHAN_SET:			
-			CFG80211DRV_OpsRemainOnChannel(pAd, pData, Data);			 		
+			CFG80211DRV_OpsRemainOnChannel(pAd, pData, (UINT32)Data);
 			break;
 							
 		case CMD_RTPRIV_IOCTL_80211_CANCEL_REMAIN_ON_CHAN_SET:
-			CFG80211DRV_OpsCancelRemainOnChannel(pAd, Data);
+			CFG80211DRV_OpsCancelRemainOnChannel(pAd, (UINT32)Data);
 			break;
 #endif /*RT_CFG80211_P2P_SUPPORT*/
 
 		/* CFG_TODO */
 		case CMD_RTPRIV_IOCTL_80211_MGMT_FRAME_REG:
-			CFG80211DRV_OpsMgmtFrameProbeRegister(pAd, pData, Data);
+			CFG80211DRV_OpsMgmtFrameProbeRegister(pAd, pData, (BOOLEAN)Data);
 			break;
 			
 		/* CFG_TODO */
 		case CMD_RTPRIV_IOCTL_80211_ACTION_FRAME_REG:
-			CFG80211DRV_OpsMgmtFrameActionRegister(pAd, pData, Data);
+			CFG80211DRV_OpsMgmtFrameActionRegister(pAd, pData, (BOOLEAN)Data);
 			break;
 
 		case CMD_RTPRIV_IOCTL_80211_CHANNEL_LOCK:
@@ -205,17 +207,21 @@ INT CFG80211DRV_IoctlHandle(
 		case CMD_RTPRIV_IOCTL_80211_CHANNEL_RESTORE:
 			break;
 
+		case CMD_RTPRIV_IOCTL_80211_TX_NETDEV_SET:
+			CFG80211_SetTxNdev(pAd, pData);
+			break;
+
 		case CMD_RTPRIV_IOCTL_80211_MGMT_FRAME_SEND:
 			CFG80211_SendMgmtFrame(pAd, pData, Data);
 			break;
 
 		case CMD_RTPRIV_IOCTL_80211_CHANNEL_LIST_SET:
-			return CFG80211DRV_OpsScanSetSpecifyChannel(pAd,pData, Data);			
+			return CFG80211DRV_OpsScanSetSpecifyChannel(pAd, pData, (UINT8)Data);
 
 #ifdef CONFIG_AP_SUPPORT
 #ifdef RT_CFG80211_P2P_SUPPORT
 		case CMD_RTPRIV_IOCTL_80211_POWER_MGMT_SET:
-			CFG80211_setPowerMgmt(pAd, Data);
+			CFG80211_setPowerMgmt(pAd, (UINT)Data);
 			break;
 #endif /*RT_CFG80211_P2P_SUPPORT*/
 
@@ -260,11 +266,11 @@ INT CFG80211DRV_IoctlHandle(
                         break;
 
                 case CMD_RTPRIV_IOCTL_80211_RTS_THRESHOLD_ADD:
-                        CFG80211DRV_RtsThresholdAdd(pAd, Data);
+						CFG80211DRV_RtsThresholdAdd(pAd, (UINT)Data);
                         break;
 
                 case CMD_RTPRIV_IOCTL_80211_FRAG_THRESHOLD_ADD:
-                        CFG80211DRV_FragThresholdAdd(pAd, Data);
+						CFG80211DRV_FragThresholdAdd(pAd, (UINT)Data);
                         break;
 						
                 case CMD_RTPRIV_IOCTL_80211_AP_KEY_DEL:
@@ -272,11 +278,11 @@ INT CFG80211DRV_IoctlHandle(
                         break;
 
                 case CMD_RTPRIV_IOCTL_80211_AP_KEY_DEFAULT_SET:
-                        CFG80211_setApDefaultKey(pAd, Data);
+						CFG80211_setApDefaultKey(pAd, (UINT)Data);
                         break;
 
                 case CMD_RTPRIV_IOCTL_80211_PORT_SECURED:
-                        CFG80211_StaPortSecured(pAd, pData, Data);
+						CFG80211_StaPortSecured(pAd, pData, (UINT)Data);
                         break;
 
                 case CMD_RTPRIV_IOCTL_80211_AP_STA_DEL:
@@ -284,7 +290,7 @@ INT CFG80211DRV_IoctlHandle(
                         break;
 	
 		case CMD_RTPRIV_IOCTL_80211_AP_ASSOC_RSP_EXTRA_IE:
-			CFG80211_setApAssocRspExtraIe(pAd, pData, Data);
+			CFG80211_setApAssocRspExtraIe(pAd, pData, (UINT32)Data);
 			break;
 #endif /* CONFIG_AP_SUPPORT */			
 
@@ -331,11 +337,19 @@ INT CFG80211DRV_IoctlHandle(
                RTMP_CFG80211_MULTI_STA_ON(pAd, pAssocIe->pNetDev) ||
 #endif /* CFG80211_MULTI_STA */
                (Data == RT_CMD_80211_IFTYPE_P2P_CLIENT)
-			   )
-                CFG80211DRV_SetP2pCliAssocIe(pAd, pAssocIe->ie, pAssocIe->ie_len);
-            else
+			   ) {
+				if (pAssocIe->ie && pAssocIe->ie_len > 0)
+					CFG80211DRV_SetP2pCliAssocIe(pAd, pAssocIe->ie, pAssocIe->ie_len);
+				else
+					CFG80211DRV_SetP2pCliAssocIe(pAd, NULL, 0);
+			} else
 #endif /* RT_CFG80211_P2P_CONCURRENT_DEVICE || CFG80211_MULTI_STA */
-				RTMP_DRIVER_80211_GEN_IE_SET(pAd, pAssocIe->ie, pAssocIe->ie_len);
+			{
+				if (pAssocIe->ie && pAssocIe->ie_len > 0)
+					RtmpIoctl_rt_ioctl_siwgenie(pAd, pAssocIe->ie, pAssocIe->ie_len);
+				else
+					RtmpIoctl_rt_ioctl_siwgenie(pAd, NULL, 0);
+			}
 		}
                         break;
 #endif /*CONFIG_STA_SUPPORT*/
@@ -347,7 +361,10 @@ INT CFG80211DRV_IoctlHandle(
 			break;
 
         case CMD_RTPRIV_IOCTL_80211_VIF_DEL:
-			RTMP_CFG80211_VirtualIF_Remove(pAd, pData, Data);
+			/* .del_virtual_intf CFG hook function,
+			*  If we lock here, will cause dead_lock issue
+			*/
+			RTMP_CFG80211_VirtualIF_Remove(pAd, pData, (UINT32)Data, FALSE);
             break;
 #endif /* RT_CFG80211_P2P_CONCURRENT_DEVICE || CFG80211_MULTI_STA */
 
@@ -638,7 +655,7 @@ BOOLEAN CFG80211DRV_OpsSetChannel(RTMP_ADAPTER *pAd, VOID *pData)
 			   IfType == RT_CMD_80211_IFTYPE_P2P_GO)
 			{
 
-				wdev->bw = pAd->CommonCfg.RegTransmitSetting.field.BW;
+				wdev->bw = (UCHAR)(pAd->CommonCfg.RegTransmitSetting.field.BW);
 				pAd->CommonCfg.Channel = ChanId;
 
 				if(pAd->CommonCfg.RegTransmitSetting.field.EXTCHA == EXTCHA_BELOW)
@@ -664,7 +681,7 @@ BOOLEAN CFG80211DRV_OpsSetChannel(RTMP_ADAPTER *pAd, VOID *pData)
 			if(IfType == RT_CMD_80211_IFTYPE_AP ||
 	   			IfType == RT_CMD_80211_IFTYPE_P2P_GO)
 			{
-				wdev->bw = pAd->CommonCfg.RegTransmitSetting.field.BW;
+				wdev->bw = (UCHAR)(pAd->CommonCfg.RegTransmitSetting.field.BW);
 				pAd->CommonCfg.Channel = ChanId;
 
 				if(pAd->CommonCfg.RegTransmitSetting.field.EXTCHA == EXTCHA_BELOW)
@@ -737,9 +754,9 @@ BOOLEAN CFG80211DRV_OpsSetChannel(RTMP_ADAPTER *pAd, VOID *pData)
         else
         	pAd->CommonCfg.CentralChannel = pAd->CommonCfg.Channel;
 
-	bbp_set_bw(pAd, pAd->CommonCfg.RegTransmitSetting.field.BW);
-        AsicSwitchChannel(pAd, pAd->CommonCfg.CentralChannel,FALSE); 
-        AsicLockChannel(pAd, pAd->CommonCfg.CentralChannel);
+	bbp_set_bw(pAd, (UINT8)(pAd->CommonCfg.RegTransmitSetting.field.BW));
+	AsicSwitchChannel(pAd, pAd->CommonCfg.CentralChannel, FALSE);
+	AsicLockChannel(pAd, pAd->CommonCfg.CentralChannel);
 		
 	CFG80211DBG(RT_DEBUG_TRACE, ("80211> New CH = %d, New BW = %d with Ext[%d]\n", 
 		pAd->CommonCfg.CentralChannel, pAd->CommonCfg.RegTransmitSetting.field.BW,
@@ -798,7 +815,7 @@ BOOLEAN CFG80211DRV_OpsJoinIbss(
 
 	pIbssInfo = (CMD_RTPRIV_IOCTL_80211_IBSS *)pData;
 	pAd->StaCfg.bAutoReconnect = TRUE;
-	pAd->CommonCfg.BeaconPeriod = pIbssInfo->BeaconInterval;
+	pAd->CommonCfg.BeaconPeriod = (USHORT)pIbssInfo->BeaconInterval;
 
 	if (pIbssInfo->privacy)
 	{
@@ -1022,7 +1039,7 @@ BOOLEAN CFG80211DRV_StaGet(
 	pIbssInfo->tx_packets = pAd->WlanCounters.TransmittedFragmentCount.u.LowPart;
 	pIbssInfo->tx_retries = pAd->WlanCounters.RetryCount.u.LowPart;
 	pIbssInfo->tx_failed = pAd->WlanCounters.FailedCount.u.LowPart;
-	pIbssInfo->rx_packets = pAd->WlanCounters.ReceivedFragmentCount.QuadPart;
+	pIbssInfo->rx_packets = (UINT32)(pAd->WlanCounters.ReceivedFragmentCount.QuadPart);
 
 
 	/* fill signal */
@@ -1144,8 +1161,10 @@ BOOLEAN CFG80211DRV_StaKeyAdd(
 	                        			&pAd->SharedKey[BSS0][pKeyInfo->KeyId], pEntry->Addr);
 						}
 						else
-							printk("%s =====> can't add to [%d]Wcid %d, type=%d\n", __FUNCTION__, i, 
-												pEntry->wcid, pEntry->EntryType);
+							DBGPRINT(RT_DEBUG_OFF,
+							("%s can't add [%d]Wcid %d type=%d\n",
+							__func__, i, pEntry->wcid,
+							pEntry->EntryType));
 					}
 				}
 
@@ -1651,20 +1670,25 @@ VOID CFG80211_LostApInform(
 {
 
 	PRTMP_ADAPTER pAd = (PRTMP_ADAPTER)pAdCB;
-//	CFG80211_CB *p80211CB = pAd->pCfg80211_CB;
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 11, 0))
+	CFG80211_CB *p80211CB = pAd->pCfg80211_CB;
+
+	DBGPRINT(RT_DEBUG_TRACE, ("80211> CFG80211_LostApInform ==> %d\n",
+					p80211CB->pCfg80211_Wdev->sme_state));
+#endif
 	
 	pAd->StaCfg.bAutoReconnect = FALSE;
 
 #if 0 //MCC
         if(pAd->cfg80211_ctrl.isMccOn)
         {
-		printk("MCC:==============================> off by STA\n");
+		DBGPRINT(RT_DEBUG_OFF, ("MCC:==============================> off by STA\n"));
 		pAd->cfg80211_ctrl.isMccOn = FALSE;
                 CmdMccStop(pAd, NULL);
         }
 #endif 
 #if (LINUX_VERSION_CODE < KERNEL_VERSION(3, 11, 0))
-	DBGPRINT(RT_DEBUG_TRACE, ("80211> CFG80211_LostApInform ==> %d\n", 
+	DBGPRINT(RT_DEBUG_TRACE, ("80211> CFG80211_LostApInform ==> %d\n",
 					p80211CB->pCfg80211_Wdev->sme_state));
 	if (p80211CB->pCfg80211_Wdev->sme_state == CFG80211_SME_CONNECTING)
 	{
@@ -1676,7 +1700,11 @@ VOID CFG80211_LostApInform(
 		   cfg80211_disconnected(pAd->net_dev, 0, NULL, 0, GFP_KERNEL);
 	} 
 #else
-	cfg80211_disconnected(pAd->net_dev, 0, NULL, 0, GFP_KERNEL);
+				cfg80211_disconnected(pAd->net_dev, 0, NULL, 0,
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 2, 0))
+						FALSE,/* locally_generated */
+#endif
+						GFP_KERNEL);
 #endif
 }
 #endif /*CONFIG_STA_SUPPORT*/
@@ -1772,7 +1800,7 @@ VOID CFG80211_RegRuleApply(
 	UINT32 IdBand, IdChan, IdPwr;
 	UINT32 ChanNum, ChanId, Power, RecId, DfsType;
 	BOOLEAN FlgIsRadar;
-	ULONG IrqFlags;
+	ULONG IrqFlags = 0;
 #ifdef DFS_SUPPORT	
 	RADAR_DETECT_STRUCT	*pRadarDetect;
 #endif /* DFS_SUPPORT */
@@ -1840,18 +1868,15 @@ VOID CFG80211_RegRuleApply(
 #endif /* EXT_BUILD_CHANNEL_LIST */
 #endif /* AUTO_CH_SELECT_ENHANCE */
 
-	for(IdBand=0; IdBand<IEEE80211_NUM_BANDS; IdBand++)
-	{
-		if (((IdBand == IEEE80211_BAND_2GHZ) && (pBand24G == NULL)) ||
-			((IdBand == IEEE80211_BAND_5GHZ) && (pBand5G == NULL)))
+	for (IdBand = 0; IdBand < KAL_NUM_BANDS; IdBand++) {
+		if (((IdBand == KAL_BAND_2GHZ) && (pBand24G == NULL)) ||
+			((IdBand == KAL_BAND_5GHZ) && (pBand5G == NULL)))
 		{
 			continue;
 		}
 
-		if (IdBand == IEEE80211_BAND_2GHZ)
-		{
+		if (IdBand == KAL_BAND_2GHZ)
 			CFG80211DBG(RT_DEBUG_TRACE, ("crda> reset chan/power for 2.4GHz\n"));
-		}
 		else
 		{
 			CFG80211DBG(RT_DEBUG_TRACE, ("crda> reset chan/power for 5GHz\n"));
@@ -1885,7 +1910,7 @@ VOID CFG80211_RegRuleApply(
 
 			for(IdPwr=0; IdPwr<MAX_NUM_OF_CHANNELS; IdPwr++)
 			{
-				if (ChanId == pAd->TxPower[IdPwr].Channel)
+				if (((UCHAR)ChanId) == pAd->TxPower[IdPwr].Channel)
 				{
 					/* init the channel info. */
 					NdisMoveMemory(&pAd->ChannelList[RecId],
@@ -1893,22 +1918,22 @@ VOID CFG80211_RegRuleApply(
 									sizeof(CHANNEL_TX_POWER));
 
 					/* keep channel number */
-					pAd->ChannelList[RecId].Channel = ChanId;
+					pAd->ChannelList[RecId].Channel = (UCHAR)ChanId;
 
 					/* keep maximum tranmission power */
-					pAd->ChannelList[RecId].MaxTxPwr = Power;
+					pAd->ChannelList[RecId].MaxTxPwr = (UCHAR)Power;
 
 					/* keep DFS flag */
 					if (FlgIsRadar == TRUE)
-						pAd->ChannelList[RecId].DfsReq = TRUE;
+						pAd->ChannelList[RecId].DfsReq = (UCHAR)TRUE;
 					else
-						pAd->ChannelList[RecId].DfsReq = FALSE;
+						pAd->ChannelList[RecId].DfsReq = (UCHAR)FALSE;
 
 					/* keep DFS type */
-					pAd->ChannelList[RecId].RegulatoryDomain = DfsType;
+					pAd->ChannelList[RecId].RegulatoryDomain = (UCHAR)DfsType;
 
 					/* re-set DFS info. */
-					pAd->CommonCfg.RDDurRegion = DfsType;
+					pAd->CommonCfg.RDDurRegion = (UCHAR)DfsType;
 
 #if 0
 					if (DfsType == JAP_W53)
@@ -1942,7 +1967,7 @@ VOID CFG80211_RegRuleApply(
 		}
 	}
 
-	pAd->ChannelListNum = RecId;
+	pAd->ChannelListNum = (UCHAR)RecId;
 	RTMP_IRQ_UNLOCK(&pAd->irq_lock, IrqFlags);
 
 	CFG80211DBG(RT_DEBUG_TRACE, ("crda> Number of channels = %d\n", RecId));
@@ -2047,7 +2072,7 @@ INT CFG80211_setStaDefaultKey(
 	PRTMP_ADAPTER pAd = (PRTMP_ADAPTER)pAdCB;
 
 	DBGPRINT(RT_DEBUG_TRACE, ("Set Sta Default Key: %d\n", Data));
-    pAd->StaCfg.wdev.DefaultKeyId = Data; /* base 0 */
+	pAd->StaCfg.wdev.DefaultKeyId = (UCHAR)Data; /* base 0 */
 	return 0;	
 }
 
@@ -2057,7 +2082,7 @@ INT CFG80211_setStaMgmtDefaultKey(
 	IN UINT 					Data
 )
 {
-	PRTMP_ADAPTER pAd = (PRTMP_ADAPTER)pAdCB;
+	/* PRTMP_ADAPTER pAd = (PRTMP_ADAPTER)pAdCB; */
 
 	DBGPRINT(RT_DEBUG_TRACE, ("Set Sta MgmtDefault Key: %d\n", Data));
     	//pAd->StaCfg.wdev.MgmtDefaultKeyId = Data; /* base 0 */
@@ -2186,15 +2211,15 @@ BOOLEAN CFG80211_checkScanTable(
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,39))
 		if (pAd->ScanTab.BssEntry[bss_idx].Channel > 14)
-			CenFreq = ieee80211_channel_to_frequency(pBssEntry->Channel , IEEE80211_BAND_5GHZ);
+			CenFreq = ieee80211_channel_to_frequency(pBssEntry->Channel, KAL_BAND_5GHZ);
 		else
-			CenFreq = ieee80211_channel_to_frequency(pBssEntry->Channel , IEEE80211_BAND_2GHZ);
+			CenFreq = ieee80211_channel_to_frequency(pBssEntry->Channel, KAL_BAND_2GHZ);
 #else
             CenFreq = ieee80211_channel_to_frequency(pBssEntry->Channel);
 #endif
         	chan = ieee80211_get_channel(pWiphy, CenFreq);		
 
-		ieLen = 2 + pApCliEntry->MlmeAux.SsidLen + pBssEntry->VarIeFromProbeRspLen;
+		ieLen = (UCHAR)(2 + pApCliEntry->MlmeAux.SsidLen + pBssEntry->VarIeFromProbeRspLen);
 
 		os_alloc_mem(NULL, (UCHAR **)&ie, ieLen);
 		if (!ie)
@@ -2208,8 +2233,9 @@ BOOLEAN CFG80211_checkScanTable(
 		NdisCopyMemory(ie + 2, pApCliEntry->MlmeAux.Ssid, pApCliEntry->MlmeAux.SsidLen);
 		NdisCopyMemory(ie + 2 + pApCliEntry->MlmeAux.SsidLen, pBssEntry->pVarIeFromProbRsp, 
 				pBssEntry->VarIeFromProbeRspLen);
-		
-		bss = cfg80211_inform_bss(pWiphy, chan,
+
+		if (chan) {
+			bss = cfg80211_inform_bss(pWiphy, chan,
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0))
 					  CFG80211_BSS_FTYPE_UNKNOWN,
 #endif
@@ -2221,12 +2247,26 @@ BOOLEAN CFG80211_checkScanTable(
 					  (pBssEntry->Rssi * 100), 
 #endif
 					  GFP_KERNEL);
+		} else {
+			DBGPRINT(RT_DEBUG_ERROR, ("Invalid channel !!\n"));
+
+			if (ie != NULL)
+				os_free_mem(NULL, ie);
+
+			return FALSE;
+		}
+
 		if (bss)
 		{
-			printk("Fake New %s(%02x:%02x:%02x:%02x:%02x:%02x) in Kernel_ScanTable with CH[%d][%d] BI:%d len:%d\n", 
-					pApCliEntry->MlmeAux.Ssid, 
-					PRINT_MAC(pApCliEntry->MlmeAux.Bssid),bss->channel->center_freq, pBssEntry->Channel,
-					pApCliEntry->MlmeAux.BeaconPeriod, pBssEntry->VarIeFromProbeRspLen);	
+			DBGPRINT(RT_DEBUG_OFF,
+				("Fake New %s(%02x:%02x:%02x:%02x:%02x:%02x)",
+				pApCliEntry->MlmeAux.Ssid,
+				PRINT_MAC(pApCliEntry->MlmeAux.Bssid)));
+			DBGPRINT(RT_DEBUG_OFF,
+				(" in Kernel_ScanTable with CH[%d][%d] BI:%d len:%d\n",
+				bss->channel->center_freq, pBssEntry->Channel,
+				pApCliEntry->MlmeAux.BeaconPeriod,
+				pBssEntry->VarIeFromProbeRspLen));
 			
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,10,0))
 			cfg80211_put_bss(pWiphy, bss);
@@ -2243,7 +2283,9 @@ BOOLEAN CFG80211_checkScanTable(
 			return TRUE;
 	}
 	else
-		printk("%s Not In Driver Scan Table\n", pApCliEntry->MlmeAux.Ssid);
+		DBGPRINT(RT_DEBUG_OFF,
+			("%s Not In Driver Scan Table\n",
+			pApCliEntry->MlmeAux.Ssid));
 
 	return FALSE;
 }
@@ -2366,7 +2408,7 @@ VOID CFG80211_JoinIBSS(
 						 pBeaconFrame, FrameLen);
 #endif /*CONFIG_STA_SUPPORT*/
 	MlmeFreeMemory(pAd, pBeaconFrame);
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18 ,0))
+#if (KERNEL_VERSION(3, 15, 0) <= LINUX_VERSION_CODE)
 	CFG80211OS_JoinIBSS(pAd->net_dev, pBSSID, pCfg80211_CB->pCfg80211_Channels);
 #else
 	CFG80211OS_JoinIBSS(pAd->net_dev, pBSSID);

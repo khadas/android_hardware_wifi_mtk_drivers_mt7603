@@ -201,7 +201,7 @@ typedef struct _RSSI_SAMPLE {
 	CHAR LastSnr[3];
 	CHAR AvgSnr[3];
 	SHORT AvgSnrX8[3];
-	//CHAR LastNoiseLevel[3];
+	CHAR LastNoiseLevel[3];
 } RSSI_SAMPLE;
 #endif
 

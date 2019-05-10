@@ -317,7 +317,7 @@ VOID InitPeerEntryRateCapability(
 
 BOOLEAN CFG80211DRV_StaTdlsInsertDeletepEntry(
 	VOID						*pAdOrg,
-	VOID						*pData,
+	const VOID					*pData,
 	UINT						Data)
 {
 	PRTMP_ADAPTER pAd = (PRTMP_ADAPTER)pAdOrg;
@@ -406,7 +406,8 @@ BOOLEAN CFG80211DRV_StaTdlsInsertDeletepEntry(
 #ifndef RT_BIG_ENDIAN
 				NdisZeroMemory(&HtCapabilityTmp, sizeof(HT_CAPABILITY_IE));
 				NdisMoveMemory(&HtCapabilityTmp, &pAd->CommonCfg.HtCapability, HtLen);
-				HtCapabilityTmp.HtCapInfo.ChannelWidth = pAd->CommonCfg.RegTransmitSetting.field.BW;
+				HtCapabilityTmp.HtCapInfo.ChannelWidth =
+					(UINT16)pAd->CommonCfg.RegTransmitSetting.field.BW;
 #else
 				NdisZeroMemory(&HtCapabilityTmp, sizeof(HT_CAPABILITY_IE));
 				NdisMoveMemory(&HtCapabilityTmp, &pAd->CommonCfg.HtCapability, HtLen);
@@ -656,8 +657,8 @@ VOID cfg_tdls_UAPSDP_PsmModeChange(
 				DBGPRINT(RT_DEBUG_TRACE, ("tdls uapsd> send a NULL frame!\n"));
 
 				RtmpEnqueueNullFrame(pAd, pMacEntry->Addr,
-									pAd->CommonCfg.TxRate, pMacEntry->Aid,
-									pMacEntry->apidx, TRUE, FALSE, 0);
+					pAd->CommonCfg.TxRate, (UCHAR)pMacEntry->Aid,
+					pMacEntry->apidx, TRUE, FALSE, 0);
 				continue;
 			}
 
@@ -697,7 +698,9 @@ void cfg_tdls_rcv_PeerTrafficIndication(PRTMP_ADAPTER pAd,u8 dialog_token,u8 *pe
 		return;
 	}
 	
-	cfg_tlds_build_frame(pAd, peer, dialog_token, TDLS_ACTION_CODE_PEER_TRAFFIC_RESPONSE, 0, NULL, 0, FALSE, tdls_entry_wcid,0);
+	cfg_tlds_build_frame(pAd, peer, dialog_token,
+		TDLS_ACTION_CODE_PEER_TRAFFIC_RESPONSE, 0,
+		NULL, 0, FALSE, (u8)tdls_entry_wcid, 0);
 	DBGPRINT(RT_DEBUG_INFO,("<======  %s() out\n", __FUNCTION__));
 }
 void cfg_tdls_rcv_PeerTrafficResponse(PRTMP_ADAPTER pAd,u8 *peer)
@@ -766,7 +769,9 @@ void cfg_tdls_send_PeerTrafficIndication(PRTMP_ADAPTER pAd, u8 *peer)
 
 	pAd->StaCfg.wpa_supplicant_info.CFG_Tdls_info.TDLSEntry[tdls_entry_link_index].FlgIsWaitingUapsdTraRsp = TRUE;
 			
-	cfg_tlds_build_frame(pAd, peer, dialog_token, TDLS_ACTION_CODE_PEER_TRAFFIC_INDICATION, 0, NULL, 0, FALSE, tdls_entry_link_index,0);
+	cfg_tlds_build_frame(pAd, peer, dialog_token,
+		TDLS_ACTION_CODE_PEER_TRAFFIC_INDICATION, 0,
+		NULL, 0, FALSE, (u8)tdls_entry_link_index, 0);
 	/*
 		11.2.1.14.1 Peer U-APSD Behavior at the PU buffer STA
 		When no corresponding TDLS Peer Traffic Response frame has been
@@ -883,7 +888,7 @@ int cfg_tdls_search_ValidLinkIndex(PRTMP_ADAPTER pAd, u8 *peer)
 
 int cfg_tlds_build_frame(
 PRTMP_ADAPTER	pAd,
-u8 *peer,
+const u8 *peer,
 u8 dialog_token,
 u8 action_code,
 u16 status_code,
@@ -1074,7 +1079,9 @@ u8 reason_code
 				UCHAR RegluatoryRxtIdent = 221;
 				UCHAR CoverageClass = 0;
 	
-				regclass = cfg_tdls_GetRegulatoryClass(pAd, pAd->CommonCfg.RegTransmitSetting.field.BW, pAd->CommonCfg.Channel);
+				regclass = cfg_tdls_GetRegulatoryClass(pAd,
+					(UCHAR)pAd->CommonCfg.RegTransmitSetting.field.BW,
+					pAd->CommonCfg.Channel);
 				MakeOutgoingFrame(TmpFrame+TmpLen2, &TmpLen,
 									1,				&RegluatoryRxtIdent,
 									1,				&regclass,
@@ -1264,7 +1271,9 @@ u8 reason_code
 			UCHAR SuppClassesList[] = {1, 2, 3, 4, 12, 22, 23, 24, 25, 27, 28, 29, 30, 32, 33};
 			UCHAR regclass;
 
-			regclass = cfg_tdls_GetRegulatoryClass(pAd, pAd->CommonCfg.RegTransmitSetting.field.BW, pAd->CommonCfg.Channel);
+			regclass = cfg_tdls_GetRegulatoryClass(pAd,
+				(UCHAR)pAd->CommonCfg.RegTransmitSetting.field.BW,
+				pAd->CommonCfg.Channel);
 
 			MakeOutgoingFrame(pOutBuffer + FrameLen,			&TempLen,
 								1,				&TDLS_IE,
@@ -1286,7 +1295,8 @@ u8 reason_code
 #ifndef RT_BIG_ENDIAN
 			NdisZeroMemory(&HtCapabilityTmp, sizeof(HT_CAPABILITY_IE));
 			NdisMoveMemory(&HtCapabilityTmp, &pAd->CommonCfg.HtCapability, HtLen);
-			HtCapabilityTmp.HtCapInfo.ChannelWidth = pAd->CommonCfg.RegTransmitSetting.field.BW;
+			HtCapabilityTmp.HtCapInfo.ChannelWidth =
+				(UINT16)pAd->CommonCfg.RegTransmitSetting.field.BW;
 			
 			MakeOutgoingFrame(pOutBuffer + FrameLen,	&TempLen,
 								1,			&HtCapIe,
@@ -1448,7 +1458,7 @@ u8 reason_code
 
 		for (idx=QID_AC_BE; idx<=QID_AC_VO; idx++)
 		{
-			WmeParmIe[10+ (idx*4)] = (idx << 5)								+	  // b5-6 is ACI
+			WmeParmIe[10 + (idx * 4)] = (UCHAR)(idx << 5) +/* b5-6 is ACI */
 								   ((UCHAR)pAd->CommonCfg.APEdcaParm.bACM[idx] << 4) 	+	  // b4 is ACM
 								   (pAd->CommonCfg.APEdcaParm.Aifsn[idx] & 0x0f);			  // b0-3 is AIFSN
 			WmeParmIe[11+ (idx*4)] = (pAd->CommonCfg.APEdcaParm.Cwmax[idx] << 4)		+	  // b5-8 is CWMAX
@@ -1543,35 +1553,35 @@ u8 reason_code
 	/////////////////// debug output /////////////////////////////
 	switch (action_code) {
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(3,1,10))
-	case WLAN_TDLS_SETUP_REQUEST:
+	case ((u8)(WLAN_TDLS_SETUP_REQUEST)):
 		CFG80211DBG(RT_DEBUG_ERROR, ("80211> WLAN_TDLS_SETUP_REQUEST ==>\n"));
 		break;
-	case WLAN_TDLS_SETUP_RESPONSE:
+	case ((u8)(WLAN_TDLS_SETUP_RESPONSE)):
 		CFG80211DBG(RT_DEBUG_ERROR, ("80211> WLAN_TDLS_SETUP_RESPONSE ==>\n"));
 		break;
-	case WLAN_TDLS_SETUP_CONFIRM:
+	case ((u8)(WLAN_TDLS_SETUP_CONFIRM)):
 		CFG80211DBG(RT_DEBUG_ERROR, ("80211> WLAN_TDLS_SETUP_CONFIRM ==>\n"));
 		break;
-	case WLAN_TDLS_TEARDOWN:
+	case ((u8)(WLAN_TDLS_TEARDOWN)):
 #endif /* LINUX_VERSION_CODE: 3.1.10 */
-	case TDLS_ACTION_CODE_AUTO_TEARDOWN:
+	case ((u8)(TDLS_ACTION_CODE_AUTO_TEARDOWN)):
 		CFG80211DBG(RT_DEBUG_ERROR, ("80211> WLAN_TDLS_TEARDOWN ==>\n"));
 		break;
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(3,1,10))
-	case WLAN_TDLS_DISCOVERY_REQUEST:
+	case ((u8)(WLAN_TDLS_DISCOVERY_REQUEST)):
 		CFG80211DBG(RT_DEBUG_ERROR, ("80211> WLAN_TDLS_DISCOVERY_REQUEST ==>\n"));
 		break;
-	case WLAN_PUB_ACTION_TDLS_DISCOVER_RES:
+	case ((u8)(WLAN_PUB_ACTION_TDLS_DISCOVER_RES)):
 		CFG80211DBG(RT_DEBUG_ERROR, ("80211> WLAN_PUB_ACTION_TDLS_DISCOVERY_RESPONSE ==>\n"));
 		break;
 #endif /* LINUX_VERSION_CODE: 3.1.10 */
-	case TDLS_ACTION_CODE_PEER_TRAFFIC_INDICATION:
+	case ((u8)(TDLS_ACTION_CODE_PEER_TRAFFIC_INDICATION)):
 		CFG80211DBG(RT_DEBUG_ERROR, ("80211> TDLS_ACTION_CODE_PEER_TRAFFIC_INDICATION ==>\n"));
 		break;
-	case TDLS_ACTION_CODE_WFD_TUNNELED_PROBE_REQ:
+	case ((u8)(TDLS_ACTION_CODE_WFD_TUNNELED_PROBE_REQ)):
 		CFG80211DBG(RT_DEBUG_ERROR, ("80211> TDLS_ACTION_CODE_WFD_TUNNELED_PROBE_REQ ==>\n"));
 		break;
-	case TDLS_ACTION_CODE_WFD_TUNNELED_PROBE_RSP:
+	case ((u8)(TDLS_ACTION_CODE_WFD_TUNNELED_PROBE_RSP)):
 		CFG80211DBG(RT_DEBUG_ERROR, ("80211> TDLS_ACTION_CODE_WFD_TUNNELED_PROBE_RSP ==>\n"));
 		break;
 	default:
@@ -1819,7 +1829,7 @@ VOID cfg_tdls_rx_parsing(PRTMP_ADAPTER pAd,RX_BLK *pRxBlk)
 void cfg_tdls_prepare_null_frame(PRTMP_ADAPTER	pAd,BOOLEAN powersave,UCHAR dir,UCHAR *peerAddr)
 {
 	PMAC_TABLE_ENTRY pEntry_TDLS = MacTableLookup(pAd,peerAddr);
-	
+
 	RtmpPrepareHwNullFrame(pAd,
 						&pAd->MacTab.Content[BSSID_WCID],
 						FALSE,
@@ -1829,6 +1839,8 @@ void cfg_tdls_prepare_null_frame(PRTMP_ADAPTER	pAd,BOOLEAN powersave,UCHAR dir,U
 						PWR_SAVE,
 						0,
 						0);
+	if (pEntry_TDLS == NULL)
+		return;
 	RtmpPrepareHwNullFrame(pAd,
 						pEntry_TDLS,
 						TRUE,
@@ -1864,7 +1876,8 @@ void cfg_tdls_auto_teardown(PRTMP_ADAPTER pAd,UCHAR *peerAddr)
 	IRQL = PASSIVE_LEVEL
 ==========================================================================
 */
-VOID cfg_tdls_TunneledProbeRequest(PRTMP_ADAPTER pAd, PUCHAR pMacAddr, const u8  *extra_ies,	size_t extra_ies_len)
+VOID cfg_tdls_TunneledProbeRequest(PRTMP_ADAPTER pAd, const u8 *pMacAddr,
+	const u8  *extra_ies,	size_t extra_ies_len)
 {
 	UCHAR	TDLS_ETHERTYPE[] = {0x89, 0x0d};
 	UCHAR	Header802_3[14];
@@ -1948,7 +1961,8 @@ VOID cfg_tdls_TunneledProbeRequest(PRTMP_ADAPTER pAd, PUCHAR pMacAddr, const u8 
 	IRQL = PASSIVE_LEVEL
 ==========================================================================
 */
-VOID cfg_tdls_TunneledProbeResponse(PRTMP_ADAPTER pAd, PUCHAR pMacAddr, const u8  *extra_ies,	size_t extra_ies_len)
+VOID cfg_tdls_TunneledProbeResponse(PRTMP_ADAPTER pAd, const u8 *pMacAddr, const u8  *extra_ies,
+	size_t extra_ies_len)
 {
 	UCHAR	TDLS_ETHERTYPE[] = {0x89, 0x0d};
 	UCHAR	Header802_3[14];

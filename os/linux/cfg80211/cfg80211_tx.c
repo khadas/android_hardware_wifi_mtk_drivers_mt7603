@@ -86,7 +86,7 @@ BOOLEAN CFG80211_SyncPacketWmmIe(RTMP_ADAPTER *pAd, VOID *pData, ULONG dataLen)
 
 	if (wmm_ie != NULL) 
 	{
-		UINT i = QID_AC_BE;
+		UCHAR i = QID_AC_BE;
 		
 #ifdef RT_CFG80211_P2P_SUPPORT
 #ifdef UAPSD_SUPPORT
@@ -147,6 +147,15 @@ PCFG80211_TX_PACKET CFG80211_TxMgmtFrameSearch(RTMP_ADAPTER *pAd, USHORT Sequenc
 
 }
 #endif
+
+INT CFG80211_SetTxNdev(RTMP_ADAPTER *pAd, PNET_DEV pNetdev)
+{
+	PCFG80211_CTRL pCfg80211_ctrl = &pAd->cfg80211_ctrl;
+
+	pCfg80211_ctrl->TxNdev = pNetdev;
+
+	return TRUE;
+}
 
 INT CFG80211_SendMgmtFrame(RTMP_ADAPTER *pAd, VOID *pData, ULONG Data)
 {
@@ -262,7 +271,7 @@ INT CFG80211_SendMgmtFrame(RTMP_ADAPTER *pAd, VOID *pData, ULONG Data)
 			acked = TRUE;
 			cookie = 5678;
 		}
-		CFG80211_SendMgmtFrameDone(pAd, cookie, acked);		
+		CFG80211_SendMgmtFrameDone(pAd, (USHORT)cookie, acked);
 		RTMP_OS_EXIT_COMPLETION(&pCfg80211_ctrl->fw_event_done);
 	}
 
@@ -307,8 +316,9 @@ VOID CFG80211_SendMgmtFrameDone(RTMP_ADAPTER *pAd, USHORT Sequence, BOOLEAN Ack)
 	if (pCfg80211_ctrl->TxStatusInUsed && pCfg80211_ctrl->pTxStatusBuf 
 		/*&& (pAd->TxStatusSeq == pHeader->Sequence)*/)
 	{
-		DBGPRINT(RT_DEBUG_TRACE, ("CFG_TX_STATUS: REAL send cookie %d, ack(%d)\n", Sequence, Ack));		
-		CFG80211OS_TxStatus(CFG80211_GetEventDevice(pAd), Sequence, 
+		DBGPRINT(RT_DEBUG_TRACE, ("[%s] CFG_TX_STATUS: REAL send cookie 0x%llx, ack(%d)\n",
+			pCfg80211_ctrl->TxNdev->name, (long long unsigned int) Sequence, Ack));
+		CFG80211OS_TxStatus(pCfg80211_ctrl->TxNdev, Sequence,
 							pCfg80211_ctrl->pTxStatusBuf, pCfg80211_ctrl->TxStatusBufLen, 
 							Ack);		
 		pCfg80211_ctrl->TxStatusInUsed = FALSE;

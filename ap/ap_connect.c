@@ -127,7 +127,7 @@ VOID write_tmac_info_beacon(RTMP_ADAPTER *pAd, INT apidx, UCHAR *tmac_buf, HTTRA
 	mac_info.TxSPriv = apidx;
 #endif /* MT_MAC */
 	mac_info.hdr_len = 24;
-	mac_info.bss_idx = apidx;
+	mac_info.bss_idx = (UCHAR)apidx;
 	mac_info.SpeEn = 1;
 	mac_info.Preamble = LONG_PREAMBLE;
 	NdisZeroMemory(tmac_buf, sizeof(TMAC_TXD_L));
@@ -1733,7 +1733,7 @@ VOID APUpdateBeaconFrame(RTMP_ADAPTER *pAd, INT apidx)
 static UCHAR GetBcnNum(RTMP_ADAPTER *pAd)
 {
 	int i;
-	int NumBcn;
+	UCHAR NumBcn;
 	BCN_BUF_STRUC *bcn_info;
 
 	NumBcn = 0;

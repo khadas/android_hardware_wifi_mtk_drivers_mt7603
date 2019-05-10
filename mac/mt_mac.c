@@ -87,9 +87,9 @@ VOID dump_tmac_info(RTMP_ADAPTER *pAd, UCHAR *tmac_info)
 	DBGPRINT(RT_DEBUG_OFF, ("\t\tPortID=%d(%s)\n", txd_0->p_idx,
 				txd_0->p_idx < 2 ? p_idx_str[txd_0->p_idx] : "Invalid"));
 	if (txd_0->p_idx == P_IDX_LMAC)
-		q_idx = txd_0->q_idx % 0xf;
+		q_idx = (UCHAR)(txd_0->q_idx % 0xf);
 	else
-		q_idx = txd_0->q_idx % 0x5;
+		q_idx = (UCHAR)(txd_0->q_idx % 0x5);
 	DBGPRINT(RT_DEBUG_OFF, ("\t\tQueID=%d(%s %s)\n", txd_0->q_idx,
 				(txd_0->p_idx == P_IDX_LMAC ? "LMAC" : "MCU"),
 				txd_0->p_idx == P_IDX_LMAC ? q_idx_lmac_str[q_idx] : q_idx_mcu_str[q_idx]));
@@ -378,6 +378,48 @@ VOID NicGetTxRawCounters(
 		return;
 }
 
+VOID NicUpdatFalseCCACounters(RTMP_ADAPTER *pAd)
+{
+	UINT32	OFDM_PD_Cnt, CCK_PD_Cnt, OFDM_MDRDY_Cnt, CCK_MDRDY_Cnt;
+	UINT32	PDCnt = 0;
+	UINT32	MDRDYCnt = 0;
+	UINT32	value, CCAcount = 0;
+
+	/* update one sec falseCCA (PD CNT - MDRDY CNT) */
+	RTMP_IO_READ32(pAd, RO_PHYCTRL_STS0, &PDCnt);
+	OFDM_PD_Cnt = (PDCnt >> 16);
+	CCK_PD_Cnt = (PDCnt & 0xFFFF);
+	RTMP_IO_READ32(pAd, RO_PHYCTRL_STS5, &MDRDYCnt);
+	OFDM_MDRDY_Cnt = (MDRDYCnt >> 16);
+	CCK_MDRDY_Cnt = (MDRDYCnt & 0xFFFF);
+	CCAcount = ((OFDM_PD_Cnt - OFDM_MDRDY_Cnt) + (CCK_PD_Cnt - CCK_MDRDY_Cnt));
+	RTMP_IO_READ32(pAd, CR_PHYCTRL_2, &value);
+	value |= (1<<6); /* BIT6: CR_STSCNT_RST */
+	RTMP_IO_WRITE32(pAd, CR_PHYCTRL_2, value);
+	value &= (~(1<<6));
+	RTMP_IO_WRITE32(pAd, CR_PHYCTRL_2, value);
+	value |= (1<<7); /* BIT7: CR_STSCNT_EN */
+	RTMP_IO_WRITE32(pAd, CR_PHYCTRL_2, value);
+
+	/*DBGPRINT(RT_DEBUG_WARN, ("one-sec FalseCCACnt %d (CCK %d + OFDM %d)\n"
+	*	,CCAcount,(CCK_PD_CNT - CCK_MDRDY_CNT),(OFDM_PD_CNT - OFDM_MDRDY_CNT)));
+	*/
+
+	pAd->RalinkCounters.OneSecFalseCCACnt = CCAcount;
+	pAd->RalinkCounters.OneSecCCKFalseCCACnt = (CCK_PD_Cnt - CCK_MDRDY_Cnt);
+	pAd->RalinkCounters.OneSecOFDMFalseCCACnt = (OFDM_PD_Cnt - OFDM_MDRDY_Cnt);
+	pAd->RalinkCounters.FalseCCACnt = CCAcount;
+
+#ifdef SMART_CARRIER_SENSE_SUPPORT
+	pAd->SCSCtrl.PdCount = PDCnt;
+	pAd->SCSCtrl.MdrdyCount = MDRDYCnt;
+	DBGPRINT(RT_DEBUG_TRACE, ("False CCA (one second) = %ld (CCK %d + OFDM %d)\n",
+		(ULONG)pAd->RalinkCounters.OneSecFalseCCACnt,
+		pAd->RalinkCounters.OneSecCCKFalseCCACnt,
+		pAd->RalinkCounters.OneSecOFDMFalseCCACnt));
+	pAd->SCSCtrl.FalseCCA = pAd->RalinkCounters.FalseCCACnt;
+#endif /* SMART_CARRIER_SENSE_SUPPORT */
+}
 
 /*
 	========================================================================
@@ -586,7 +628,37 @@ NTSTATUS MtCmdNICUpdateRawCounters(RTMP_ADAPTER *pAd, PCmdQElmt CMDQelmt)
 		}
 	}
 #endif /* DBG_DIAGNOSE */
+#if 0
+	/* To calculate False CCA count.*/
+	RTMP_IO_READ32(pAd, RO_PHYCTRL_STS0, &PDCnt);
+	OFDM_PD_CNT = (PDCnt >> 16);
+	CCK_PD_CNT = (PDCnt & 0xFFFF);
+	RTMP_IO_READ32(pAd, RO_PHYCTRL_STS5, &MDRDYCnt);
+	OFDM_MDRDY_CNT = (MDRDYCnt >> 16);
+	CCK_MDRDY_CNT = (MDRDYCnt & 0xFFFF);
+	CCAcount = ((OFDM_PD_CNT - OFDM_MDRDY_CNT) + (CCK_PD_CNT - CCK_MDRDY_CNT));
+	RTMP_IO_READ32(pAd, CR_PHYCTRL_2, &value);
+	value |= (1<<6); /* BIT6: CR_STSCNT_RST */
+	RTMP_IO_WRITE32(pAd, CR_PHYCTRL_2, value);
+	value &= (~(1<<6));
+	RTMP_IO_WRITE32(pAd, CR_PHYCTRL_2, value);
+	value |= (1<<7); /* BIT7: CR_STSCNT_EN */
+	RTMP_IO_WRITE32(pAd, CR_PHYCTRL_2, value);
+	pAd->RalinkCounters.OneSecFalseCCACnt = CCAcount;
+	pAd->RalinkCounters.OneSecCCKFalseCCACnt = (CCK_PD_CNT - CCK_MDRDY_CNT);
+	pAd->RalinkCounters.OneSecOFDMFalseCCACnt = (OFDM_PD_CNT - OFDM_MDRDY_CNT);
+	pAd->RalinkCounters.FalseCCACnt = CCAcount;
 
+#ifdef SMART_CARRIER_SENSE_SUPPORT
+	pAd->SCSCtrl.PdCount = PDCnt;
+	pAd->SCSCtrl.MdrdyCount = MDRDYCnt;
+	DBGPRINT(RT_DEBUG_TRACE, ("False CCA (one second) = %ld (CCK %d + OFDM %d)\n",
+		(ULONG)pAd->RalinkCounters.OneSecFalseCCACnt,
+		pAd->RalinkCounters.OneSecCCKFalseCCACnt,
+		pAd->RalinkCounters.OneSecOFDMFalseCCACnt));
+	pAd->SCSCtrl.FalseCCA = pAd->RalinkCounters.FalseCCACnt;
+#endif /* SMART_CARRIER_SENSE_SUPPORT */
+#endif
 	return NDIS_STATUS_SUCCESS;
 }
 
@@ -789,12 +861,12 @@ VOID write_tmac_info(
 
 	NdisZeroMemory(&txd, sizeof(TMAC_TXD_L));
 
-	ldpc = pTransmit->field.ldpc;
-	mcs = pTransmit->field.MCS;
-	sgi = pTransmit->field.ShortGI;
-	stbc = pTransmit->field.STBC;
-	phy_mode = pTransmit->field.MODE;
-	bw = (phy_mode <= MODE_OFDM) ? (BW_20) : (pTransmit->field.BW);
+	ldpc = (UCHAR)pTransmit->field.ldpc;
+	mcs = (UCHAR)pTransmit->field.MCS;
+	sgi = (UCHAR)pTransmit->field.ShortGI;
+	stbc = (UCHAR)pTransmit->field.STBC;
+	phy_mode = (UCHAR)pTransmit->field.MODE;
+	bw = (UCHAR)((phy_mode <= MODE_OFDM) ? (BW_20) : (pTransmit->field.BW));
 #if 0 /* we should not set 20/40 coexist this way because the "bw" here is for fix mode */
 #ifdef DOT11_N_SUPPORT
 #ifdef DOT11N_DRAFT3
@@ -975,7 +1047,7 @@ VOID write_tmac_info(
 			if (TxSCtl->TxS2HostStatusPerPkt & (1 << info->PID))
 			{
 				txd_5->pid = AddTxSStatus(pAd, TXS_TYPE0, info->PID, 0, 0, 
-												txd_6->tx_rate, info->TxSPriv);
+					(UINT16)txd_6->tx_rate, info->TxSPriv);
 				txd_5->tx_status_2_host = 1;
 			}
 			else
@@ -1011,7 +1083,8 @@ VOID write_tmac_info(
 				if (TxSCtl->TxS2HostStatusPerPktType[txd_2->frm_type] & (1 << txd_2->sub_type))
 				{
 					txd_5->pid = AddTxSStatus(pAd, TXS_TYPE1, 0, 
-								txd_2->frm_type, txd_2->sub_type, txd_6->tx_rate, info->TxSPriv); 
+						(UINT8)txd_2->frm_type, (UINT8)txd_2->sub_type,
+						(UINT16)txd_6->tx_rate, info->TxSPriv);
 					txd_5->tx_status_2_host = 1;
 				}
 				else
@@ -1228,12 +1301,12 @@ VOID write_tmac_info_Data(RTMP_ADAPTER *pAd, UCHAR *buf, TX_BLK *pTxBlk)
 		txd_1->ft = TMI_FT_LONG;
 		txd_size = sizeof(TMAC_TXD_L);
 		if (pTransmit) {
-			ldpc = pTransmit->field.ldpc;
-			mcs = pTransmit->field.MCS;
-			sgi = pTransmit->field.ShortGI;
-			stbc = pTransmit->field.STBC;
-			phy_mode = pTransmit->field.MODE;
-			bw = (phy_mode <= MODE_OFDM) ? (BW_20) : (pTransmit->field.BW);
+			ldpc = (UCHAR)pTransmit->field.ldpc;
+			mcs = (UCHAR)pTransmit->field.MCS;
+			sgi = (UCHAR)pTransmit->field.ShortGI;
+			stbc = (UCHAR)pTransmit->field.STBC;
+			phy_mode = (UCHAR)pTransmit->field.MODE;
+			bw = (UCHAR)((phy_mode <= MODE_OFDM) ? (BW_20) : (pTransmit->field.BW));
 			nss = get_nss_by_mcs(phy_mode, mcs, stbc);
 		}
 
@@ -1314,7 +1387,7 @@ VOID write_tmac_info_Data(RTMP_ADAPTER *pAd, UCHAR *buf, TX_BLK *pTxBlk)
 			if (TxSCtl->TxS2HostStatusPerPkt & (1 << pTxBlk->Pid))
 			{
 				txd_5->pid = AddTxSStatus(pAd, TXS_TYPE0, pTxBlk->Pid, 0, 0, 
-									txd_6->tx_rate, pTxBlk->TxSPriv);
+					(UINT16)txd_6->tx_rate, pTxBlk->TxSPriv);
 				txd_5->tx_status_2_host = 1;
 			}
 			else
@@ -1349,7 +1422,8 @@ VOID write_tmac_info_Data(RTMP_ADAPTER *pAd, UCHAR *buf, TX_BLK *pTxBlk)
 				if (TxSCtl->TxS2HostStatusPerPktType[txd_2->frm_type] & (1 << txd_2->sub_type))
 				{
 					txd_5->pid = AddTxSStatus(pAd, TXS_TYPE1, 0, 
-							txd_2->frm_type, txd_2->sub_type, txd_6->tx_rate, pTxBlk->TxSPriv); 
+						(UINT8)txd_2->frm_type, (UINT8)txd_2->sub_type,
+						(UINT16)txd_6->tx_rate, pTxBlk->TxSPriv);
 					txd_5->tx_status_2_host = 1;
 				}
 				else
@@ -1684,14 +1758,14 @@ VOID dump_wtbl_1_info(RTMP_ADAPTER *pAd, struct wtbl_1_struc *tb)
 	UCHAR addr[6];
 
 	NdisMoveMemory(&addr[0], &wtbl_1_d1->word, 4);
-	addr[0] = wtbl_1_d1->field.addr_0 & 0xff;
-	addr[1] = ((wtbl_1_d1->field.addr_0 & 0xff00) >> 8);
-	addr[2] = ((wtbl_1_d1->field.addr_0 & 0xff0000) >> 16);
-	addr[3] = ((wtbl_1_d1->field.addr_0 & 0xff000000) >> 24);
+	addr[0] = (UCHAR)(wtbl_1_d1->field.addr_0 & 0xff);
+	addr[1] = (UCHAR)((wtbl_1_d1->field.addr_0 & 0xff00) >> 8);
+	addr[2] = (UCHAR)((wtbl_1_d1->field.addr_0 & 0xff0000) >> 16);
+	addr[3] = (UCHAR)((wtbl_1_d1->field.addr_0 & 0xff000000) >> 24);
 	//addr[4] = wtbl_1_d0->field.addr_32 & 0xff;
 	//addr[5] = (wtbl_1_d0->field.addr_32 & 0xff00 >> 8);
-	addr[4] = wtbl_1_d0->field.addr_4 & 0xff;
-	addr[5] = wtbl_1_d0->field.addr_5 & 0xff;
+	addr[4] = (UCHAR)(wtbl_1_d0->field.addr_4 & 0xff);
+	addr[5] = (UCHAR)(wtbl_1_d0->field.addr_5 & 0xff);
 	hex_dump("WTBL Segment 1 Raw Data", (UCHAR *)tb, sizeof(struct wtbl_1_struc));
 
 	DBGPRINT(RT_DEBUG_OFF, ("WTBL Segment 1 Fields:\n"));
@@ -1811,8 +1885,8 @@ VOID dump_wtbl_2_info(RTMP_ADAPTER *pAd, struct wtbl_2_struc *tb)
 
 		raw_data = rate_info[idx] & 0xfff;
 		stbc = (raw_data & 0x800) ? 1 : 0;
-		nss = (raw_data & 0x600) >> 9;
-		phy_mode = (raw_data & 0x1c0) >> 6;
+		nss = (UCHAR)((raw_data & 0x600) >> 9);
+		phy_mode = (UCHAR)((raw_data & 0x1c0) >> 6);
 		rate = (raw_data & 0x3f);
 		//DBGPRINT(RT_DEBUG_OFF, ("\t\t%d/%d/%d/%d/MCS%d 0x%x\n", idx + 1, stbc, nss,  phy_mode, rate, rate_info[idx]));
 
@@ -2055,14 +2129,15 @@ INT mt_wtbl_get_entry234(RTMP_ADAPTER *pAd, UCHAR widx, struct wtbl_entry *ent)
 		else
 		{
 			/* WTBL 2/3/4 */
-			ecnt_per_page = wtbl_ctrl->page_size / wtbl_ctrl->wtbl_entry_size[idx];
+			ecnt_per_page = (UCHAR)(wtbl_ctrl->page_size /
+				wtbl_ctrl->wtbl_entry_size[idx]);
 			page_offset = wtbl_idx / ecnt_per_page;
 			element_offset = wtbl_idx % ecnt_per_page;
-			ent->wtbl_fid[idx] = wtbl_ctrl->wtbl_base_fid[idx] + page_offset;
+			ent->wtbl_fid[idx] = (UINT16)(wtbl_ctrl->wtbl_base_fid[idx] + page_offset);
 			if (idx == 2)
-				ent->wtbl_eid[idx] = element_offset * 2;
+				ent->wtbl_eid[idx] = (UINT16)(element_offset * 2);
 			else
-				ent->wtbl_eid[idx] = element_offset;
+				ent->wtbl_eid[idx] = (UINT16)element_offset;
 			ent->wtbl_addr[idx] = wtbl_ctrl->wtbl_base_addr[idx] +
 							page_offset * wtbl_ctrl->page_size +
 							element_offset * wtbl_ctrl->wtbl_entry_size[idx];

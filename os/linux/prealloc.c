@@ -1,4 +1,3 @@
-
 #include <linux/module.h>
 #include <linux/version.h>
 #include <linux/kernel.h>
@@ -26,11 +25,7 @@ enum BLK_TYPE {
 	BLK_NULL,
 #endif
 	BLK_PSPOLL,
-#if 0//	USB_BULK_BUF_PREALLOC
-	BLK_RX0 = 5*BUF_ALIGMENT_RINGSIZE,
-#else
 	BLK_RX0,
-#endif
 	BLK_RX1,
 	BLK_RX2,
 	BLK_RX3,
@@ -47,8 +42,7 @@ enum BLK_TYPE {
 #endif
 
 
-
-void * PreAllocBuffer[NUM_OF_TOTAL_BLK];  
+void* PreAllocBuffer[NUM_OF_TOTAL_BLK];  
 ULONG PreAllocDmaAddr[NUM_OF_TOTAL_BLK];
 
 int __init prealloc_init(void)
@@ -56,10 +50,10 @@ int __init prealloc_init(void)
 	int result = 0, tx = 0, rx = 0, k = 0;
 	
 	memset(PreAllocBuffer,0, NUM_OF_TOTAL_BLK);
-	printk("HTTX_BUFFER [%zu]\n",sizeof(HTTX_BUFFER));
-	printk("TX_BUFFER [%zu]\n",sizeof(TX_BUFFER));
+	/*printk("HTTX_BUFFER [%u]\n",sizeof(HTTX_BUFFER));
+	printk("TX_BUFFER [%u]\n",sizeof(TX_BUFFER));
 	printk("MAX_RXBULK_SIZE [%u]\n",MAX_RXBULK_SIZE);
-	printk("CMD_RSP_BULK_SIZE [%u]\n",CMD_RSP_BULK_SIZE);
+	printk("CMD_RSP_BULK_SIZE [%u]\n",CMD_RSP_BULK_SIZE);*/
 	//TX
 #ifdef USB_BULK_BUF_PREALLOC
 	for(tx=0;tx<5*BUF_ALIGMENT_RINGSIZE;tx++)
@@ -67,8 +61,6 @@ int __init prealloc_init(void)
 	for(tx=0; tx<5; tx++)
 #endif
 	{
-
-		//printk("%s[%u][%u]\n",__FUNCTION__,sizeof(HTTX_BUFFER),NUM_OF_TOTAL_BLK);
 		PreAllocBuffer[tx+BLK_TX0] = kmalloc(sizeof(HTTX_BUFFER), GFP_KERNEL | GFP_DMA);	
 		if (!PreAllocBuffer[tx+BLK_TX0])
 			goto fail_malloc1;
@@ -77,7 +69,6 @@ int __init prealloc_init(void)
 	}
 	
 	//Null
-	
 	PreAllocBuffer[BLK_NULL] = kmalloc(sizeof(TX_BUFFER), GFP_KERNEL | GFP_DMA);	
 	if (!PreAllocBuffer[BLK_NULL])
 		goto fail_malloc1;
@@ -88,7 +79,7 @@ int __init prealloc_init(void)
 	PreAllocBuffer[BLK_PSPOLL] = kmalloc(sizeof(TX_BUFFER), GFP_KERNEL | GFP_DMA);	
 	if (!PreAllocBuffer[BLK_PSPOLL])
 		goto fail_malloc2;
-	
+		
 	PreAllocDmaAddr[BLK_PSPOLL] = virt_to_phys(PreAllocBuffer[BLK_PSPOLL]);
 	
 	//RX
@@ -109,7 +100,7 @@ int __init prealloc_init(void)
 	PreAllocDmaAddr[BLK_CMD] = virt_to_phys(PreAllocBuffer[BLK_CMD]);
 	
 	for (k=0;k<NUM_OF_TOTAL_BLK;k++)
-		printk("==>[%d]:PreBuff:0x%p, DmaAddr:0x%lu\n", k, PreAllocBuffer[k], PreAllocDmaAddr[k]);
+		printk("==>[%d]:PreBuff:0x%p, DmaAddr:0x%p\n", k, PreAllocBuffer[k], (void*)PreAllocDmaAddr[k]);
 		
 	printk("install prealloc ok\n");
 	return result; /* succeed */
@@ -218,12 +209,10 @@ void *RTMPQMemAddr(int size, dma_addr_t *pDmaAddr, int type)
 			if (size > MAX_RXBULK_SIZE)
 				return NULL;
 			break;	
-		#if 1	
 		case BLK_CMD:
 			if (size > CMD_RSP_BULK_SIZE)
 				return NULL;				
 			break;
-		#endif
 		default:
 			printk("Non-support memory type!!!!\n");
 			return NULL;		
@@ -233,10 +222,7 @@ void *RTMPQMemAddr(int size, dma_addr_t *pDmaAddr, int type)
 	return 	PreAllocBuffer[type];
 }
 #endif
-
-
 EXPORT_SYMBOL(RTMPQMemAddr);
 
 module_init(prealloc_init);
 module_exit(prealloc_cleanup);
-

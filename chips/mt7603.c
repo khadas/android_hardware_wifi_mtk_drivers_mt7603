@@ -188,7 +188,7 @@ static void mt7603_switch_channel(RTMP_ADAPTER *pAd, UCHAR channel, BOOLEAN scan
 	}
 #endif
 
-	DBGPRINT(RT_DEBUG_OFF,
+	DBGPRINT(RT_DEBUG_TRACE,
 			("%s(): Switch to Ch#%d(%dT%dR), BBP_BW=%d\n",
 			__FUNCTION__,
 			channel,
@@ -540,7 +540,7 @@ int mt7603_read_chl_pwr(RTMP_ADAPTER *pAd)
 	
 	/* check PA type combination */
 	RT28xx_EEPROM_READ16(pAd, EEPROM_NIC1_OFFSET, Value);
-	cap->pa_type = GET_PA_TYPE(Value);
+	cap->pa_type = (UINT8)GET_PA_TYPE(Value);
 
 	return TRUE;
 }
@@ -560,22 +560,24 @@ void mt7603_get_tx_pwr_per_rate(RTMP_ADAPTER *pAd)
         cap->tx_pwr_cck_5_11 = 0;
     } else {
         /* CCK 1M/2M */
-        if (value & TX_PWR_CCK_1_2M_EN) {
-            if (value & TX_PWR_CCK_1_2M_SIGN) {
-                cap->tx_pwr_cck_1_2 = (value & TX_PWR_CCK_1_2M_MASK);
+		if (value & TX_PWR_CCK_1_2M_EN) {
+			if (value & TX_PWR_CCK_1_2M_SIGN) {
+				cap->tx_pwr_cck_1_2 = (CHAR)(value & TX_PWR_CCK_1_2M_MASK);
             } else {
-                cap->tx_pwr_cck_1_2 = -(value & TX_PWR_CCK_1_2M_MASK);
+				cap->tx_pwr_cck_1_2 =
+				(CHAR)(-(value & TX_PWR_CCK_1_2M_MASK));
             }
         } else {
             cap->tx_pwr_cck_1_2 = 0;
         }
 
         /* CCK 5.5M/11M */
-        if (value & TX_PWR_CCK_5_11M_EN) {
-            if (value & TX_PWR_CCK_5_11M_SIGN) {
-                cap->tx_pwr_cck_5_11 = ((value & TX_PWR_CCK_5_11M_MASK) >> 8);
+		if (value & TX_PWR_CCK_5_11M_EN) {
+			if (value & TX_PWR_CCK_5_11M_SIGN) {
+				cap->tx_pwr_cck_5_11 = (CHAR)((value & TX_PWR_CCK_5_11M_MASK) >> 8);
             } else {
-                cap->tx_pwr_cck_5_11 = -((value & TX_PWR_CCK_5_11M_MASK) >> 8);
+				cap->tx_pwr_cck_5_11 =
+				(CHAR)(-((value & TX_PWR_CCK_5_11M_MASK) >> 8));
             }
         } else {
             cap->tx_pwr_cck_5_11 = 0;
@@ -592,22 +594,26 @@ void mt7603_get_tx_pwr_per_rate(RTMP_ADAPTER *pAd)
         cap->tx_pwr_g_band_ofdm_12_18 = 0;
     } else {
         /* OFDM 6M/9M */
-        if (value & TX_PWR_G_BAND_OFDM_6_9M_EN) {
-            if (value & TX_PWR_G_BAND_OFDM_6_9M_SIGN) {
-                cap->tx_pwr_g_band_ofdm_6_9 = (value & TX_PWR_G_BAND_OFDM_6_9M_MASK);
+		if (value & TX_PWR_G_BAND_OFDM_6_9M_EN) {
+			if (value & TX_PWR_G_BAND_OFDM_6_9M_SIGN) {
+				cap->tx_pwr_g_band_ofdm_6_9 =
+				(CHAR)(value & TX_PWR_G_BAND_OFDM_6_9M_MASK);
             } else {
-                cap->tx_pwr_g_band_ofdm_6_9 = -(value & TX_PWR_G_BAND_OFDM_6_9M_MASK);
+				cap->tx_pwr_g_band_ofdm_6_9 =
+				(CHAR)(-(value & TX_PWR_G_BAND_OFDM_6_9M_MASK));
             }
         } else {
             cap->tx_pwr_g_band_ofdm_6_9 = 0;
         }
 
         /* OFDM 12M/18M */
-        if (value & TX_PWR_G_BAND_OFDM_12_18M_EN) {
-            if (value & TX_PWR_G_BAND_OFDM_12_18M_SIGN) {
-                cap->tx_pwr_g_band_ofdm_12_18 = ((value & TX_PWR_G_BAND_OFDM_12_18M_MASK) >> 8);
+		if (value & TX_PWR_G_BAND_OFDM_12_18M_EN) {
+			if (value & TX_PWR_G_BAND_OFDM_12_18M_SIGN) {
+				cap->tx_pwr_g_band_ofdm_12_18 =
+				(CHAR)((value & TX_PWR_G_BAND_OFDM_12_18M_MASK) >> 8);
             } else {
-                cap->tx_pwr_g_band_ofdm_12_18 = -((value & TX_PWR_G_BAND_OFDM_12_18M_MASK) >> 8);
+				cap->tx_pwr_g_band_ofdm_12_18 =
+				(CHAR)(-((value & TX_PWR_G_BAND_OFDM_12_18M_MASK) >> 8));
             }
         } else {
             cap->tx_pwr_g_band_ofdm_12_18 = 0;
@@ -622,22 +628,26 @@ void mt7603_get_tx_pwr_per_rate(RTMP_ADAPTER *pAd)
         cap->tx_pwr_g_band_ofdm_48= 0;
     } else {
         /* OFDM 24M/36M */
-        if (value & TX_PWR_G_BAND_OFDM_24_36M_EN) {
-            if (value & TX_PWR_G_BAND_OFDM_24_36M_SIGN) {
-                cap->tx_pwr_g_band_ofdm_24_36 = (value & TX_PWR_G_BAND_OFDM_24_36M_MASK);
+		if (value & TX_PWR_G_BAND_OFDM_24_36M_EN) {
+			if (value & TX_PWR_G_BAND_OFDM_24_36M_SIGN) {
+				cap->tx_pwr_g_band_ofdm_24_36 =
+				(CHAR)(value & TX_PWR_G_BAND_OFDM_24_36M_MASK);
             } else {
-                cap->tx_pwr_g_band_ofdm_24_36 = -(value & TX_PWR_G_BAND_OFDM_24_36M_MASK);
+				cap->tx_pwr_g_band_ofdm_24_36 =
+				(CHAR)(-(value & TX_PWR_G_BAND_OFDM_24_36M_MASK));
             }
         } else {
             cap->tx_pwr_g_band_ofdm_24_36 = 0;
         }
 
         /* OFDM 48M */
-        if (value & TX_PWR_G_BAND_OFDM_48M_EN) {
-            if (value & TX_PWR_G_BAND_OFDM_48M_SIGN) {
-                cap->tx_pwr_g_band_ofdm_48 = ((value & TX_PWR_G_BAND_OFDM_48M_MASK) >> 8);
+		if (value & TX_PWR_G_BAND_OFDM_48M_EN) {
+			if (value & TX_PWR_G_BAND_OFDM_48M_SIGN) {
+				cap->tx_pwr_g_band_ofdm_48 =
+				(CHAR)((value & TX_PWR_G_BAND_OFDM_48M_MASK) >> 8);
             } else {
-                cap->tx_pwr_g_band_ofdm_48 = -((value & TX_PWR_G_BAND_OFDM_48M_MASK) >> 8);
+				cap->tx_pwr_g_band_ofdm_48 =
+				(CHAR)(-((value & TX_PWR_G_BAND_OFDM_48M_MASK) >> 8));
             }
         } else {
             cap->tx_pwr_g_band_ofdm_48 = 0;
@@ -652,22 +662,26 @@ void mt7603_get_tx_pwr_per_rate(RTMP_ADAPTER *pAd)
         cap->tx_pwr_ht_bpsk_mcs_0_8 = 0;
     } else {
         /* OFDM 54M */
-        if (value & TX_PWR_G_BAND_OFDM_54M_EN) {
-            if (value & TX_PWR_G_BAND_OFDM_54M_SIGN) {
-                cap->tx_pwr_g_band_ofdm_54 = (value & TX_PWR_G_BAND_OFDM_54M_MASK);
+		if (value & TX_PWR_G_BAND_OFDM_54M_EN) {
+			if (value & TX_PWR_G_BAND_OFDM_54M_SIGN) {
+				cap->tx_pwr_g_band_ofdm_54 =
+				(CHAR)(value & TX_PWR_G_BAND_OFDM_54M_MASK);
             } else {
-                cap->tx_pwr_g_band_ofdm_54 = -(value & TX_PWR_G_BAND_OFDM_54M_MASK);
+				cap->tx_pwr_g_band_ofdm_54 =
+				(CHAR)(-(value & TX_PWR_G_BAND_OFDM_54M_MASK));
             }
         } else {
             cap->tx_pwr_g_band_ofdm_54 = 0;
         }
 
         /* HT MCS_0, MCS_8 */
-        if (value & TX_PWR_HT_BPSK_MCS_0_8_EN) {
-            if (value & TX_PWR_HT_BPSK_MCS_0_8_SIGN) {
-                cap->tx_pwr_ht_bpsk_mcs_0_8 = ((value & TX_PWR_HT_BPSK_MCS_0_8_MASK) >> 8);
+		if (value & TX_PWR_HT_BPSK_MCS_0_8_EN) {
+			if (value & TX_PWR_HT_BPSK_MCS_0_8_SIGN) {
+				cap->tx_pwr_ht_bpsk_mcs_0_8 =
+				(CHAR)((value & TX_PWR_HT_BPSK_MCS_0_8_MASK) >> 8);
             } else {
-                cap->tx_pwr_ht_bpsk_mcs_0_8 = -((value & TX_PWR_HT_BPSK_MCS_0_8_MASK) >> 8);
+				cap->tx_pwr_ht_bpsk_mcs_0_8 =
+				(CHAR)(-((value & TX_PWR_HT_BPSK_MCS_0_8_MASK) >> 8));
             }
         } else {
             cap->tx_pwr_ht_bpsk_mcs_0_8 = 0;
@@ -681,22 +695,26 @@ void mt7603_get_tx_pwr_per_rate(RTMP_ADAPTER *pAd)
         cap->tx_pwr_ht_qpsk_mcs_1_2_9_10 = 0;
     } else {
         /* HT MCS_0, MCS_8 */
-        if (value & TX_PWR_HT_BPSK_MCS_32_EN) {
-            if (value & TX_PWR_HT_BPSK_MCS_32_SIGN) {
-                cap->tx_pwr_ht_bpsk_mcs_32 = (value & TX_PWR_HT_BPSK_MCS_32_MASK);
+		if (value & TX_PWR_HT_BPSK_MCS_32_EN) {
+			if (value & TX_PWR_HT_BPSK_MCS_32_SIGN) {
+				cap->tx_pwr_ht_bpsk_mcs_32 =
+				(CHAR)(value & TX_PWR_HT_BPSK_MCS_32_MASK);
             } else {
-                cap->tx_pwr_ht_bpsk_mcs_32 = -(value & TX_PWR_HT_BPSK_MCS_32_MASK);
+				cap->tx_pwr_ht_bpsk_mcs_32 =
+				(CHAR)(-(value & TX_PWR_HT_BPSK_MCS_32_MASK));
             }
         } else {
             cap->tx_pwr_ht_bpsk_mcs_32 = 0;
         }
 
         /* HT MCS_1, MCS_2, MCS_9, MCS_10 */
-        if (value & TX_PWR_HT_QPSK_MCS_1_2_9_10_EN) {
-            if (value & TX_PWR_HT_QPSK_MCS_1_2_9_10_SIGN) {
-                cap->tx_pwr_ht_qpsk_mcs_1_2_9_10 = ((value & TX_PWR_HT_QPSK_MCS_1_2_9_10_MASK) >> 8);
+		if (value & TX_PWR_HT_QPSK_MCS_1_2_9_10_EN) {
+			if (value & TX_PWR_HT_QPSK_MCS_1_2_9_10_SIGN) {
+				cap->tx_pwr_ht_qpsk_mcs_1_2_9_10 =
+				(CHAR)((value & TX_PWR_HT_QPSK_MCS_1_2_9_10_MASK) >> 8);
             } else {
-                cap->tx_pwr_ht_qpsk_mcs_1_2_9_10 = -((value & TX_PWR_HT_QPSK_MCS_1_2_9_10_MASK) >> 8);
+				cap->tx_pwr_ht_qpsk_mcs_1_2_9_10 =
+				(CHAR)(-((value & TX_PWR_HT_QPSK_MCS_1_2_9_10_MASK) >> 8));
             }
         } else {
             cap->tx_pwr_ht_qpsk_mcs_1_2_9_10 = 0;
@@ -712,22 +730,26 @@ void mt7603_get_tx_pwr_per_rate(RTMP_ADAPTER *pAd)
         cap->tx_pwr_ht_64qam_mcs_5_13 = 0;
     } else {
         /* HT MCS_3, MCS_4, MCS_11, MCS_12 */
-        if (value & TX_PWR_HT_16QAM_MCS_3_4_11_12_EN) {
-            if (value & TX_PWR_HT_16QAM_MCS_3_4_11_12_SIGN) {
-                cap->tx_pwr_ht_16qam_mcs_3_4_11_12 = (value & TX_PWR_HT_16QAM_MCS_3_4_11_12_MASK);
+		if (value & TX_PWR_HT_16QAM_MCS_3_4_11_12_EN) {
+			if (value & TX_PWR_HT_16QAM_MCS_3_4_11_12_SIGN) {
+				cap->tx_pwr_ht_16qam_mcs_3_4_11_12 =
+				(CHAR)(value & TX_PWR_HT_16QAM_MCS_3_4_11_12_MASK);
             } else {
-                cap->tx_pwr_ht_16qam_mcs_3_4_11_12 = -(value & TX_PWR_HT_16QAM_MCS_3_4_11_12_MASK);
+				cap->tx_pwr_ht_16qam_mcs_3_4_11_12 =
+				(CHAR)(-(value & TX_PWR_HT_16QAM_MCS_3_4_11_12_MASK));
             }
         } else {
             cap->tx_pwr_ht_16qam_mcs_3_4_11_12 = 0;
         }
 
         /* HT MCS_5, MCS_13 */
-        if (value & TX_PWR_HT_64QAM_MCS_5_13_EN) {
-            if (value & TX_PWR_HT_64QAM_MCS_5_13_SIGN) {
-                cap->tx_pwr_ht_64qam_mcs_5_13 = ((value & TX_PWR_HT_64QAM_MCS_5_13_MASK) >> 8);
+		if (value & TX_PWR_HT_64QAM_MCS_5_13_EN) {
+			if (value & TX_PWR_HT_64QAM_MCS_5_13_SIGN) {
+				cap->tx_pwr_ht_64qam_mcs_5_13 =
+				(CHAR)((value & TX_PWR_HT_64QAM_MCS_5_13_MASK) >> 8);
             } else {
-                cap->tx_pwr_ht_64qam_mcs_5_13 = -((value & TX_PWR_HT_64QAM_MCS_5_13_MASK) >> 8);
+				cap->tx_pwr_ht_64qam_mcs_5_13 =
+				(CHAR)(-((value & TX_PWR_HT_64QAM_MCS_5_13_MASK) >> 8));
             }
         } else {
             cap->tx_pwr_ht_64qam_mcs_5_13 = 0;
@@ -742,22 +764,26 @@ void mt7603_get_tx_pwr_per_rate(RTMP_ADAPTER *pAd)
         cap->tx_pwr_ht_64qam_mcs_7_15 = 0;
     } else {
         /* HT MCS_6, MCS_14 */
-        if (value & TX_PWR_HT_64QAM_MCS_6_14_EN) {
-            if (value & TX_PWR_HT_64QAM_MCS_6_14_SIGN) {
-                cap->tx_pwr_ht_64qam_mcs_6_14 = (value & TX_PWR_HT_64QAM_MCS_6_14_MASK);
+		if (value & TX_PWR_HT_64QAM_MCS_6_14_EN) {
+			if (value & TX_PWR_HT_64QAM_MCS_6_14_SIGN) {
+				cap->tx_pwr_ht_64qam_mcs_6_14 =
+				(CHAR)(value & TX_PWR_HT_64QAM_MCS_6_14_MASK);
             } else {
-                cap->tx_pwr_ht_64qam_mcs_6_14 = -(value & TX_PWR_HT_64QAM_MCS_6_14_MASK);
+				cap->tx_pwr_ht_64qam_mcs_6_14 =
+				(CHAR)(-(value & TX_PWR_HT_64QAM_MCS_6_14_MASK));
             }
         } else {
             cap->tx_pwr_ht_64qam_mcs_6_14 = 0;
         }
 
         /* HT MCS_7, MCS_15 */
-        if (value & TX_PWR_HT_64QAM_MCS_7_15_EN) {
-            if (value & TX_PWR_HT_64QAM_MCS_7_15_SIGN) {
-                cap->tx_pwr_ht_64qam_mcs_7_15 = ((value & TX_PWR_HT_64QAM_MCS_7_15_MASK) >> 8);
+		if (value & TX_PWR_HT_64QAM_MCS_7_15_EN) {
+			if (value & TX_PWR_HT_64QAM_MCS_7_15_SIGN) {
+				cap->tx_pwr_ht_64qam_mcs_7_15 =
+				(CHAR)((value & TX_PWR_HT_64QAM_MCS_7_15_MASK) >> 8);
             } else {
-                cap->tx_pwr_ht_64qam_mcs_7_15 = -((value & TX_PWR_HT_64QAM_MCS_7_15_MASK) >> 8);
+				cap->tx_pwr_ht_64qam_mcs_7_15 =
+				(CHAR)(-((value & TX_PWR_HT_64QAM_MCS_7_15_MASK) >> 8));
             }
         } else {
             cap->tx_pwr_ht_64qam_mcs_7_15 = 0;
@@ -783,12 +809,14 @@ void mt7603_get_tx_pwr_info(RTMP_ADAPTER *pAd)
         cap->delta_tx_pwr_bw40_g_band = 0x0;
     } else {
         /* G Band */
-        if (value & G_BAND_20_40_BW_PWR_DELTA_EN) {
-            if (value & G_BAND_20_40_BW_PWR_DELTA_SIGN) {
+		if (value & G_BAND_20_40_BW_PWR_DELTA_EN) {
+			if (value & G_BAND_20_40_BW_PWR_DELTA_SIGN) {
                 /* bit[0..5] tx power delta value */
-                cap->delta_tx_pwr_bw40_g_band = (value & G_BAND_20_40_BW_PWR_DELTA_MASK);
+				cap->delta_tx_pwr_bw40_g_band =
+				(CHAR)(value & G_BAND_20_40_BW_PWR_DELTA_MASK);
             } else {
-                cap->delta_tx_pwr_bw40_g_band = -(value & G_BAND_20_40_BW_PWR_DELTA_MASK);
+				cap->delta_tx_pwr_bw40_g_band =
+				(CHAR)(-(value & G_BAND_20_40_BW_PWR_DELTA_MASK));
             }
         } else {
             cap->delta_tx_pwr_bw40_g_band = 0x0;
@@ -804,7 +832,8 @@ void mt7603_get_tx_pwr_info(RTMP_ADAPTER *pAd)
         (is_empty) ? TSSI_0_SLOPE_G_BAND_DEFAULT_VALUE : (value & TX0_G_BAND_TSSI_SLOPE_MASK);
 
     cap->tssi_0_offset_g_band =
-        (is_empty) ? TSSI_0_OFFSET_G_BAND_DEFAULT_VALUE : ((value & TX0_G_BAND_TSSI_OFFSET_MASK) >> 8);
+		(is_empty) ? TSSI_0_OFFSET_G_BAND_DEFAULT_VALUE :
+		(UINT8)((value & TX0_G_BAND_TSSI_OFFSET_MASK) >> 8);
 
     DBGPRINT(RT_DEBUG_TRACE, ("tssi_0_slope_g_band = %d\n", cap->tssi_0_slope_g_band));
     DBGPRINT(RT_DEBUG_TRACE, ("tssi_0_offset_g_band = %d\n", cap->tssi_0_offset_g_band));
@@ -821,11 +850,13 @@ void mt7603_get_tx_pwr_info(RTMP_ADAPTER *pAd)
         cap->tx_0_chl_pwr_delta_g_band[G_BAND_LOW] = 0x0;
     } else {
         /* tx power offset LOW */
-        if (value & TX0_G_BAND_CHL_PWR_DELTA_LOW_EN) {
-            if (value & TX0_G_BAND_CHL_PWR_DELTA_LOW_SIGN) {
-                cap->tx_0_chl_pwr_delta_g_band[G_BAND_LOW] = ((value & TX0_G_BAND_CHL_PWR_DELTA_LOW_MASK) >> 8);
+		if (value & TX0_G_BAND_CHL_PWR_DELTA_LOW_EN) {
+			if (value & TX0_G_BAND_CHL_PWR_DELTA_LOW_SIGN) {
+				cap->tx_0_chl_pwr_delta_g_band[G_BAND_LOW] =
+				(UINT8)((value & TX0_G_BAND_CHL_PWR_DELTA_LOW_MASK) >> 8);
             } else {
-                cap->tx_0_chl_pwr_delta_g_band[G_BAND_LOW] = -((value & TX0_G_BAND_CHL_PWR_DELTA_LOW_MASK) >> 8);
+				cap->tx_0_chl_pwr_delta_g_band[G_BAND_LOW] =
+				(UINT8)(-((value & TX0_G_BAND_CHL_PWR_DELTA_LOW_MASK) >> 8));
             }
         } else {
             cap->tx_0_chl_pwr_delta_g_band[G_BAND_LOW] = 0x0;
@@ -840,20 +871,24 @@ void mt7603_get_tx_pwr_info(RTMP_ADAPTER *pAd)
         cap->tx_0_chl_pwr_delta_g_band[G_BAND_HI] = 0x0;
     } else {
         /* tx power offset MID */
-        if (value & TX0_G_BAND_CHL_PWR_DELTA_MID_EN) {
-            if (value & TX0_G_BAND_CHL_PWR_DELTA_MID_SIGN)
-                cap->tx_0_chl_pwr_delta_g_band[G_BAND_MID] = (value & TX0_G_BAND_CHL_PWR_DELTA_MID_MASK);
+		if (value & TX0_G_BAND_CHL_PWR_DELTA_MID_EN) {
+			if (value & TX0_G_BAND_CHL_PWR_DELTA_MID_SIGN)
+				cap->tx_0_chl_pwr_delta_g_band[G_BAND_MID] =
+				(CHAR)(value & TX0_G_BAND_CHL_PWR_DELTA_MID_MASK);
             else
-                cap->tx_0_chl_pwr_delta_g_band[G_BAND_MID] = -(value & TX0_G_BAND_CHL_PWR_DELTA_MID_MASK);
+				cap->tx_0_chl_pwr_delta_g_band[G_BAND_MID] =
+				(UINT8)(-(value & TX0_G_BAND_CHL_PWR_DELTA_MID_MASK));
         } else {
             cap->tx_0_chl_pwr_delta_g_band[G_BAND_MID] = 0x0;
         }
         /* tx power offset HIGH */
-        if (value & TX0_G_BAND_CHL_PWR_DELTA_HI_EN) {
-            if (value & TX0_G_BAND_CHL_PWR_DELTA_HI_SIGN)
-                cap->tx_0_chl_pwr_delta_g_band[G_BAND_HI] = ((value & TX0_G_BAND_CHL_PWR_DELTA_HI_MASK) >> 8);
+		if (value & TX0_G_BAND_CHL_PWR_DELTA_HI_EN) {
+			if (value & TX0_G_BAND_CHL_PWR_DELTA_HI_SIGN)
+				cap->tx_0_chl_pwr_delta_g_band[G_BAND_HI] =
+				(UINT8)((value & TX0_G_BAND_CHL_PWR_DELTA_HI_MASK) >> 8);
             else
-                cap->tx_0_chl_pwr_delta_g_band[G_BAND_HI] = -((value & TX0_G_BAND_CHL_PWR_DELTA_HI_MASK) >> 8);
+				cap->tx_0_chl_pwr_delta_g_band[G_BAND_HI] =
+				(UINT8)(-((value & TX0_G_BAND_CHL_PWR_DELTA_HI_MASK) >> 8));
         } else {
             cap->tx_0_chl_pwr_delta_g_band[G_BAND_HI] = 0x0;
         }
@@ -867,7 +902,8 @@ void mt7603_get_tx_pwr_info(RTMP_ADAPTER *pAd)
 
     cap->tssi_1_slope_g_band = (is_empty) ? TSSI_1_SLOPE_G_BAND_DEFAULT_VALUE : (value & TX1_G_BAND_TSSI_SLOPE_MASK);
 
-    cap->tssi_1_offset_g_band = (is_empty) ? TSSI_1_OFFSET_G_BAND_DEFAULT_VALUE : ((value & TX1_G_BAND_TSSI_OFFSET_MASK) >> 8);
+	cap->tssi_1_offset_g_band = (is_empty) ? TSSI_1_OFFSET_G_BAND_DEFAULT_VALUE :
+	(UINT8)((value & TX1_G_BAND_TSSI_OFFSET_MASK) >> 8);
 
     DBGPRINT(RT_DEBUG_TRACE, ("tssi_1_slope_g_band = %d\n", cap->tssi_1_slope_g_band));
     DBGPRINT(RT_DEBUG_TRACE, ("tssi_1_offset_g_band = %d\n", cap->tssi_1_offset_g_band));
@@ -877,18 +913,20 @@ void mt7603_get_tx_pwr_info(RTMP_ADAPTER *pAd)
 
     cap->tx_1_target_pwr_g_band = (is_empty) ? TX_TARGET_PWR_DEFAULT_VALUE : (value & TX1_G_BAND_TARGET_PWR_MASK);
 
-    printk ("tssi_1_target_pwr_g_band = %d\n", cap->tx_1_target_pwr_g_band);
+	DBGPRINT(RT_DEBUG_OFF, ("tssi_1_target_pwr_g_band = %d\n", cap->tx_1_target_pwr_g_band));
 
     /* Read power offset (channel delta) */
     if (is_empty) {
         cap->tx_1_chl_pwr_delta_g_band[G_BAND_LOW] =  0;
     } else {
         /* tx power offset LOW */
-        if (value & TX1_G_BAND_CHL_PWR_DELTA_LOW_EN) {
-            if (value & TX1_G_BAND_CHL_PWR_DELTA_LOW_SIGN) {
-                cap->tx_1_chl_pwr_delta_g_band[G_BAND_LOW] = ((value & TX1_G_BAND_CHL_PWR_DELTA_LOW_MASK) >> 8);
+		if (value & TX1_G_BAND_CHL_PWR_DELTA_LOW_EN) {
+			if (value & TX1_G_BAND_CHL_PWR_DELTA_LOW_SIGN) {
+				cap->tx_1_chl_pwr_delta_g_band[G_BAND_LOW] =
+				(UINT8)((value & TX1_G_BAND_CHL_PWR_DELTA_LOW_MASK) >> 8);
             } else {
-                cap->tx_1_chl_pwr_delta_g_band[G_BAND_LOW] = -((value & TX1_G_BAND_CHL_PWR_DELTA_LOW_MASK) >> 8);
+				cap->tx_1_chl_pwr_delta_g_band[G_BAND_LOW] =
+				(UINT8)(-((value & TX1_G_BAND_CHL_PWR_DELTA_LOW_MASK) >> 8));
             }
         } else {
             cap->tx_1_chl_pwr_delta_g_band[G_BAND_LOW] = 0;
@@ -902,21 +940,25 @@ void mt7603_get_tx_pwr_info(RTMP_ADAPTER *pAd)
         cap->tx_1_chl_pwr_delta_g_band[G_BAND_HI] = 0;
     } else {
         /* tx power offset MID */
-        if (value & TX1_G_BAND_CHL_PWR_DELTA_MID_EN) {
-            if (value & TX1_G_BAND_CHL_PWR_DELTA_MID_SIGN) {
-                cap->tx_1_chl_pwr_delta_g_band[G_BAND_MID] = (value & TX1_G_BAND_CHL_PWR_DELTA_MID_MASK);
+		if (value & TX1_G_BAND_CHL_PWR_DELTA_MID_EN) {
+			if (value & TX1_G_BAND_CHL_PWR_DELTA_MID_SIGN) {
+				cap->tx_1_chl_pwr_delta_g_band[G_BAND_MID] =
+				(CHAR)(value & TX1_G_BAND_CHL_PWR_DELTA_MID_MASK);
             } else {
-                cap->tx_1_chl_pwr_delta_g_band[G_BAND_MID] = -(value & TX1_G_BAND_CHL_PWR_DELTA_MID_MASK);
+				cap->tx_1_chl_pwr_delta_g_band[G_BAND_MID] =
+				(UINT8)(-(value & TX1_G_BAND_CHL_PWR_DELTA_MID_MASK));
             }
         } else {
             cap->tx_1_chl_pwr_delta_g_band[G_BAND_MID] = 0;
         }
         /* tx power offset HIGH */
-        if (value & TX1_G_BAND_CHL_PWR_DELTA_HI_EN) {
-            if (value & TX1_G_BAND_CHL_PWR_DELTA_HI_SIGN) {
-                cap->tx_1_chl_pwr_delta_g_band[G_BAND_HI] = ((value & TX1_G_BAND_CHL_PWR_DELTA_HI_MASK) >> 8);
+		if (value & TX1_G_BAND_CHL_PWR_DELTA_HI_EN) {
+			if (value & TX1_G_BAND_CHL_PWR_DELTA_HI_SIGN) {
+				cap->tx_1_chl_pwr_delta_g_band[G_BAND_HI] =
+				(UINT8)((value & TX1_G_BAND_CHL_PWR_DELTA_HI_MASK) >> 8);
             } else {
-                cap->tx_1_chl_pwr_delta_g_band[G_BAND_HI] = -((value & TX1_G_BAND_CHL_PWR_DELTA_HI_MASK) >> 8);
+				cap->tx_1_chl_pwr_delta_g_band[G_BAND_HI] =
+				(UINT8)(-((value & TX1_G_BAND_CHL_PWR_DELTA_HI_MASK) >> 8));
             }
         } else {
             cap->tx_1_chl_pwr_delta_g_band[G_BAND_HI] = 0;
@@ -1523,16 +1565,243 @@ void mt7603_set_ed_cca(RTMP_ADAPTER *pAd, BOOLEAN enable)
 	{
 		macVal = 0xD7E87D10;  //EDCCA ON  //d7e87d10			
 		RTMP_IO_WRITE32(pAd, WF_PHY_BASE + 0x0618, macVal);
-		
+#ifdef SMART_CARRIER_SENSE_SUPPORT
+		pAd->SCSCtrl.EDCCA_Status = 1;
+		DBGPRINT(RT_DEBUG_ERROR, ("%s: TURN ON EDCCA mac 0x10618 = 0x%x, EDCCA_Status=%d\n", __FUNCTION__, macVal, pAd->SCSCtrl.EDCCA_Status));
+#else
 		DBGPRINT(RT_DEBUG_ERROR, ("%s: TURN ON EDCCA mac 0x10618 = 0x%x\n", __FUNCTION__, macVal));
+#endif /* SMART_CARRIER_SENSE_SUPPORT */
 	}
 	else
 	{
 		macVal = 0xD7083F0F;  //EDCCA OFF //d7083f0f		
 		RTMP_IO_WRITE32(pAd, WF_PHY_BASE + 0x0618, macVal);
-		
+#ifdef SMART_CARRIER_SENSE_SUPPORT
+		pAd->SCSCtrl.EDCCA_Status = 0;
+		DBGPRINT(RT_DEBUG_ERROR, ("%s: TURN OFF EDCCA  mac 0x10618 = 0x%x, EDCCA_Status=%d\n", __FUNCTION__, macVal, pAd->SCSCtrl.EDCCA_Status));
+#else
 		DBGPRINT(RT_DEBUG_ERROR, ("%s: TURN OFF EDCCA  mac 0x10618 = 0x%x\n", __FUNCTION__, macVal));
+#endif /* SMART_CARRIER_SENSE_SUPPORT */
 	}
 			
 }
+
+#ifdef SMART_CARRIER_SENSE_SUPPORT
+/*
+========================================================================
+Routine Description:
+    Get target rssi for smart carrier sense.
+Arguments:
+    pAd				- WLAN control block pointer
+Return Value:
+    rssi      - rssi value
+========================================================================
+*/
+INT MTSmartCarrierSense(RTMP_ADAPTER *pAd)
+{
+	UINT16 RxRatio = 0;
+	UCHAR idx = 0, RtsEnable = 0, Action = Keep_Range;
+	UINT32 CrValue = 0, MaxRtsRtyCount = 0;
+	UINT32 MaxRtsCount = 0, TempValue = 0, tmpCrValue = 0, TotalTp = 0;
+	INT32	AdjustStep = 0;
+	CHAR	RSSIBoundary = 0;
+	/*get RxRatio */
+	if (pAd->RalinkCounters.OneSecReceivedByteCount != 0)
+		RxRatio = ((pAd->RalinkCounters.OneSecReceivedByteCount) * 100
+		/ (pAd->RalinkCounters.OneSecReceivedByteCount +
+		pAd->RalinkCounters.OneSecTransmittedByteCount));
+	else
+		RxRatio = 0;
+	DBGPRINT(RT_DEBUG_TRACE, ("RXRatio=%d\n", RxRatio));
+	/*
+	*DBGPRINT(RT_DEBUG_ERROR, ("%s():Enter ---> miniRSSI=%d TotalByteCount=%d
+	*	RxByteCount=%d TxByteCount=%d EDCCA=%d RxRatio=%d RtsCount=%d
+	*	RtsRtyCount=%d RSSIBoundary=%s TotalTp =%d\n", __FUNCTION__,
+	*	pAd->SCSCtrl.SCSMinRssi, (pAd->RalinkCounters.OneSecReceivedByteCount
+	*	+ pAd->RalinkCounters.OneSecTransmittedByteCount),
+	*	pAd->RalinkCounters.OneSecReceivedByteCount,
+	*	pAd->RalinkCounters.OneSecTransmittedByteCount,
+	*	pAd->SCSCtrl.EDCCA_Status, RxRatio,pAd->SCSCtrl.RtsCount,
+	*	pAd->SCSCtrl.RtsRtyCount,pAd->SCSCtrl.RSSIBoundary,
+	*	(pAd->RalinkCounters.OneSecReceivedByteCount +
+	*		pAd->RalinkCounters.OneSecTransmittedByteCount)));
+	*/
+
+/*get RtsCount and RtsRetryCount*/
+	for (idx = 0; idx < 4; idx++) {
+		RTMP_IO_READ32(pAd, MIB_MB0SDR0 + idx * 0x10, &CrValue);
+		TempValue = (CrValue >> 16) & 0x0000ffff;
+		if (TempValue > MaxRtsRtyCount) {
+			MaxRtsRtyCount = TempValue;
+			MaxRtsCount = CrValue & 0x0000ffff;
+		}
+
+		pAd->SCSCtrl.RtsCount = MaxRtsCount;
+		pAd->SCSCtrl.RtsRtyCount = MaxRtsRtyCount;
+	}
+	DBGPRINT(RT_DEBUG_TRACE, ("RtsCount=%d\n", MaxRtsCount));
+	if (MaxRtsCount > 0 || MaxRtsRtyCount > 0)
+		RtsEnable = 1;
+/*get RSSIBoundary*/
+	RSSIBoundary = pAd->SCSCtrl.SCSMinRssi - pAd->SCSCtrl.SCSMinRssiTolerance;
+	RSSIBoundary -= (RSSIBoundary % 2);
+	pAd->SCSCtrl.RSSIBoundary = min(RSSIBoundary, pAd->SCSCtrl.FixedRssiBond);
+/*get TotalTp*/
+	TotalTp = pAd->RalinkCounters.OneSecReceivedByteCount +
+		pAd->RalinkCounters.OneSecTransmittedByteCount;
+	DBGPRINT(RT_DEBUG_TRACE, ("TotalTp=%d\n", TotalTp));
+	/*
+	*check the action
+	*1. under forceMode total Tp exceed th, or RTSEnable=1
+	*2. Mactable size >0
+	*3. MinRsssi<0
+	*4. In Rx status mainly
+	*When applied on customer's projects, please fine tune above conditions,
+	*otherwise, SCS would be not enabled probably.
+	*/
+
+	if ((((pAd->SCSCtrl.ForceMode == 1) && (TotalTp > pAd->SCSCtrl.SCSTrafficThreshold)) ||
+		(RtsEnable == 1)) && ((pAd->MacTab.Size > 0) &&
+		(pAd->SCSCtrl.SCSMinRssi < 0) && (RxRatio < 90))) {
+		if (RtsEnable == 1) {
+			/* Consider RTS PER & False-CCA */
+			if (MaxRtsCount > (MaxRtsRtyCount + (MaxRtsRtyCount >> 1)) &&
+				(pAd->SCSCtrl.FalseCCA) > (pAd->SCSCtrl.FalseCcaUpBond))
+				Action = Decrease_Range;
+			else if ((MaxRtsCount + (MaxRtsCount >> 1)) < MaxRtsRtyCount ||
+				(pAd->SCSCtrl.FalseCCA) < (pAd->SCSCtrl.FalseCcaLowBond))
+				Action = Increase_Range;
+			else
+				Action = Keep_Range;
+		} else {
+			/* Consider False-CCA only */
+			if (pAd->SCSCtrl.FalseCCA > (pAd->SCSCtrl.FalseCcaUpBond))
+				Action = Decrease_Range;
+			else if (pAd->SCSCtrl.FalseCCA < (pAd->SCSCtrl.FalseCcaLowBond))
+				Action = Increase_Range;
+			else
+				Action = Keep_Range;
+		}
+		DBGPRINT(RT_DEBUG_TRACE, ("Action=%d, RtsCount=%d, RtsRtyCount=%d, FalseCCA=%d\n",
+			Action, MaxRtsCount, MaxRtsRtyCount, pAd->SCSCtrl.FalseCCA));
+
+		if ((Action == Decrease_Range) &&
+			(pAd->SCSCtrl.SCSStatus == SCS_STATUS_DEFAULT)) {
+			/*First time initial */
+			if (pAd->SCSCtrl.SCSMinRssi > -86) {
+				pAd->SCSCtrl.AdjustSensitivity = -92;
+				/*DBGPRINT(RT_DEBUG_ERROR, ("%s(): SCS=M\n",__FUNCTION__));*/
+			}
+		} else if ((Action == Decrease_Range) &&
+			(pAd->SCSCtrl.SCSStatus != SCS_STATUS_DEFAULT)) {
+			if (pAd->SCSCtrl.CurrSensitivity + 2 <= pAd->SCSCtrl.RSSIBoundary)
+				pAd->SCSCtrl.AdjustSensitivity = pAd->SCSCtrl.CurrSensitivity + 2;
+			else if (pAd->SCSCtrl.CurrSensitivity > pAd->SCSCtrl.RSSIBoundary)
+				pAd->SCSCtrl.AdjustSensitivity = pAd->SCSCtrl.RSSIBoundary;
+		} else if ((Action == Increase_Range) &&
+			(pAd->SCSCtrl.SCSStatus == SCS_STATUS_DEFAULT)) {
+			/*First time initial */
+			/*Nothing to do.*/
+		} else if ((Action == Increase_Range) &&
+			(pAd->SCSCtrl.SCSStatus != SCS_STATUS_DEFAULT)) {
+			if (pAd->SCSCtrl.CurrSensitivity - 2 >= (-100)) {
+				pAd->SCSCtrl.AdjustSensitivity = pAd->SCSCtrl.CurrSensitivity - 2;
+				if (pAd->SCSCtrl.AdjustSensitivity > pAd->SCSCtrl.RSSIBoundary)
+					pAd->SCSCtrl.AdjustSensitivity = pAd->SCSCtrl.RSSIBoundary;
+			}
+		}
+		DBGPRINT(RT_DEBUG_TRACE, ("CurrSen=%d, AdjustSen=%d\n",
+			pAd->SCSCtrl.CurrSensitivity, pAd->SCSCtrl.AdjustSensitivity));
+
+		if (pAd->SCSCtrl.AdjustSensitivity > -54)
+			pAd->SCSCtrl.AdjustSensitivity = -54;
+
+		if (pAd->SCSCtrl.CurrSensitivity != pAd->SCSCtrl.AdjustSensitivity) {
+			/*Apply to CR*/
+			/*SCS=M*/
+			if (pAd->SCSCtrl.AdjustSensitivity >= -100 &&
+				pAd->SCSCtrl.AdjustSensitivity <= -84){
+				AdjustStep = (pAd->SCSCtrl.AdjustSensitivity + 92) / 2;
+				CrValue = 0x56F0076f;
+				tmpCrValue = 0x7 + AdjustStep;
+				CrValue |= (tmpCrValue << 12);
+				CrValue |= (tmpCrValue << 16);
+				DBGPRINT(RT_DEBUG_ERROR, ("M AdjSensi=%d AdjStep=%d CrValue=%x\n",
+					pAd->SCSCtrl.AdjustSensitivity, AdjustStep, CrValue));
+				RTMP_IO_WRITE32(pAd, CR_AGC_0, CrValue);
+				RTMP_IO_WRITE32(pAd, CR_AGC_0_RX1, CrValue);
+				RTMP_IO_WRITE32(pAd, CR_AGC_3, 0x81D0D5E3);
+				RTMP_IO_WRITE32(pAd, CR_AGC_3_RX1, 0x81D0D5E3);
+				pAd->SCSCtrl.CurrSensitivity = pAd->SCSCtrl.AdjustSensitivity;
+				pAd->SCSCtrl.SCSStatus = SCS_STATUS_MIDDLE;
+
+			}
+			/*SCS=L*/
+			else if (pAd->SCSCtrl.AdjustSensitivity > -84 &&
+				pAd->SCSCtrl.AdjustSensitivity <= -72) {
+				AdjustStep = (pAd->SCSCtrl.AdjustSensitivity + 80) / 2;
+				CrValue = 0x6AF0006f;
+				tmpCrValue = 0x7 + AdjustStep;
+				CrValue |= (tmpCrValue << 8);
+				CrValue |= (tmpCrValue << 12);
+				CrValue |= (tmpCrValue << 16);
+				DBGPRINT(RT_DEBUG_ERROR, ("L AdjSensi=%d AdjStep=%d CrValue=%x\n",
+					pAd->SCSCtrl.AdjustSensitivity, AdjustStep, CrValue));
+				RTMP_IO_WRITE32(pAd, CR_AGC_0, CrValue);
+				RTMP_IO_WRITE32(pAd, CR_AGC_0_RX1, CrValue);
+				RTMP_IO_WRITE32(pAd, CR_AGC_3, 0x8181D5E3);
+				RTMP_IO_WRITE32(pAd, CR_AGC_3_RX1, 0x8181D5E3);
+				pAd->SCSCtrl.CurrSensitivity = pAd->SCSCtrl.AdjustSensitivity;
+				pAd->SCSCtrl.SCSStatus = SCS_STATUS_LOW;
+
+			}
+			/*SCS=UL*/
+			else if (pAd->SCSCtrl.AdjustSensitivity >= -70 &&
+				pAd->SCSCtrl.AdjustSensitivity <= -54) {
+				AdjustStep = (pAd->SCSCtrl.AdjustSensitivity + 62) / 2;
+				CrValue = 0x7FF0000f;
+				tmpCrValue = 0x6+AdjustStep;
+				CrValue |= (tmpCrValue << 4);
+				CrValue |= (tmpCrValue << 8);
+				CrValue |= (tmpCrValue << 12);
+				CrValue |= (tmpCrValue << 16);
+				DBGPRINT(RT_DEBUG_ERROR, ("UL AdjSensi=%d AdjStep=%d CrValue=%x\n",
+					pAd->SCSCtrl.AdjustSensitivity, AdjustStep, CrValue));
+				RTMP_IO_WRITE32(pAd, CR_AGC_0, CrValue);
+				RTMP_IO_WRITE32(pAd, CR_AGC_0_RX1, CrValue);
+				RTMP_IO_WRITE32(pAd, CR_AGC_3, 0x818181E3);
+				RTMP_IO_WRITE32(pAd, CR_AGC_3_RX1, 0x818181E3);
+				pAd->SCSCtrl.CurrSensitivity = pAd->SCSCtrl.AdjustSensitivity;
+				pAd->SCSCtrl.SCSStatus = SCS_STATUS_ULTRA_LOW;
+			}
+			/*SCS=Defalt/H*/
+			else{
+				pAd->SCSCtrl.SCSStatus = SCS_STATUS_DEFAULT;
+				RTMP_IO_WRITE32(pAd, CR_AGC_0, pAd->SCSCtrl.CR_AGC_0_default);
+				RTMP_IO_WRITE32(pAd, CR_AGC_0_RX1, pAd->SCSCtrl.CR_AGC_0_default);
+				RTMP_IO_WRITE32(pAd, CR_AGC_3, pAd->SCSCtrl.CR_AGC_3_default);
+				RTMP_IO_WRITE32(pAd, CR_AGC_3_RX1, pAd->SCSCtrl.CR_AGC_3_default);
+				DBGPRINT(RT_DEBUG_ERROR, ("%s(): SCS=??? (Default)\n", __func__));
+			}
+		}
+
+		DBGPRINT(RT_DEBUG_TRACE, ("%s():miniRSSI=%d, RSSIBound=%d Action=%d AdjSensi=%d\n",
+			__func__, pAd->SCSCtrl.SCSMinRssi, pAd->SCSCtrl.RSSIBoundary,
+			Action, pAd->SCSCtrl.AdjustSensitivity));
+	} else {
+		if (pAd->SCSCtrl.SCSStatus != SCS_STATUS_DEFAULT) {
+			RTMP_IO_WRITE32(pAd, CR_AGC_0, pAd->SCSCtrl.CR_AGC_0_default);
+			RTMP_IO_WRITE32(pAd, CR_AGC_0_RX1, pAd->SCSCtrl.CR_AGC_0_default);
+			RTMP_IO_WRITE32(pAd, CR_AGC_3, pAd->SCSCtrl.CR_AGC_3_default);
+			RTMP_IO_WRITE32(pAd, CR_AGC_3_RX1, pAd->SCSCtrl.CR_AGC_3_default);
+			pAd->SCSCtrl.SCSStatus = SCS_STATUS_DEFAULT;
+			pAd->SCSCtrl.CurrSensitivity = -102;
+			pAd->SCSCtrl.AdjustSensitivity = -102;
+			DBGPRINT(RT_DEBUG_TRACE, ("%s(): CSC=H (Default)\n", __func__));
+		}
+	}
+	return TRUE;
+
+}
+#endif /* SMART_CARRIER_SENSE_SUPPORT */
 

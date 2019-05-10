@@ -362,8 +362,6 @@ int rt28xx_init(VOID *pAdSrc, RTMP_STRING *pDefaultMac, RTMP_STRING *pHostName)
 	if (MAX_LEN_OF_MAC_TABLE > MAX_AVAILABLE_CLIENT_WCID(pAd))
 	{
 		DBGPRINT(RT_DEBUG_ERROR, ("MAX_LEN_OF_MAC_TABLE can not be larger than MAX_AVAILABLE_CLIENT_WCID!!!!\n"));
-		DBGPRINT(RT_DEBUG_ERROR, ("MAX_LEN_OF_MAC_TABLE :%d     MAX_AVAILABLE_CLIENT_WCID:%d\n",MAX_LEN_OF_MAC_TABLE,MAX_AVAILABLE_CLIENT_WCID(pAd)));
-		
 		goto err6;
 	}
 
@@ -386,6 +384,11 @@ int rt28xx_init(VOID *pAdSrc, RTMP_STRING *pDefaultMac, RTMP_STRING *pHostName)
 	DBGPRINT(RT_DEBUG_OFF, ("2. Phy Mode = %d\n", pAd->CommonCfg.PhyMode));
 
 	RTMP_NET_DEV_NICKNAME_INIT(pAd);
+#ifdef SMART_CARRIER_SENSE_SUPPORT
+	/* Backup CR_AGC_0 & CR_AGC_3 value */
+	RTMP_IO_READ32(pAd, CR_AGC_0, &pAd->SCSCtrl.CR_AGC_0_default);
+	RTMP_IO_READ32(pAd, CR_AGC_3, &pAd->SCSCtrl.CR_AGC_3_default);
+#endif /* SMART_CARRIER_SENSE_SUPPORT */
 
 	/* After operation mode is finialized, init the AP or STA mode */
 #ifdef CONFIG_AP_SUPPORT
@@ -1290,7 +1293,7 @@ VOID RTMPDrvClose(VOID *pAdSrc, VOID *net_dev)
 
 #if ((defined(WOW_SUPPORT) && defined(RTMP_MAC_USB)) || defined(MT_WOW_SUPPORT)) && defined(WOW_IFDOWN_SUPPORT)
 	if (!((pAd->WOW_Cfg.bEnable == TRUE) && INFRA_ON(pAd)))
-#endif /* ((defined(WOW_SUPPORT) && defined(RTMP_MAC_USB)) || defined(NEW_WOW_SUPPORT) || defined(MT_WOW_SUPPORT)) && defined(WOW_IFDOWN_SUPPORT) */
+#endif /* ((defined(WOW_SUPPORT) && defined(RTMP_MAC_USB)) || defined(MT_WOW_SUPPORT)) && defined(WOW_IFDOWN_SUPPORT) */
 	{
 #ifdef MT_MAC
 		if (pAd->chipCap.hif_type != HIF_MT)
@@ -1378,7 +1381,7 @@ VOID RTMPDrvClose(VOID *pAdSrc, VOID *net_dev)
 			CmdExtPmStateCtrl(pAd, BSSID_WCID, PM4, ENTER_PM_STATE);			
 		}
 		else
-#endif /* ((defined(WOW_SUPPORT) && defined(RTMP_MAC_USB)) || defined(NEW_WOW_SUPPORT) || defined(MT_WOW_SUPPORT)) && defined(WOW_IFDOWN_SUPPORT) */
+#endif /* ((defined(WOW_SUPPORT) && defined(RTMP_MAC_USB)) || defined(MT_WOW_SUPPORT)) && defined(WOW_IFDOWN_SUPPORT) */
 			MlmeRadioOff(pAd);
 	}
 #endif /* CONFIG_STA_SUPPORT */
@@ -1502,11 +1505,7 @@ VOID RTMPDrvClose(VOID *pAdSrc, VOID *net_dev)
 		DlListForEachSafe(ch, ch_temp, &pAd->SingleSkuPwrList, CH_POWER, List)
 		{
 			DlListDel(&ch->List);
-#ifdef MT7601
-			if (IS_MT7601(pAd)) {
-				os_free_mem(NULL, ch->Channel);
-			}
-#endif /* MT7601 */
+			os_free_mem(NULL, ch->Channel);
 			os_free_mem(NULL, ch);
 		}
 	}
@@ -1663,7 +1662,7 @@ VOID RTMPInfClose(VOID *pAdSrc)
 #if ((defined(WOW_SUPPORT) && defined(RTMP_MAC_USB)) || defined(MT_WOW_SUPPORT)) && defined(WOW_IFDOWN_SUPPORT)
 	/* In WOW state, can't issue disassociation reqeust */
 			pAd->WOW_Cfg.bEnable == FALSE &&
-#endif /* ((defined(WOW_SUPPORT) && defined(RTMP_MAC_USB)) || defined(NEW_WOW_SUPPORT) || defined(MT_WOW_SUPPORT)) && defined(WOW_IFDOWN_SUPPORT) */
+#endif /* ((defined(WOW_SUPPORT) && defined(RTMP_MAC_USB)) defined(MT_WOW_SUPPORT)) && defined(WOW_IFDOWN_SUPPORT) */
 			(!RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_NIC_NOT_EXIST)))
 		{
 			MLME_DISASSOC_REQ_STRUCT	DisReq;
@@ -1916,6 +1915,10 @@ PNET_DEV RtmpPhyNetDevMainCreate(VOID *pAdSrc)
 #endif /* HOSTAPD_SUPPORT */
 
 	dev_name = get_dev_name_prefix(pAd, INT_MAIN);
+	if (dev_name == NULL) {
+		DBGPRINT(RT_DEBUG_ERROR, ("%s():dev_name NULL\n", __func__));
+		return NULL;
+	}
 	pDevNew = RtmpOSNetDevCreate((INT32)MC_RowID, (UINT32 *)&IoctlIF,
 					INT_MAIN, 0, sizeof(struct mt_dev_priv), dev_name);
 

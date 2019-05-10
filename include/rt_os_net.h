@@ -308,7 +308,10 @@ VOID RTMP_CFG80211_DummyP2pIf_Init(
 
 VOID RTMP_CFG80211_DummyP2pIf_Remove(
 	IN VOID 		*pAdSrc);
-	
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0))
+extern const struct ieee80211_iface_combination *p_ra_iface_combinations_ap_sta;
+extern const INT ra_iface_combinations_ap_sta_num;
+#endif
 BOOLEAN RTMP_CFG80211_VIF_ON(
 	IN      VOID     *pAdSrc);
 
@@ -347,7 +350,8 @@ VOID RTMP_CFG80211_VirtualIF_Init(
 VOID RTMP_CFG80211_VirtualIF_Remove(
     IN VOID         *pAd,
     IN	PNET_DEV	dev_p,
-	IN  UINT32      DevType);
+	IN  UINT32      DevType,
+	BOOLEAN 	rtnl_lock);
 
 VOID RTMP_CFG80211_AllVirtualIF_Remove(	
 	IN VOID 		*pAdSrc);
@@ -429,7 +433,7 @@ INT rt_android_private_command_entry(
 
 #define RTMP_DRIVER_ADAPTER_RT28XX_WOW_DISABLE(__pAd)								\
 	RTMP_COM_IoctlHandle(__pAd, NULL, CMD_RTPRIV_IOCTL_ADAPTER_RT28XX_WOW_DISABLE, 0, NULL, 0)
-#endif /* (defined(WOW_SUPPORT) && defined(RTMP_MAC_USB)) || defined(NEW_WOW_SUPPORT) */
+#endif /* (defined(WOW_SUPPORT) && defined(RTMP_MAC_USB)) || defined(MT_WOW_SUPPORT) */
 
 #endif /* CONFIG_PM */
 
@@ -626,8 +630,11 @@ INT rt_android_private_command_entry(
 	RTMP_COM_IoctlHandle(__pAd, NULL, CMD_RTPRIV_IOCTL_80211_CHANNEL_LOCK, 0, NULL , __Chan)
 	
 #define RTMP_DRIVER_80211_MGMT_FRAME_REG(__pAd, __devPtr, __Reg) \
-    RTMP_COM_IoctlHandle(__pAd, NULL, CMD_RTPRIV_IOCTL_80211_MGMT_FRAME_REG, 0, __devPtr, __Reg)  
-	
+	RTMP_COM_IoctlHandle(__pAd, NULL, CMD_RTPRIV_IOCTL_80211_MGMT_FRAME_REG, 0, __devPtr, __Reg)
+
+#define RTMP_DRIVER_80211_TX_NETDEV_SET(__pAd, __netdev)                   \
+	RTMP_COM_IoctlHandle(__pAd, NULL, CMD_RTPRIV_IOCTL_80211_TX_NETDEV_SET, 0, __netdev, 0)
+
 #define RTMP_DRIVER_80211_MGMT_FRAME_SEND(__pAd, __pFrame, __Len)                       \
 	RTMP_COM_IoctlHandle(__pAd, NULL, CMD_RTPRIV_IOCTL_80211_MGMT_FRAME_SEND, 0, __pFrame, __Len)
 

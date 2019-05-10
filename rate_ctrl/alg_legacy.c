@@ -855,9 +855,10 @@ VOID APQuickResponeForRateUpExec(
 				&& (pAd->CommonCfg.DebugFlags & DBF_FORCE_QUICK_DRS)==0
 #endif /* DBG_CTRL_SUPPORT */
 			)
-				ratio = RA_INTERVAL/pAd->ra_fast_interval;
+				ratio = (CHAR)(RA_INTERVAL/pAd->ra_fast_interval);
 			else
-				ratio = (RA_INTERVAL-pAd->ra_fast_interval)/pAd->ra_fast_interval;
+				ratio = (CHAR)((RA_INTERVAL-pAd->ra_fast_interval) /
+					pAd->ra_fast_interval);
 
 			/* downgrade TX quality if PER >= Rate-Down threshold */
 			if (TxErrorRatio >= TrainDown)
@@ -1923,9 +1924,10 @@ VOID StaQuickResponeForRateUpExec(
 				&& (pAd->CommonCfg.DebugFlags & DBF_FORCE_QUICK_DRS)==0
 #endif /* DBG_CTRL_SUPPORT */
 			)
-				ratio = RA_INTERVAL/pAd->ra_fast_interval;
+				ratio = (CHAR)(RA_INTERVAL/pAd->ra_fast_interval);
 			else
-				ratio = (RA_INTERVAL-pAd->ra_fast_interval)/pAd->ra_fast_interval;
+				ratio = (CHAR)((RA_INTERVAL-pAd->ra_fast_interval) /
+					pAd->ra_fast_interval);
 
 			OneSecTxNoRetryOKRationCount = (TxSuccess * ratio);
 

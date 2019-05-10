@@ -338,7 +338,11 @@ typedef enum _RTMP_INF_TYPE_
 #define RT_CONFIG_IF_OPMODE_ON_STA(__OpMode)
 #endif
 
-
+#ifdef THERMAL_PROTECT_SUPPORT
+#define BOOL_IS_THERMAL_PROTECTION_SWITCH_TX(_pAd)		(_pAd->switch_tx_stream)
+#else
+#define BOOL_IS_THERMAL_PROTECTION_SWITCH_TX(_pAd)              FALSE
+#endif
     
 /***********************************************************************************
  * IOCTL related definitions and data structures.

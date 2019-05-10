@@ -210,34 +210,21 @@ INT32 GPIODirectionInput(RTMP_ADAPTER *pAd, UINT32 GPIO)
 
 INT32 GPIODirectionOuput(RTMP_ADAPTER *pAd, UINT32 GPIO, UINT8 Value)
 {
-	UINT32 RemapBase, RemapOffset;
-	UINT32 RestoreValue;
+	UINT32 crValue;
 
-	RTMP_IO_READ32(pAd, MCU_PCIE_REMAP_2, &RestoreValue);
-	
-	GPIOMuxSelect(pAd, GPIO);
-	
-	RemapBase = GET_REMAP_2_BASE(GPIO_OE1_SET) << 19;
-	RemapOffset = GET_REMAP_2_OFFSET(GPIO_OE1_SET);
-	RTMP_IO_WRITE32(pAd, MCU_PCIE_REMAP_2, RemapBase);
-	RTMP_IO_WRITE32(pAd, 0x80000 + RemapOffset, (1 << GPIO));
-
-	if (Value == OUTPUT_HIGH)
-	{
-		RemapBase = GET_REMAP_2_BASE(GPIO_DOUT1_SET) << 19;
-		RemapOffset = GET_REMAP_2_OFFSET(GPIO_DOUT1_SET);
-		RTMP_IO_WRITE32(pAd, MCU_PCIE_REMAP_2, RemapBase);
-		RTMP_IO_WRITE32(pAd, 0x80000 + RemapOffset, (1 << GPIO));
-	}
-	else
-	{
-		RemapBase = GET_REMAP_2_BASE(GPIO_DOUT1_RESET) << 19;
-		RemapOffset = GET_REMAP_2_OFFSET(GPIO_DOUT1_RESET);
-		RTMP_IO_WRITE32(pAd, MCU_PCIE_REMAP_2, RemapBase);
-		RTMP_IO_WRITE32(pAd, 0x80000 + RemapOffset, (1 << GPIO));
+	if (Value == OUTPUT_HIGH) {
+		RTMP_IO_READ32(pAd, GPIO_DOUT1_SET, &crValue);
+		crValue |= (1 << GPIO);
+		RTMP_IO_WRITE32(pAd, GPIO_DOUT1_SET, crValue);
+	} else {
+		RTMP_IO_READ32(pAd, GPIO_DOUT1_RESET, &crValue);
+		crValue |= (1 << GPIO);
+		RTMP_IO_WRITE32(pAd, GPIO_DOUT1_RESET, crValue);
 	}
 
-	RTMP_IO_WRITE32(pAd, MCU_PCIE_REMAP_2, RestoreValue);
+	RTMP_IO_READ32(pAd, GPIO_OE1, &crValue);
+	crValue |= (1 << GPIO);
+	RTMP_IO_WRITE32(pAd, GPIO_OE1, crValue);
 
 	return 0;
 }

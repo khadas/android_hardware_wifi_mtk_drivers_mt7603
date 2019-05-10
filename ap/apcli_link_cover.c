@@ -47,20 +47,20 @@ INT ApcliLinkMonitorThread(
 	RtmpOSTaskCustomize(pTask);
 
 	if (p2G_pAd == NULL) {
-		printk("##### no 2G pAd!!!\n");
+		DBGPRINT(RT_DEBUG_ERROR, ("##### no 2G pAd!!!\n"));
 		//RtmpOSTaskNotifyToExit(pTask);
 	//	return 0;
 	} else if (p5G_pAd == NULL) {
-		printk("##### no 5G pAd!!!\n");
+		DBGPRINT(RT_DEBUG_ERROR, ("##### no 5G pAd!!!\n"));
 		//RtmpOSTaskNotifyToExit(pTask);
 	//	return 0;
 	}
 	if (p5G_pAd == pAd) {
-		printk("we are 5G interface, wait 2G link update\n");
+		DBGPRINT(RT_DEBUG_OFF, ("we are 5G interface, wait 2G link update\n"));
 		pAd_other_band = p2G_pAd;
 	}
 	else {
-		printk("we are 2G interface, wait 5G link update\n");
+		DBGPRINT(RT_DEBUG_OFF, ("we are 2G interface, wait 5G link update\n"));
 		pAd_other_band = p5G_pAd;
 	}
 
@@ -90,7 +90,7 @@ INT ApcliLinkMonitorThread(
 	 * This is important in preemption kernels, which transfer the flow
 	 * of execution immediately upon a complete().
 	 */
-	printk("<---ApcliLinkMonitorThread\n");
+	DBGPRINT(RT_DEBUG_OFF, ("<---ApcliLinkMonitorThread\n"));
 
 	//if (pTask)
 	//	RtmpOSTaskNotifyToExit(pTask);
@@ -103,7 +103,7 @@ NDIS_STATUS RtmpApcliLinkTaskInit(IN PRTMP_ADAPTER pAd)
 	RTMP_OS_TASK *pTask;
 	NDIS_STATUS status;
 
-	printk("##### %s\n", __func__);
+	DBGPRINT(RT_DEBUG_OFF, ("##### %s\n", __func__));
 	/* Creat ApCli Link Monitor Thread */
 	pTask = &pAd->apcliLinkTask;
 	RTMP_OS_TASK_INIT(pTask, "LinkMonitorTask", pAd);
@@ -112,7 +112,8 @@ NDIS_STATUS RtmpApcliLinkTaskInit(IN PRTMP_ADAPTER pAd)
 	if (status == NDIS_STATUS_FAILURE) 
 	{
 /*		printk ("%s: unable to start RTPCICmdThread\n", RTMP_OS_NETDEV_GET_DEVNAME(pAd->net_dev)); */
-		printk ("%s: Unable to start ApcliLinkMonitorThread!\n", get_dev_name_prefix(pAd, INT_APCLI));
+		DBGPRINT(RT_DEBUG_ERROR, ("%s: Unable to start ApcliLinkMonitorThread!\n",
+				get_dev_name_prefix(pAd, INT_APCLI)));
 		return NDIS_STATUS_FAILURE;
 	}
 
@@ -124,7 +125,7 @@ VOID RtmpApcliLinkTaskExit(
 {
 	INT ret;
 
-	printk("##### %s\n", __func__);
+	DBGPRINT(RT_DEBUG_OFF, ("##### %s\n", __func__));
 	/* Terminate cmdQ thread */
 	RTMP_OS_TASK_LEGALITY(&pAd->apcliLinkTask)
 	{

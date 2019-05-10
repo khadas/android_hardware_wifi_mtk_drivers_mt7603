@@ -192,7 +192,7 @@ static inline VOID __RTMP_OS_Del_Timer(
 	OUT BOOLEAN *pCancelled)
 {
 	if (timer_pending(pTimer))
-		*pCancelled = del_timer_sync(pTimer);
+		*pCancelled = (BOOLEAN)del_timer_sync(pTimer);
 	else
 		*pCancelled = TRUE;
 }
@@ -492,7 +492,7 @@ NDIS_STATUS RTMPCloneNdisPacket(
 		       GET_OS_PKT_LEN(pInPacket));
 	*ppOutPacket = OSPKT_TO_RTPKT(pkt);
 
-	printk(KERN_ERR "###Clone###\n");
+	DBGPRINT(RT_DEBUG_OFF, (KERN_ERR "###Clone###\n"));
 
 	return NDIS_STATUS_SUCCESS;
 }
@@ -517,7 +517,7 @@ NDIS_STATUS RTMPAllocateNdisPacket(
 	if (pPacket == NULL) {
 		*ppPacket = NULL;
 #ifdef DEBUG
-		printk(KERN_ERR "RTMPAllocateNdisPacket Fail\n\n");
+		DBGPRINT(RT_DEBUG_OFF, (KERN_ERR "RTMPAllocateNdisPacket Fail\n\n"));
 #endif
 		return NDIS_STATUS_FAILURE;
 	}
@@ -923,25 +923,25 @@ void wlan_802_11_to_802_3_packet(
 }
 
 
-void hex_dump(char *str, UCHAR *pSrcBufVA, UINT SrcBufLen)
+void hex_dump(char *str, const UCHAR *pSrcBufVA, UINT SrcBufLen)
 {
 #ifdef DBG
-	unsigned char *pt;
+	const unsigned char *pt;
 	int x;
 
 	if (RTDebugLevel < RT_DEBUG_TRACE)
 		return;
 
 	pt = pSrcBufVA;
-	printk("%s: %p, len = %d\n", str, pSrcBufVA, SrcBufLen);
+	DBGPRINT(RT_DEBUG_OFF, ("%s: %p, len = %d\n", str, pSrcBufVA, SrcBufLen));
 	for (x = 0; x < SrcBufLen; x++) {
 		if (x % 16 == 0)
-			printk("0x%04x : ", x);
-		printk("%02x ", ((unsigned char)pt[x]));
+			DBGPRINT(RT_DEBUG_OFF, ("0x%04x : ", x));
+		DBGPRINT(RT_DEBUG_OFF, ("%02x ", ((unsigned char)pt[x])));
 		if (x % 16 == 15)
-			printk("\n");
+			DBGPRINT(RT_DEBUG_OFF, ("\n"));
 	}
-	printk("\n");
+	DBGPRINT(RT_DEBUG_OFF, ("\n"));
 #endif /* DBG */
 }
 
@@ -1072,13 +1072,20 @@ void RtmpOSFileSeek(RTMP_OS_FD osfd, int offset)
 
 int RtmpOSFileRead(RTMP_OS_FD osfd, char *pDataPtr, int readLen)
 {
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0))
+	size_t count = 0;
+	count = kernel_read(osfd, 0, pDataPtr, readLen);
+	return count;
+#else
 	/* The object must have a read method */
 	if (osfd->f_op && osfd->f_op->read) {
 		return osfd->f_op->read(osfd, pDataPtr, readLen, &osfd->f_pos);
-	} else {
+		}
+	else {
 		DBGPRINT(RT_DEBUG_ERROR, ("no file read method\n"));
 		return -1;
 	}
+#endif
 }
 
 
@@ -1149,10 +1156,10 @@ static inline NDIS_STATUS __RtmpOSTaskKill(OS_TASK *pTask)
 		mb();
 		ret = KILL_THREAD_PID(pTask->taskPID, SIGTERM, 1);
 		if (ret) {
-			printk(KERN_WARNING
+			DBGPRINT(RT_DEBUG_OFF, (KERN_WARNING
 			       "kill task(%s) with pid(%d) failed(retVal=%d)!\n",
 			       pTask->taskName, GET_PID_NUMBER(pTask->taskPID),
-			       ret);
+			       ret));
 		} else {
 			wait_for_completion(&pTask->taskComplete);
 			pTask->taskPID = THREAD_PID_INIT_VALUE;
@@ -1377,7 +1384,7 @@ static UINT32 RtmpOSWirelessEventTranslate(IN UINT32 eventType)
 #endif /* P2P_SUPPORT */
 
 	default:
-		printk("Unknown event: 0x%x\n", eventType);
+		DBGPRINT(RT_DEBUG_OFF, ("Unknown event: 0x%x\n", eventType));
 		break;
 	}
 
@@ -1404,18 +1411,17 @@ int RtmpOSWrielessEventSend(
 	memset(&wrqu, 0, sizeof (wrqu));
 
 	if (flags > -1)
-		wrqu.data.flags = flags;
+		wrqu.data.flags = (USHORT)flags;
 
 	if (pSrcMac)
 		memcpy(wrqu.ap_addr.sa_data, pSrcMac, MAC_ADDR_LEN);
 
 	if ((pData != NULL) && (dataLen > 0))
-		wrqu.data.length = dataLen;
+		wrqu.data.length = (USHORT)dataLen;
 	else
 		wrqu.data.length = 0;
-#ifdef CONFIG_WEXT_EXT
+
 	wireless_send_event(pNetDev, eventType, &wrqu, (char *)pData);
-#endif
 #endif
 	return 0;
 }
@@ -1439,18 +1445,17 @@ int RtmpOSWrielessEventSendExt(
 	memset(&wrqu, 0, sizeof (wrqu));
 
 	if (flags > -1)
-		wrqu.data.flags = flags;
+		wrqu.data.flags = (USHORT)flags;
 
 	if (pSrcMac)
 		memcpy(wrqu.ap_addr.sa_data, pSrcMac, MAC_ADDR_LEN);
 
 	if ((pData != NULL) && (dataLen > 0))
-		wrqu.data.length = dataLen;
+		wrqu.data.length = (USHORT)dataLen;
 
-	wrqu.addr.sa_family = family;
-#ifdef CONFIG_WEXT_EXT
+	wrqu.addr.sa_family = (sa_family_t)family;
+
 	wireless_send_event(pNetDev, eventType, &wrqu, (char *)pData);
-#endif
 	return 0;
 }
 
@@ -1662,35 +1667,29 @@ static int RtmpOSNetDevRequestName(
 	PNET_DEV existNetDev;
 	RTMP_STRING suffixName[IFNAMSIZ];
 	RTMP_STRING desiredName[IFNAMSIZ];
-	int ifNameIdx,
-	 prefixLen,
-	 slotNameLen;
+	int ifNameIdx;
 	int Status;
-
-	prefixLen = strlen(pPrefixStr);
-	ASSERT((prefixLen < IFNAMSIZ));
 
 	for (ifNameIdx = devIdx; ifNameIdx < 32; ifNameIdx++) {
 		memset(suffixName, 0, IFNAMSIZ);
 		memset(desiredName, 0, IFNAMSIZ);
-		strncpy(&desiredName[0], pPrefixStr, prefixLen);
+		snprintf(desiredName, sizeof(desiredName), "%s", pPrefixStr);
 
 #ifdef MULTIPLE_CARD_SUPPORT
 #ifdef RT_SOC_SUPPORT
 		if (MC_RowID > 0)
-			sprintf(suffixName, "i%d", ifNameIdx);
+			snprintf(suffixName, sizeof(suffixName), "i%d", ifNameIdx);
 		else
 #else
 		if (MC_RowID >= 0)
-			sprintf(suffixName, "%02d_%d", MC_RowID, ifNameIdx);
+			snprintf(suffixName, sizeof(suffixName), "%02d_%d", MC_RowID, ifNameIdx);
 		else
 #endif /* RT_SOC_SUPPORT */
 #endif /* MULTIPLE_CARD_SUPPORT */
-			sprintf(suffixName, "%d", ifNameIdx);
+			snprintf(suffixName, sizeof(suffixName), "%d", ifNameIdx);
 
-		slotNameLen = strlen(suffixName);
-		ASSERT(((slotNameLen + prefixLen) < IFNAMSIZ));
-		strcat(desiredName, suffixName);
+		snprintf(desiredName + strlen(desiredName),
+			sizeof(desiredName) - strlen(desiredName), "%s", suffixName);
 
 		existNetDev = RtmpOSNetDevGetByName(dev, &desiredName[0]);
 		if (existNetDev == NULL)
@@ -1735,12 +1734,12 @@ void RtmpOSNetDevFree(PNET_DEV pNetDev)
 #endif
 
 #ifdef VENDOR_FEATURE4_SUPPORT
-	printk("OS_NumOfMemAlloc = %ld, OS_NumOfMemFree = %ld\n",
-			OS_NumOfMemAlloc, OS_NumOfMemFree);
+	DBGPRINT(RT_DEBUG_OFF, ("OS_NumOfMemAlloc = %ld, OS_NumOfMemFree = %ld\n",
+			OS_NumOfMemAlloc, OS_NumOfMemFree));
 #endif /* VENDOR_FEATURE4_SUPPORT */
 #ifdef VENDOR_FEATURE2_SUPPORT
-	printk("OS_NumOfPktAlloc = %ld, OS_NumOfPktFree = %ld\n",
-			OS_NumOfPktAlloc, OS_NumOfPktFree);
+	DBGPRINT(RT_DEBUG_OFF, ("OS_NumOfPktAlloc = %ld, OS_NumOfPktFree = %ld\n",
+			OS_NumOfPktAlloc, OS_NumOfPktFree));
 #endif /* VENDOR_FEATURE2_SUPPORT */
 }
 
@@ -1832,22 +1831,41 @@ INT RtmpOSNetDevDestory(VOID *pReserved, PNET_DEV pNetDev)
 {
 
 	/* TODO: Need to fix this */
-	printk("WARNING: This function(%s) not implement yet!!!\n",
-	       __FUNCTION__);
+	DBGPRINT(RT_DEBUG_OFF, ("WARNING: This function(%s) not implement yet!!!\n",
+	       __func__));
 	return 0;
 }
 
 
 void RtmpOSNetDevDetach(PNET_DEV pNetDev)
 {
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,31)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 31)
+	struct net_device_ops *pNetDevOps = (struct net_device_ops *)pNetDev->netdev_ops;
+#endif
+
+	unregister_netdev(pNetDev);
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 31)
+	if (pNetDevOps) {
+		vfree(pNetDevOps);
+		pNetDevOps = NULL;
+	}
+#endif
+}
+
+void RtmpOSNetDevDetach_WithoutLock(PNET_DEV pNetDev)
+{
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 31)
 	struct net_device_ops *pNetDevOps = (struct net_device_ops *)pNetDev->netdev_ops;
 #endif
 
 	unregister_netdevice(pNetDev);
 
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,31)
-	vfree(pNetDevOps);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2, 6, 31)
+	if (pNetDevOps) {
+		vfree(pNetDevOps);
+		pNetDevOps = NULL;
+	}
 #endif
 }
 
@@ -1932,12 +1950,13 @@ int RtmpOSNetDevAttach(
 
 		/* OS specific flags, here we used to indicate if we are virtual interface */
 /*		pNetDev->priv_flags = pDevOpHook->priv_flags; */
-		RT_DEV_PRIV_FLAGS_SET(pNetDev, pDevOpHook->priv_flags);
+		RT_DEV_PRIV_FLAGS_SET(pNetDev, (USHORT)pDevOpHook->priv_flags);
 
 #if (WIRELESS_EXT < 21) && (WIRELESS_EXT >= 12)
 /*		pNetDev->get_wireless_stats = rt28xx_get_wireless_stats; */
 		pNetDev->get_wireless_stats = pDevOpHook->get_wstats;
 #endif
+
 #ifdef CONFIG_WIRELESS_EXT
 #ifdef CONFIG_STA_SUPPORT
 #if WIRELESS_EXT >= 12
@@ -1947,6 +1966,7 @@ int RtmpOSNetDevAttach(
 		}
 #endif /*WIRELESS_EXT >= 12 */
 #endif /* CONFIG_STA_SUPPORT */
+
 #ifdef CONFIG_APSTA_MIXED_SUPPORT
 #if WIRELESS_EXT >= 12
 		if (OpMode == OPMODE_AP) {
@@ -1955,7 +1975,7 @@ int RtmpOSNetDevAttach(
 		}
 #endif /*WIRELESS_EXT >= 12 */
 #endif /* CONFIG_APSTA_MIXED_SUPPORT */
-#endif
+#endif /* CONFIG_WIRELESS_EXT */
 		/* copy the net device mac address to the net_device structure. */
 		NdisMoveMemory(pNetDev->dev_addr, &pDevOpHook->devAddr[0],
 			       MAC_ADDR_LEN);
@@ -2182,7 +2202,7 @@ VOID RtmpDrvAllMacPrint(
 				/* write data to file */
 				file_w->f_op->write(file_w, msg, strlen(msg), &file_w->f_pos);
 
-				printk("%s", msg);
+				DBGPRINT(RT_DEBUG_OFF, ("%s", msg));
 				macAddr += AddrStep;
 			}
 			sprintf(msg, "\nDump all MAC values to %s\n", fileName);
@@ -2232,7 +2252,7 @@ VOID RtmpDrvAllE2PPrint(
 				/* write data to file */
 				file_w->f_op->write(file_w, msg, strlen(msg), &file_w->f_pos);
 
-				printk("%s", msg);
+				DBGPRINT(RT_DEBUG_OFF, ("%s", msg));
 				eepAddr += AddrStep;
 				pMacContent += (AddrStep >> 1);
 			}
@@ -2808,6 +2828,10 @@ void OS_LOAD_CODE_FROM_BIN(unsigned char **image, char *bin_name, void *inf_dev,
 	}
 
 	*image = kmalloc(fw_entry->size, GFP_KERNEL);
+	if (*image == NULL) {
+		release_firmware(fw_entry);
+		return;
+	}
 	memcpy(*image, fw_entry->data, fw_entry->size);
 	*code_len = fw_entry->size;
 
@@ -3691,7 +3715,7 @@ VOID RtmpOsSpinLockBh(NDIS_SPIN_LOCK *pLockOrg)
 	if (pLock != NULL) {
 		OS_SEM_LOCK(pLock);
 	} else
-		printk("lock> warning! the lock was freed!\n");
+		DBGPRINT(RT_DEBUG_OFF, ("lock> warning! the lock was freed!\n"));
 }
 
 
@@ -3717,7 +3741,7 @@ VOID RtmpOsSpinUnLockBh(NDIS_SPIN_LOCK *pLockOrg)
 	if (pLock != NULL) {
 		OS_SEM_UNLOCK(pLock);
 	} else
-		printk("lock> warning! the lock was freed!\n");
+		DBGPRINT(RT_DEBUG_OFF, ("lock> warning! the lock was freed!\n"));
 }
 
 
@@ -3744,7 +3768,7 @@ VOID RtmpOsIntLock(NDIS_SPIN_LOCK *pLockOrg, ULONG *pIrqFlags)
 	if (pLock != NULL) {
 		OS_INT_LOCK(pLock, *pIrqFlags);
 	} else
-		printk("lock> warning! the lock was freed!\n");
+		DBGPRINT(RT_DEBUG_OFF, ("lock> warning! the lock was freed!\n"));
 }
 
 
@@ -3771,7 +3795,7 @@ VOID RtmpOsIntUnLock(NDIS_SPIN_LOCK *pLockOrg, ULONG IrqFlags)
 	if (pLock != NULL) {
 		OS_INT_UNLOCK(pLock, IrqFlags);
 	} else
-		printk("lock> warning! the lock was freed!\n");
+		DBGPRINT(RT_DEBUG_OFF, ("lock> warning! the lock was freed!\n"));
 }
 
 void RtmpOsSpinLockIrqSave(NDIS_SPIN_LOCK *lock, unsigned long *flags)
@@ -3782,7 +3806,7 @@ void RtmpOsSpinLockIrqSave(NDIS_SPIN_LOCK *lock, unsigned long *flags)
 	if (pLock != NULL)
 		spin_lock_irqsave((spinlock_t *)(pLock), *flags);
 	else
-		printk("lock> warning! the lock was freed!\n");
+		DBGPRINT(RT_DEBUG_OFF, ("lock> warning! the lock was freed!\n"));
 
 }
 
@@ -3794,7 +3818,7 @@ void RtmpOsSpinUnlockIrqRestore(NDIS_SPIN_LOCK *lock, unsigned long *flags)
 	if (pLock != NULL)
 		spin_unlock_irqrestore((spinlock_t *)(pLock), *flags);
 	else
-		printk("lock> warning! the lock was freed!\n");
+		DBGPRINT(RT_DEBUG_OFF, ("lock> warning! the lock was freed!\n"));
 }
 
 void RtmpOsSpinLockIrq(NDIS_SPIN_LOCK *lock)
@@ -3805,7 +3829,7 @@ void RtmpOsSpinLockIrq(NDIS_SPIN_LOCK *lock)
 	if (pLock != NULL)
 		spin_lock_irq((spinlock_t *)(pLock));
 	else
-		printk("lock> warning! the lock was freed!\n");
+		DBGPRINT(RT_DEBUG_OFF, ("lock> warning! the lock was freed!\n"));
 }
 
 void RtmpOsSpinUnlockIrq(NDIS_SPIN_LOCK *lock)
@@ -3816,7 +3840,7 @@ void RtmpOsSpinUnlockIrq(NDIS_SPIN_LOCK *lock)
 	if (pLock != NULL)
 		spin_unlock_irq((spinlock_t *)(pLock));
 	else
-		printk("lock> warning! the lock was freed!\n");
+		DBGPRINT(RT_DEBUG_OFF, ("lock> warning! the lock was freed!\n"));
 }
 
 /*
@@ -4367,7 +4391,7 @@ BOOLEAN RtmpOsSemaDestory(RTMP_OS_SEM *pSemOrg)
 		os_free_mem(NULL, pSem);
 		pSemOrg->pContent = NULL;
 	} else
-		printk("sem> warning! double-free sem!\n");
+		DBGPRINT(RT_DEBUG_OFF, ("sem> warning! double-free sem!\n"));
 	return TRUE;
 }
 

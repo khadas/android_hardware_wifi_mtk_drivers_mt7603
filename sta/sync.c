@@ -1587,12 +1587,13 @@ VOID PeerBeaconAtScanAction(
 			}
 		}
 #endif /* WIFI_REGION32_HIDDEN_SSID_SUPPORT */
-		
+
 		Idx = BssTableSearch(&pAd->ScanTab, &ie_list->Bssid[0], ie_list->Channel);
 #ifdef WIFI_REGION32_HIDDEN_SSID_SUPPORT
-		if (Idx != BSS_NOT_FOUND && ie_list->SsidLen != 0 && SsidAllZero == 0)
+		if ((Idx != BSS_NOT_FOUND) && (ie_list->SsidLen != 0) &&
+			(SsidAllZero == 0) && (Idx < ARRAY_SIZE(pAd->ScanTab.BssEntry)))
 #else
-		if (Idx != BSS_NOT_FOUND)
+		if ((Idx != BSS_NOT_FOUND) && (Idx < ARRAY_SIZE(pAd->ScanTab.BssEntry)))
 #endif /* WIFI_REGION32_HIDDEN_SSID_SUPPORT */
 			Rssi = pAd->ScanTab.BssEntry[Idx].Rssi;
 
@@ -1741,7 +1742,7 @@ VOID PeerBeaconAtScanAction(
 		}
 #endif /* DOT11N_DRAFT3 */
 #endif /* DOT11_N_SUPPORT */
-		if (Idx != BSS_NOT_FOUND)
+		if ((Idx != BSS_NOT_FOUND) && (Idx < ARRAY_SIZE(pAd->ScanTab.BssEntry)))
 		{
 			BSS_ENTRY *pBssEntry = &pAd->ScanTab.BssEntry[Idx];
 			NdisMoveMemory(pBssEntry->PTSF, &Elem->Msg[24], 4);
@@ -1912,13 +1913,15 @@ VOID PeerBeaconAtJoinAction(RTMP_ADAPTER *pAd, MLME_QUEUE_ELEM *Elem)
 										pAd->MlmeAux.Ssid, pAd->MlmeAux.SsidLen,
 										ie_list->Channel);
 
-				if (Idx == BSS_NOT_FOUND)				
+				if ((Idx == BSS_NOT_FOUND) ||
+				(Idx >= ARRAY_SIZE(pAd->ScanTab.BssEntry)))
 				{
 					Rssi = RTMPMaxRssi(pAd, ConvertToRssi(pAd, &Elem->rssi_info, RSSI_IDX_0),
 								ConvertToRssi(pAd, &Elem->rssi_info, RSSI_IDX_1),
 								ConvertToRssi(pAd, &Elem->rssi_info, RSSI_IDX_2));
 					Idx = BssTableSetEntry(pAd, &pAd->ScanTab, ie_list, Rssi, LenVIE, pVIE);
-					if (Idx != BSS_NOT_FOUND)
+					if ((Idx != BSS_NOT_FOUND) &&
+					(Idx < ARRAY_SIZE(pAd->ScanTab.BssEntry)))
 					{
 						NdisMoveMemory(pAd->ScanTab.BssEntry[Idx].PTSF, &Elem->Msg[24], 4);
 						NdisMoveMemory(&pAd->ScanTab.BssEntry[Idx].TTSF[0], &Elem->TimeStamp.u.LowPart, 4);
@@ -2366,8 +2369,8 @@ DBGPRINT(RT_DEBUG_OFF, ("-->%s():INFRA_ON=%d, jiffies=0x%x, OS_HZ=%d\n", __FUNCT
 				NdisGetSystemUpTime(&Mesh_Now);
 				pAd->MeshTab.MeshLink[LinkIdx].Entry.LastBeaconTime = Mesh_Now;
 			}
-		}
-#endif /* MESH_SUPPORT */
+				}
+#endif /* SMART_CARRIER_SENSE_SUPPORT */
 
 		/* ignore BEACON not for my SSID */
 		if ((!is_my_ssid) && (!is_my_bssid))
@@ -2388,11 +2391,12 @@ DBGPRINT(RT_DEBUG_OFF, ("-->%s():INFRA_ON=%d, jiffies=0x%x, OS_HZ=%d\n", __FUNCT
 
 		/* Housekeeping "SsidBssTab" table for later-on ROAMing usage. */
 		Bssidx = BssTableSearchWithSSID(&pAd->MlmeAux.SsidBssTab, bcn_ie_list->Bssid, bcn_ie_list->Ssid, bcn_ie_list->SsidLen, bcn_ie_list->Channel);
-		if (Bssidx == BSS_NOT_FOUND)
-		{			
+		if ((Bssidx == BSS_NOT_FOUND) ||
+		(Bssidx >= ARRAY_SIZE(pAd->MlmeAux.SsidBssTab.BssEntry))) {
 			/* discover new AP of this network, create BSS entry */
 			Bssidx = BssTableSetEntry(pAd, &pAd->MlmeAux.SsidBssTab, bcn_ie_list, RealRssi, LenVIE, pVIE);
-			if (Bssidx == BSS_NOT_FOUND)
+			if ((Bssidx == BSS_NOT_FOUND) ||
+			(Bssidx >= ARRAY_SIZE(pAd->MlmeAux.SsidBssTab.BssEntry)))
 				;
 			else
 			{
@@ -2427,11 +2431,13 @@ DBGPRINT(RT_DEBUG_OFF, ("-->%s():INFRA_ON=%d, jiffies=0x%x, OS_HZ=%d\n", __FUNCT
 		
 		/* Update ScanTab */
 		Bssidx = BssTableSearch(&pAd->ScanTab, bcn_ie_list->Bssid, bcn_ie_list->Channel);
-		if (Bssidx == BSS_NOT_FOUND)
+		if ((Bssidx == BSS_NOT_FOUND) || (Bssidx >= ARRAY_SIZE(pAd->ScanTab.BssEntry)))
 		{
 			/* discover new AP of this network, create BSS entry */
 			Bssidx = BssTableSetEntry(pAd, &pAd->ScanTab, bcn_ie_list, RealRssi, LenVIE, pVIE);
-			if (Bssidx == BSS_NOT_FOUND) /* return if BSS table full */
+			/* return if BSS table full */
+			if ((Bssidx == BSS_NOT_FOUND) ||
+			(Bssidx >= ARRAY_SIZE(pAd->ScanTab.BssEntry)))
 				goto LabelOK;  
 			
 			NdisMoveMemory(pAd->ScanTab.BssEntry[Bssidx].PTSF, &Elem->Msg[24], 4);

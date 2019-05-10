@@ -419,7 +419,7 @@ static VOID APPeerAuthReqAtIdleAction(RTMP_ADAPTER *pAd, MLME_QUEUE_ELEM *Elem)
 	INT i;
 	USHORT RspReason;
 	AUTH_FRAME_INFO auth_info;
-	UINT32 apidx;
+	UCHAR apidx;
 	PHEADER_802_11 pRcvHdr;
 	HEADER_802_11 AuthHdr;
 	PUCHAR pOutBuffer = NULL;

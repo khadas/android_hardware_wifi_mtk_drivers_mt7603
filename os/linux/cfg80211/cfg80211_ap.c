@@ -177,7 +177,7 @@ static INT CFG80211DRV_UpdateApSettingFromBeacon(PRTMP_ADAPTER pAd, UINT mbss_id
 	else if (pBeacon->ssid_len != 0)
 	{
 		NdisZeroMemory(pMbss->Ssid, pMbss->SsidLen);
-		pMbss->SsidLen = pBeacon->ssid_len;
+		pMbss->SsidLen = (UCHAR)pBeacon->ssid_len;
 		NdisCopyMemory(pMbss->Ssid, ssid_ie+2, pMbss->SsidLen);		
 		DBGPRINT(RT_DEBUG_ERROR,("\nCFG : SSID: %s, %d\n", pMbss->Ssid, pMbss->SsidLen));
 	}
@@ -197,7 +197,7 @@ static INT CFG80211DRV_UpdateApSettingFromBeacon(PRTMP_ADAPTER pAd, UINT mbss_id
 		if ((pBeacon->ssid_len != 0) 
 			 && (pBeacon->ssid_len <= MAX_LEN_OF_SSID))
 		{
-			pMbss->SsidLen = pBeacon->ssid_len;
+			pMbss->SsidLen = (UCHAR)pBeacon->ssid_len;
 			NdisCopyMemory(pMbss->Ssid, pBeacon->ssid, pMbss->SsidLen);
 			DBGPRINT(RT_DEBUG_ERROR,("80211> [Hidden] SSID: %s, %d\n", pMbss->Ssid, pMbss->SsidLen));
 		}
@@ -224,13 +224,13 @@ static INT CFG80211DRV_UpdateApSettingFromBeacon(PRTMP_ADAPTER pAd, UINT mbss_id
 	if (pBeacon->interval != 0)
 	{
 		DBGPRINT(RT_DEBUG_TRACE,("CFG_TIM New BI %d\n", pBeacon->interval));
-		pAd->CommonCfg.BeaconPeriod = pBeacon->interval;
+		pAd->CommonCfg.BeaconPeriod = (USHORT)pBeacon->interval;
 	}
 	
 	if (pBeacon->dtim_period != 0)
 	{
 		DBGPRINT(RT_DEBUG_TRACE, ("CFG_TIM New DP %d\n", pBeacon->dtim_period));
-		pAd->ApCfg.DtimPeriod = pBeacon->dtim_period;	
+		pAd->ApCfg.DtimPeriod = (UCHAR)pBeacon->dtim_period;
 	}
 
 
@@ -351,7 +351,7 @@ VOID CFG80211_UpdateBeacon(
 		NdisCopyMemory(pBeaconFrame, beacon_head_buf, beacon_head_len);
 		
 		/* 2. Update the Location of TIM IE */
-		pAd->ApCfg.MBSSID[apidx].TimIELocationInBeacon = beacon_head_len;
+		pAd->ApCfg.MBSSID[apidx].TimIELocationInBeacon = (UCHAR)beacon_head_len;
 		
 		/* 3. Store the Tail Part For appending later */
 		if (pCfg80211_ctrl->beacon_tail_buf != NULL)
@@ -409,7 +409,7 @@ VOID CFG80211_UpdateBeacon(
 #endif /* MT_MAC */
 	
 	/* 4. Update the TIM IE */
-	New_Tim_Len = CFG80211DRV_UpdateTimIE(pAd, apidx, pBeaconFrame, 
+	New_Tim_Len = (UCHAR)CFG80211DRV_UpdateTimIE(pAd, apidx, pBeaconFrame,
 				pAd->ApCfg.MBSSID[apidx].TimIELocationInBeacon);
 
 	/* 5. Update the Buffer AFTER TIM IE */
@@ -501,7 +501,7 @@ BOOLEAN CFG80211DRV_OpsBeaconAdd(VOID *pAdOrg, VOID *pData)
 
 	/* for Concurrent, AP/P2P GO use HW_BSSID 1 */
 	//wdev->hw_bssid_idx = CFG_GO_BSSID_IDX;
-	wdev->hw_bssid_idx = apidx;
+	wdev->hw_bssid_idx = (UCHAR)apidx;
 
 #ifdef RT_CFG80211_SUPPORT
 #ifdef RT_CFG80211_P2P_SUPPORT
@@ -560,7 +560,7 @@ BOOLEAN CFG80211DRV_OpsBeaconAdd(VOID *pAdOrg, VOID *pData)
 	wdev->wdev_type = WDEV_TYPE_AP;
 	wdev->func_dev = (void *)&pAd->ApCfg.MBSSID[apidx];
 	wdev->sys_handle = (void *)pAd;
-	wdev->func_idx = apidx; //NEW
+	wdev->func_idx = (CHAR)apidx;
 	
 
 #if 0
@@ -728,7 +728,7 @@ BOOLEAN CFG80211DRV_OpsBeaconAdd(VOID *pAdOrg, VOID *pData)
 	//MlmeSetTxPreamble(pAd, (USHORT)pAd->CommonCfg.TxPreamble);	
 	//MlmeUpdateTxRates(pAd, FALSE, MIN_NET_DEVICE_FOR_CFG80211_VIF_P2P_GO + apidx);
 #ifdef RT_CFG80211_P2P_SUPPORT
-	MlmeUpdateTxRates(pAd, FALSE, MIN_NET_DEVICE_FOR_CFG80211_VIF_P2P_GO + apidx);
+	MlmeUpdateTxRates(pAd, FALSE, (UCHAR)(MIN_NET_DEVICE_FOR_CFG80211_VIF_P2P_GO + apidx));
 #else
 	MlmeUpdateTxRates(pAd, FALSE, apidx);
 #endif /*RT_CFG80211_P2P_SUPPORT*/
@@ -813,12 +813,13 @@ BOOLEAN CFG80211DRV_ApKeyDel(
 #endif
 	{
 		DBGPRINT(RT_DEBUG_TRACE,("CFG: AsicRemoveSharedKeyEntry %d\n", pKeyInfo->KeyId));	
-		AsicRemoveSharedKeyEntry(pAd, apidx, pKeyInfo->KeyId);
+		AsicRemoveSharedKeyEntry(pAd, (UCHAR)apidx, pKeyInfo->KeyId);
 
 #ifdef MT_MAC
-        if (pAd->chipCap.hif_type == HIF_MT)
-			CmdProcAddRemoveKey(pAd, 1, apidx, pKeyInfo->KeyId, BSS0, SHAREDKEYTABLE,
-                                &pAd->SharedKey[apidx][pKeyInfo->KeyId], BROADCAST_ADDR);
+		if (pAd->chipCap.hif_type == HIF_MT)
+			CmdProcAddRemoveKey(pAd, 1, (UCHAR)apidx,
+				pKeyInfo->KeyId, BSS0, SHAREDKEYTABLE,
+				&pAd->SharedKey[apidx][pKeyInfo->KeyId], BROADCAST_ADDR);
 #endif /* MT_MAC */
 	}
 	else
@@ -900,11 +901,11 @@ BOOLEAN CFG80211DRV_ApKeyAdd(
 	PRTMP_ADAPTER pAd = (PRTMP_ADAPTER)pAdOrg;
 	CMD_RTPRIV_IOCTL_80211_KEY *pKeyInfo;
 	MAC_TABLE_ENTRY *pEntry = NULL;
-	UINT Wcid = 0;
+	UCHAR Wcid = 0;
 #ifdef RT_CFG80211_P2P_SUPPORT
-	UINT apidx = CFG_GO_BSSID_IDX;
+	UCHAR apidx = CFG_GO_BSSID_IDX;
 #else
-	UINT apidx = MAIN_MBSSID;
+	UCHAR apidx = MAIN_MBSSID;
 #endif /*RT_CFG80211_P2P_SUPPORT*/
 
 	BSS_STRUCT *pMbss = &pAd->ApCfg.MBSSID[apidx];
@@ -932,7 +933,8 @@ BOOLEAN CFG80211DRV_ApKeyAdd(
 				else
 					pAd->SharedKey[apidx][pKeyInfo->KeyId].CipherAlg = CIPHER_WEP128;
 
-				AsicAddSharedKeyEntry(pAd, apidx, pKeyInfo->KeyId, pSharedKey);
+			AsicAddSharedKeyEntry(pAd, (UCHAR)apidx,
+				pKeyInfo->KeyId, pSharedKey);
 		}		
 	}
 	else if(pKeyInfo->KeyType == RT_CMD_80211_KEY_WPA)
@@ -984,8 +986,10 @@ BOOLEAN CFG80211DRV_ApKeyAdd(
 				pEntry->PairwiseKey.CipherAlg = CIPHER_AES;
 				
 				AsicAddPairwiseKeyEntry(pAd, (UCHAR)pEntry->Aid, &pEntry->PairwiseKey);
-				RTMPSetWcidSecurityInfo(pAd, pEntry->apidx, (UINT8)(pKeyInfo->KeyId & 0x0fff),
-				pEntry->PairwiseKey.CipherAlg, pEntry->Aid, PAIRWISEKEYTABLE);
+				RTMPSetWcidSecurityInfo(pAd, pEntry->apidx,
+					(UINT8)(pKeyInfo->KeyId & 0x0fff),
+					pEntry->PairwiseKey.CipherAlg, (UINT8)pEntry->Aid,
+					PAIRWISEKEYTABLE);
 
 #ifdef MT_MAC
                 if (pAd->chipCap.hif_type == HIF_MT)
@@ -1052,8 +1056,10 @@ BOOLEAN CFG80211DRV_ApKeyAdd(
 				pEntry->PairwiseKey.CipherAlg = CIPHER_TKIP;
 				
 				AsicAddPairwiseKeyEntry(pAd, (UCHAR)pEntry->Aid, &pEntry->PairwiseKey);
-				RTMPSetWcidSecurityInfo(pAd, pEntry->apidx, (UINT8)(pKeyInfo->KeyId & 0x0fff),
-				pEntry->PairwiseKey.CipherAlg, pEntry->Aid, PAIRWISEKEYTABLE);
+				RTMPSetWcidSecurityInfo(pAd, pEntry->apidx,
+					(UINT8)(pKeyInfo->KeyId & 0x0fff),
+					pEntry->PairwiseKey.CipherAlg, (UINT8)pEntry->Aid,
+					PAIRWISEKEYTABLE);
 
 #ifdef MT_MAC
                 if (pAd->chipCap.hif_type == HIF_MT)
@@ -1077,7 +1083,7 @@ BOOLEAN CFG80211DRV_ApKeyAdd(
 
 INT CFG80211_StaPortSecured(
 	IN VOID                                         *pAdCB,
-	IN UCHAR 					*pMac,
+	IN const UCHAR				* pMac,
 	IN UINT						flag)
 {
 	PRTMP_ADAPTER pAd = (PRTMP_ADAPTER)pAdCB;
@@ -1112,7 +1118,7 @@ INT CFG80211_StaPortSecured(
 
 INT CFG80211_ApStaDel(
 	IN VOID                                         *pAdCB,
-	IN UCHAR                                        *pMac)
+	IN const u8                                     *pMac)
 {
 	PRTMP_ADAPTER pAd = (PRTMP_ADAPTER)pAdCB;
 	MAC_TABLE_ENTRY *pEntry;
@@ -1151,9 +1157,9 @@ INT CFG80211_setApDefaultKey(
 
 	DBGPRINT(RT_DEBUG_TRACE, ("Set Ap Default Key: %d\n", Data));
 #ifdef RT_CFG80211_P2P_SUPPORT
-	pAd->ApCfg.MBSSID[CFG_GO_BSSID_IDX].wdev.DefaultKeyId = Data;
+	pAd->ApCfg.MBSSID[CFG_GO_BSSID_IDX].wdev.DefaultKeyId = (UCHAR)Data;
 #else
-	pAd->ApCfg.MBSSID[MAIN_MBSSID].wdev.DefaultKeyId = Data;
+	pAd->ApCfg.MBSSID[MAIN_MBSSID].wdev.DefaultKeyId = UCHAR)Data;
 #endif /*RT_CFG80211_P2P_SUPPORT*/
 	
 	return 0;	

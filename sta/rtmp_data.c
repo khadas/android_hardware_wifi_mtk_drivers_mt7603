@@ -197,7 +197,7 @@ NDIS_STATUS RTMPFreeTXDRequest(
 {
 	/*ULONG         FreeNumber = 0; */
 	NDIS_STATUS Status = NDIS_STATUS_FAILURE;
-	unsigned long IrqFlags;
+	unsigned long IrqFlags = 0;
 	HT_TX_CONTEXT *pHTTXContext;
 
 	switch (QueIdx) {
@@ -549,7 +549,7 @@ INT STASendPacket_New(RTMP_ADAPTER *pAd, PNDIS_PACKET pPacket)
 #endif /* DOT11_N_SUPPORT */
 	else
 	{
-		NumberOfFrag = (pkt_len / frag_sz) + 1;
+		NumberOfFrag = (UCHAR)((pkt_len / frag_sz) + 1);
 		/* To get accurate number of fragmentation, Minus 1 if the size just match to allowable fragment size */
 		if ((pkt_len % frag_sz) == 0) {
 			NumberOfFrag--;
@@ -768,6 +768,12 @@ VOID STAFindCipherAlgorithm(RTMP_ADAPTER *pAd, TX_BLK *pTxBlk)
 				KeyIdx = 0;
 			else
 				KeyIdx = wdev->DefaultKeyId;
+		}
+
+		if ((KeyIdx >= 4) && (KeyIdx != 0xff)) {
+			DBGPRINT(RT_DEBUG_TRACE,
+					("%s():KeyIdx must be smaller than 4!\n", __func__));
+			return;
 		}
 
 		if (KeyIdx == 0xff)
@@ -1091,9 +1097,9 @@ static inline PUCHAR STA_Build_ARalink_Frame_Header(RTMP_ADAPTER *pAd, TX_BLK *p
 	pHeaderBufPtr += pTxBlk->wifi_hdr_len;
 
 	/* padding at front of LLC header. LLC header should at 4-bytes aligment. */
-	pTxBlk->HdrPadLen = (ULONG)pHeaderBufPtr;
+	pTxBlk->HdrPadLen = (UCHAR)((ULONG)pHeaderBufPtr);
 	pHeaderBufPtr = (UCHAR *)ROUND_UP(pHeaderBufPtr, 4);
-	pTxBlk->HdrPadLen = (ULONG)(pHeaderBufPtr - pTxBlk->HdrPadLen);
+	pTxBlk->HdrPadLen = (UCHAR)((ULONG)(pHeaderBufPtr - pTxBlk->HdrPadLen));
 
 
 	/*
@@ -1138,9 +1144,9 @@ static inline PUCHAR STA_Build_AMSDU_Frame_Header(RTMP_ADAPTER *pAd, TX_BLK *pTx
 	   LLC header should locate at 4-octets aligment
 	   @@@ MpduHeaderLen excluding padding @@@
 	 */
-	pTxBlk->HdrPadLen = (ULONG)buf_ptr;
+	pTxBlk->HdrPadLen = (UCHAR)((ULONG)buf_ptr);
 	buf_ptr = (UCHAR *)(ROUND_UP(buf_ptr, 4));
-	pTxBlk->HdrPadLen = (ULONG)(buf_ptr - pTxBlk->HdrPadLen);
+	pTxBlk->HdrPadLen = (UCHAR)((ULONG)(buf_ptr - pTxBlk->HdrPadLen));
 
 	return buf_ptr;
 
@@ -1408,9 +1414,9 @@ VOID STA_AMPDU_Frame_Tx(RTMP_ADAPTER *pAd, TX_BLK *pTxBlk)
 
 			   @@@ MpduHeaderLen excluding padding @@@
 			 */
-			pTxBlk->HdrPadLen = (ULONG)pHeaderBufPtr;
+			pTxBlk->HdrPadLen = (UCHAR)((ULONG)pHeaderBufPtr);
 			pHeaderBufPtr = (UCHAR *)ROUND_UP(pHeaderBufPtr, 4);
-			pTxBlk->HdrPadLen = (ULONG)(pHeaderBufPtr - pTxBlk->HdrPadLen);
+			pTxBlk->HdrPadLen = (UCHAR)((ULONG)(pHeaderBufPtr - pTxBlk->HdrPadLen));
 
 #ifdef VENDOR_FEATURE1_SUPPORT
 			tr_entry->HdrPadLen = pTxBlk->HdrPadLen;
@@ -1553,7 +1559,7 @@ VOID STA_AMSDU_Frame_Tx(RTMP_ADAPTER *pAd, TX_BLK *pTxBlk)
 	USHORT totalMPDUSize = 0;
 	UCHAR padding = 0;
 	USHORT FirstTx = 0, LastTxIdx = 0;
-	int frameNum = 0;
+	UCHAR frameNum = 0;
 	PQUEUE_ENTRY pQEntry;
 
 	ASSERT((pTxBlk->TxPacketList.Number > 1));
@@ -1592,7 +1598,8 @@ VOID STA_AMSDU_Frame_Tx(RTMP_ADAPTER *pAd, TX_BLK *pTxBlk)
 			// TODO: shiang-usw, check this, original code is use pTxBlk->HeaderBuf[0]
 			pHeaderBufPtr = &pTxBlk->HeaderBuf[TXINFO_SIZE];
 #endif /* MT7603 */
-			padding = ROUND_UP(AMSDU_SUBHEAD_LEN + subFramePayloadLen, 4) - (AMSDU_SUBHEAD_LEN + subFramePayloadLen);
+			padding = (UCHAR)(ROUND_UP(AMSDU_SUBHEAD_LEN + subFramePayloadLen, 4)
+				- (AMSDU_SUBHEAD_LEN + subFramePayloadLen));
 			NdisZeroMemory(pHeaderBufPtr, padding + AMSDU_SUBHEAD_LEN);
 			pHeaderBufPtr += padding;
 			pTxBlk->MpduHeaderLen = padding;
@@ -1603,7 +1610,7 @@ VOID STA_AMSDU_Frame_Tx(RTMP_ADAPTER *pAd, TX_BLK *pTxBlk)
 		   DA(6)+SA(6)+Length(2) + LLC/SNAP Encap
 		 */
 		subFrameHeader = pHeaderBufPtr;
-		subFramePayloadLen = pTxBlk->SrcBufLen;
+		subFramePayloadLen = (USHORT)pTxBlk->SrcBufLen;
 
 		NdisMoveMemory(subFrameHeader, pTxBlk->pSrcBufHeader, 12);
 
@@ -1618,7 +1625,7 @@ VOID STA_AMSDU_Frame_Tx(RTMP_ADAPTER *pAd, TX_BLK *pTxBlk)
 		/* Insert LLC-SNAP encapsulation - 8 octets */
 		EXTRA_LLCSNAP_ENCAP_FROM_PKT_OFFSET(pTxBlk->pSrcBufData - 2, pTxBlk->pExtraLlcSnapEncap);
 
-		subFramePayloadLen = pTxBlk->SrcBufLen;
+		subFramePayloadLen = (USHORT)pTxBlk->SrcBufLen;
 
 		if (pTxBlk->pExtraLlcSnapEncap) {
 			NdisMoveMemory(pHeaderBufPtr, pTxBlk->pExtraLlcSnapEncap, 6);
@@ -1631,7 +1638,7 @@ VOID STA_AMSDU_Frame_Tx(RTMP_ADAPTER *pAd, TX_BLK *pTxBlk)
 		}
 
 		/* update subFrame Length field */
-		subFrameHeader[12] = (subFramePayloadLen & 0xFF00) >> 8;
+		subFrameHeader[12] = (UCHAR)((subFramePayloadLen & 0xFF00) >> 8);
 		subFrameHeader[13] = subFramePayloadLen & 0xFF;
 
 #if defined(MT7603) || defined(MT7628)
@@ -1896,9 +1903,9 @@ VOID STA_Fragment_Frame_Tx(RTMP_ADAPTER *pAd, TX_BLK *pTxBlk)
 	buf_ptr += pTxBlk->wifi_hdr_len;
 
 	/* The remaining content of MPDU header should locate at 4-octets aligment */
-	pTxBlk->HdrPadLen = (ULONG)buf_ptr;
+	pTxBlk->HdrPadLen = (UCHAR)((ULONG)buf_ptr);
 	buf_ptr = (UCHAR *)ROUND_UP(buf_ptr, 4);
-	pTxBlk->HdrPadLen = (ULONG)(buf_ptr - pTxBlk->HdrPadLen);
+	pTxBlk->HdrPadLen = (UCHAR)((ULONG)(buf_ptr - pTxBlk->HdrPadLen));
 	pTxBlk->MpduHeaderLen = pTxBlk->wifi_hdr_len;
 
 #ifdef SOFT_ENCRYPT
@@ -2011,9 +2018,9 @@ VOID STA_Fragment_Frame_Tx(RTMP_ADAPTER *pAd, TX_BLK *pTxBlk)
 	pTransmit = pTxBlk->pTransmit;
 	/* Decide the TX rate */
 	if (pTransmit->field.MODE == MODE_CCK)
-		pTxBlk->TxRate = pTransmit->field.MCS;
+		pTxBlk->TxRate = (UCHAR)pTransmit->field.MCS;
 	else if (pTransmit->field.MODE == MODE_OFDM)
-		pTxBlk->TxRate = pTransmit->field.MCS + RATE_FIRST_OFDM_RATE;
+		pTxBlk->TxRate = (UCHAR)(pTransmit->field.MCS + RATE_FIRST_OFDM_RATE);
 	else
 		pTxBlk->TxRate = RATE_6_5;
 
@@ -2187,7 +2194,7 @@ VOID STA_ARalink_Frame_Tx(RTMP_ADAPTER *pAd, TX_BLK * pTxBlk)
 	USHORT freeCnt = 0;
 	USHORT totalMPDUSize = 0;
 	USHORT FirstTx, LastTxIdx;
-	int frameNum = 0;
+	UCHAR frameNum = 0;
 	BOOLEAN bVLANPkt;
 	PQUEUE_ENTRY pQEntry;
 
@@ -2651,7 +2658,7 @@ INT STASendPacket(RTMP_ADAPTER *pAd, PNDIS_PACKET pPacket)
 	UCHAR QueIdx;
 	UCHAR UserPriority;
 	UCHAR Wcid;
-	unsigned long IrqFlags;
+	unsigned long IrqFlags = 0;
 #ifdef MESH_SUPPORT
 	BOOLEAN bMeshPkt = FALSE;
 #endif /* MESH_SUPPORT */
@@ -2855,7 +2862,7 @@ DBGPRINT(RT_DEBUG_OFF, ("%s(): pMacEntry->wcid=%d\n", __FUNCTION__, pMacEntry->w
 
 		AllowFragSize = (pAd->CommonCfg.FragmentThreshold) - LENGTH_802_11 - LENGTH_CRC;
 		Size = PacketInfo.TotalPacketLength - LENGTH_802_3 + LENGTH_802_1_H;
-		NumberOfFrag = (Size / AllowFragSize) + 1;
+		NumberOfFrag = (UCHAR)((Size / AllowFragSize) + 1);
 		/* To get accurate number of fragmentation, Minus 1 if the size just match to allowable fragment size */
 		if ((Size % AllowFragSize) == 0) {
 			NumberOfFrag--;

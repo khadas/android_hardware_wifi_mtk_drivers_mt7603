@@ -600,7 +600,6 @@ static INT32 MT_ATESetupFrame(RTMP_ADAPTER *pAd, UINT32 TxIdx)
 	MAC_TX_INFO mac_info;
 	HTTRANSMIT_SETTING Transmit;
 	ATECtrl->HLen = LENGTH_802_11;
-	ATECtrl->TxLength = sizeof(HEADER_802_11);
 
 	NdisZeroMemory(&pAd->NullFrame, 24);
 	NdisZeroMemory(&Transmit, sizeof(Transmit));
@@ -630,7 +629,7 @@ static INT32 MT_ATESetupFrame(RTMP_ADAPTER *pAd, UINT32 TxIdx)
 		
 		mac_info.Ack = FALSE;
 		mac_info.NSeq = FALSE;
-		mac_info.hdr_len = ATECtrl->HLen;
+		mac_info.hdr_len = (UCHAR)ATECtrl->HLen;
 		mac_info.hdr_pad = 0;
 		mac_info.WCID = 0;
 		mac_info.Length = ATECtrl->TxLength;
@@ -642,7 +641,10 @@ static INT32 MT_ATESetupFrame(RTMP_ADAPTER *pAd, UINT32 TxIdx)
 	   switch (ATECtrl->TxAntennaSel) {
 	        case 0: /* Both */
 	           mac_info.AntPri = 0;
-	           mac_info.SpeEn = 1;
+				if (pAd->CommonCfg.TxStream == 1)
+					mac_info.SpeEn = 0;
+				else
+					mac_info.SpeEn = 1;
 	           break;
 	        case 1: /* TX0 */
 	           mac_info.AntPri = 0;
@@ -1047,7 +1049,7 @@ static INT32 MT_ATEStartRx(RTMP_ADAPTER *pAd)
 	RTUSBBulkReceive(pAd);
 #endif /* RTMP_MAC_USB */
 
-printk("<-----iverson MT_ATEStartRx  \n ");
+	DBGPRINT(RT_DEBUG_OFF, ("MT_ATEStartRx\n"));
 
 	return Ret;
 }
@@ -1239,9 +1241,10 @@ static INT32 MT_ATESetTxAntenna(RTMP_ADAPTER *pAd, CHAR Ant)
     /* 0: All 1:TX0 2:TX1 */
     ATECtrl->TxAntennaSel = Ant;
 
+#ifdef RTMP_PCI_SUPPORT
 	if ((MTK_REV_GTE(pAd, MT7603, MT7603E1)) ||
 		(MTK_REV_GTE(pAd, MT7628, MT7628E1))||
-		(MTK_REV_GTE(pAd, MT7628, MT7603E2)))
+		(MTK_REV_GTE(pAd, MT7603, MT7603E2)))
 	{
 		if (ATECtrl->TxAntennaSel == 0)
 		{
@@ -1325,7 +1328,49 @@ static INT32 MT_ATESetTxAntenna(RTMP_ADAPTER *pAd, CHAR Ant)
 			}
 		}
 	}
+#else
+	if ((MTK_REV_GTE(pAd, MT7603, MT7603E1)) ||
+		(MTK_REV_GTE(pAd, MT7628, MT7628E1)) ||
+		(MTK_REV_GTE(pAd, MT7603, MT7603E2))) {
+		if (ATECtrl->TxAntennaSel == 0)	{
+			RTMP_IO_READ32(pAd, CR_RFINTF_00, &Value);
+			Value &= ~CR_RFINTF_CAL_NSS_MASK;
+			Value |= CR_RFINTF_CAL_NSS(0x0);
+			RTMP_IO_WRITE32(pAd, CR_RFINTF_00, Value);
 
+			/* Tx both patch, ePA/eLNA/, iPA/eLNA, iPA/iLNA */
+			if ((MTK_REV_GTE(pAd, MT7603, MT7603E1)) ||
+				(MTK_REV_GTE(pAd, MT7603, MT7603E2)))
+				RTMP_IO_WRITE32(pAd, 0x81060008, 0x04852390);
+			else if (MTK_REV_GTE(pAd, MT7628, MT7628E1))
+				RTMP_IO_WRITE32(pAd, 0x81060008, 0x00489523);
+		} else if (ATECtrl->TxAntennaSel == 1) {
+			RTMP_IO_READ32(pAd, CR_RFINTF_00, &Value);
+			Value &= ~CR_RFINTF_CAL_NSS_MASK;
+			Value |= CR_RFINTF_CAL_NSS(0x0);
+			RTMP_IO_WRITE32(pAd, CR_RFINTF_00, Value);
+
+			/* Tx0 patch, ePA/eLNA/, iPA/eLNA, iPA/iLNA */
+			if ((MTK_REV_GTE(pAd, MT7603, MT7603E1)) ||
+				(MTK_REV_GTE(pAd, MT7603, MT7603E2)))
+				RTMP_IO_WRITE32(pAd, 0x81060008, 0x04852390);
+			else if (MTK_REV_GTE(pAd, MT7628, MT7628E1))
+				RTMP_IO_WRITE32(pAd, 0x81060008, 0x00489523);
+		} else if (ATECtrl->TxAntennaSel == 2) {
+			RTMP_IO_READ32(pAd, CR_RFINTF_00, &Value);
+			Value &= ~CR_RFINTF_CAL_NSS_MASK;
+			Value |= CR_RFINTF_CAL_NSS(0x1);
+			RTMP_IO_WRITE32(pAd, CR_RFINTF_00, Value);
+
+			/* Tx1 patch, ePA/eLNA/, iPA/eLNA, iPA/iLNA */
+			if ((MTK_REV_GTE(pAd, MT7603, MT7603E1)) ||
+				(MTK_REV_GTE(pAd, MT7603, MT7603E2)))
+				RTMP_IO_WRITE32(pAd, 0x81060008, 0x04856790);
+			else if (MTK_REV_GTE(pAd, MT7628, MT7628E1))
+				RTMP_IO_WRITE32(pAd, 0x81060008, 0x00489567);
+		}
+	}
+#endif
 	return Ret;
 }
 
@@ -1413,7 +1458,7 @@ static INT32 MT_ATESampleRssi(RTMP_ADAPTER *pAd, RX_BLK *RxBlk)
 
 		ATECtrl->AvgRssi0X8 = (ATECtrl->AvgRssi0X8 - ATECtrl->AvgRssi0)
 									+ ATECtrl->LastRssi0;
-		ATECtrl->AvgRssi0 = ATECtrl->AvgRssi0X8 >> 3;
+		ATECtrl->AvgRssi0 = (CHAR)(ATECtrl->AvgRssi0X8 >> 3);
 	}
 
 	if (RxBlk->rx_signal.raw_rssi[1] != 0)
@@ -1423,7 +1468,7 @@ static INT32 MT_ATESampleRssi(RTMP_ADAPTER *pAd, RX_BLK *RxBlk)
 
 		ATECtrl->AvgRssi1X8 = (ATECtrl->AvgRssi1X8 - ATECtrl->AvgRssi1)
 									+ ATECtrl->LastRssi1;
-		ATECtrl->AvgRssi1 = ATECtrl->AvgRssi1X8 >> 3;
+		ATECtrl->AvgRssi1 = (CHAR)(ATECtrl->AvgRssi1X8 >> 3);
 	}
 
 	ATECtrl->LastSNR0 = RxBlk->rx_signal.raw_snr[0];;
@@ -1466,7 +1511,7 @@ static INT32 MT_ATEStartTxTone(RTMP_ADAPTER *pAd, UINT32 Mode)
 	//ATE_CTRL *ATECtrl = &pAd->ATECtrl;
 	INT32 Ret = 0;
     DBGPRINT(RT_DEBUG_OFF, ("%s\n", __FUNCTION__));
-	AsicSetTxToneTest(pAd, 1, Mode);
+	AsicSetTxToneTest(pAd, 1, (UCHAR)Mode);
 	return Ret;
 }
 static INT32 MT_ATESetTxTonePower(RTMP_ADAPTER *pAd, INT32 pwr1, INT32 pwr2)

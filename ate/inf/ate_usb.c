@@ -51,7 +51,7 @@ INT TxDmaBusy(RTMP_ADAPTER *pAd)
 		is_busy = UsbCfg.field_76xx.TxBusy;
 	else
 #endif /* MT76x2 */
-		is_busy = UsbCfg.field.TxBusy;
+		is_busy = (BOOLEAN)UsbCfg.field.TxBusy;
 
 	result = (is_busy) ? TRUE : FALSE;
 
@@ -76,7 +76,7 @@ INT RxDmaBusy(RTMP_ADAPTER *pAd)
 		is_busy = UsbCfg.field_76xx.RxBusy;
 	else
 #endif /* MT76x2 */
-		is_busy = UsbCfg.field.RxBusy;
+		is_busy = (BOOLEAN)UsbCfg.field.RxBusy;
 
 	result = (is_busy) ? TRUE : FALSE;
 
@@ -548,7 +548,7 @@ VOID ATE_RTUSBBulkOutDataPacket(
 	PTX_CONTEXT		pNullContext = &(pAd->NullContext);
 	PURB			pUrb;
 	INT			ret = 0;
-	ULONG			IrqFlags;
+	ULONG			IrqFlags = 0;
 
 #ifdef RELEASE_EXCLUDE
 	DBGPRINT(RT_DEBUG_INFO, ("--->ATE_RTUSBBulkOutDataPacket \n"));

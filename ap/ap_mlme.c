@@ -89,7 +89,8 @@ VOID APDetectOverlappingExec(
 		if ((pAd->CommonCfg.Channel <=14) && (pAd->CommonCfg.HtCapability.HtCapInfo.ChannelWidth == BW_40))
 		{
 			pAd->CommonCfg.AddHTInfo.AddHtInfo.RecomWidth = 1;
-			pAd->CommonCfg.AddHTInfo.AddHtInfo.ExtChanOffset = pAd->CommonCfg.RegTransmitSetting.field.EXTCHA;
+			pAd->CommonCfg.AddHTInfo.AddHtInfo.ExtChanOffset =
+			(UCHAR)pAd->CommonCfg.RegTransmitSetting.field.EXTCHA;
 		}
 	}
 	else
@@ -229,7 +230,7 @@ VOID APMlmePeriodicExec(
 				ctrl_type = ASIC_MAC_TXRX;
 				break;
 		}
-		AsicSetMacTxRx(pAd, ctrl_type, enable);
+		AsicSetMacTxRx(pAd, ctrl_type, (BOOLEAN)enable);
 	}
 #endif /* CONFIG_FPGA_MODE */
 

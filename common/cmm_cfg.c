@@ -572,7 +572,7 @@ INT	RT_CfgSetWepKey(
 		case 16: /*wep 128 Ascii type*/
 #endif			
 			bKeyIsHex = FALSE;
-			pSharedKey->KeyLen = KeyLen;
+			pSharedKey->KeyLen = (UCHAR)KeyLen;
 			NdisMoveMemory(pSharedKey->Key, keyString, KeyLen);
 			break;
 			
@@ -587,7 +587,7 @@ INT	RT_CfgSetWepKey(
 					return FALSE;  /*Not Hex value;*/
 			}
 			bKeyIsHex = TRUE;
-			pSharedKey->KeyLen = KeyLen/2 ;
+			pSharedKey->KeyLen = (UCHAR)(KeyLen/2);
 			AtoH(keyString, pSharedKey->Key, pSharedKey->KeyLen);
 			break;
 			
@@ -815,19 +815,20 @@ INT RtmpIoctl_rt_ioctl_giwname(
 
 	if (CurOpMode == OPMODE_AP)
 	{
+	/* For SIOCGIWNAME, struct iwreq_data.name's size is IFNAMSIZ (16). */
 #ifdef P2P_SUPPORT
 		if (pObj->ioctl_if_type == INT_P2P)
 		{
 			if (P2P_CLI_ON(pAd))
-				strcpy(pData, "Ralink P2P Cli");
+				strncpy(pData, "Ralink P2P Cli", IFNAMSIZ);
 			else if (P2P_GO_ON(pAd))
-				strcpy(pData, "Ralink P2P GO");
+				strncpy(pData, "Ralink P2P GO", IFNAMSIZ);
 			else
-				strcpy(pData, "Ralink P2P");
+				strncpy(pData, "Ralink P2P", IFNAMSIZ);
 		}
 		else
 #endif /* P2P_SUPPORT */
-		strcpy(pData, "RTWIFI SoftAP");
+		strncpy(pData, "RTWIFI SoftAP", IFNAMSIZ);
 	}
 
 	return NDIS_STATUS_SUCCESS;
@@ -1501,25 +1502,32 @@ INT RTMP_COM_IoctlHandle(
 			break;
 
 		case CMD_RTPRIV_IOCTL_INF_STATS_GET:
-			/* get statistics */
-			{			
-				RT_CMD_STATS *pStats = (RT_CMD_STATS *)pData;
-				pStats->pStats = pAd->stats;
-				if(pAd->OpMode == OPMODE_STA)
-				{
-					pStats->rx_packets = pAd->WlanCounters.ReceivedFragmentCount.QuadPart;
-					pStats->tx_packets = pAd->WlanCounters.TransmittedFragmentCount.QuadPart;
-					pStats->rx_bytes = pAd->RalinkCounters.ReceivedByteCount;
-					pStats->tx_bytes = pAd->RalinkCounters.TransmittedByteCount;
-					pStats->rx_errors = pAd->Counters8023.RxErrors;
-					pStats->tx_errors = pAd->Counters8023.TxErrors;
-					pStats->multicast = pAd->WlanCounters.MulticastReceivedFrameCount.QuadPart;   /* multicast packets received*/
-					pStats->collisions = 0;  /* Collision packets*/
-					pStats->rx_over_errors = pAd->Counters8023.RxNoBuffer;                   /* receiver ring buff overflow*/
-					pStats->rx_crc_errors = 0;/*pAd->WlanCounters.FCSErrorCount;      recved pkt with crc error*/
-					pStats->rx_frame_errors = 0; /* recv'd frame alignment error*/
-					pStats->rx_fifo_errors = pAd->Counters8023.RxNoBuffer;                   /* recv'r fifo overrun*/
-				}
+		/* get statistics */
+		{
+			RT_CMD_STATS *pStats = (RT_CMD_STATS *)pData;
+
+			pStats->pStats = pAd->stats;
+			if (pAd->OpMode == OPMODE_STA) {
+				pStats->rx_packets =
+				(ULONG)pAd->WlanCounters.ReceivedFragmentCount.QuadPart;
+				pStats->tx_packets =
+				(ULONG)pAd->WlanCounters.TransmittedFragmentCount.QuadPart;
+				pStats->rx_bytes = pAd->RalinkCounters.ReceivedByteCount;
+				pStats->tx_bytes = pAd->RalinkCounters.TransmittedByteCount;
+				pStats->rx_errors = pAd->Counters8023.RxErrors;
+				pStats->tx_errors = pAd->Counters8023.TxErrors;
+				/* multicast packets received*/
+				pStats->multicast =
+				(ULONG)pAd->WlanCounters.MulticastReceivedFrameCount.QuadPart;
+				pStats->collisions = 0;  /* Collision packets*/
+				/* receiver ring buff overflow*/
+				pStats->rx_over_errors = pAd->Counters8023.RxNoBuffer;
+				/*pAd->WlanCounters.FCSErrorCount;      recved pkt with crc error*/
+				pStats->rx_crc_errors = 0;
+				pStats->rx_frame_errors = 0; /* recv'd frame alignment error*/
+				/* recv'r fifo overrun*/
+				pStats->rx_fifo_errors = pAd->Counters8023.RxNoBuffer;
+			}
 #ifdef CONFIG_AP_SUPPORT
 				else if(pAd->OpMode == OPMODE_AP)
 				{
@@ -1566,7 +1574,7 @@ INT RTMP_COM_IoctlHandle(
 					pStats->rx_fifo_errors = 0;                   /* recv'r fifo overrun*/
 				}
 #endif
-			}
+		}
 			break;
 
 		case CMD_RTPRIV_IOCTL_INF_IW_STATUS_GET:
@@ -1626,15 +1634,17 @@ INT RTMP_COM_IoctlHandle(
 
 #ifdef CONFIG_STA_SUPPORT
 			if (CurOpMode == OPMODE_STA)
-				pStats->qual = ((pAd->Mlme.ChannelQuality * 12)/10 + 10);
+				pStats->qual = (UINT8)((pAd->Mlme.ChannelQuality * 12)/10 + 10);
 #endif /* CONFIG_STA_SUPPORT */
 #ifdef CONFIG_AP_SUPPORT
 			if (CurOpMode == OPMODE_AP)
 			{
 				if (pMacEntry != NULL)
-					pStats->qual = ((pMacEntry->ChannelQuality * 12)/10 + 10);
+					pStats->qual =
+						(UINT8)((pMacEntry->ChannelQuality * 12)/10 + 10);
 				else
-					pStats->qual = ((pAd->Mlme.ChannelQuality * 12)/10 + 10);
+					pStats->qual =
+						(UINT8)((pAd->Mlme.ChannelQuality * 12)/10 + 10);
 			}
 #endif /* CONFIG_AP_SUPPORT */
 
@@ -1669,18 +1679,14 @@ INT RTMP_COM_IoctlHandle(
 #endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_AP_SUPPORT
-			pStats->noise = RTMPMaxRssi(pAd, pAd->ApCfg.RssiSample.AvgRssi[0],
-										pAd->ApCfg.RssiSample.AvgRssi[1],
-										pAd->ApCfg.RssiSample.AvgRssi[2]) -
-										RTMPMinSnr(pAd, pAd->ApCfg.RssiSample.AvgSnr[0],
-										pAd->ApCfg.RssiSample.AvgSnr[1]);
+			pStats->noise = RTMPMaxNoise(pAd, pAd->ApCfg.RssiSample.LastNoiseLevel[0],
+			pAd->ApCfg.RssiSample.LastNoiseLevel[1],
+			pAd->ApCfg.RssiSample.LastNoiseLevel[2]);
 #endif /* CONFIG_AP_SUPPORT */
 #ifdef CONFIG_STA_SUPPORT
-			pStats->noise = RTMPMaxRssi(pAd, pAd->StaCfg.RssiSample.AvgRssi[0],
-										pAd->StaCfg.RssiSample.AvgRssi[1],
-										pAd->StaCfg.RssiSample.AvgRssi[2]) - 
-										RTMPMinSnr(pAd, pAd->StaCfg.RssiSample.AvgSnr[0], 
-										pAd->StaCfg.RssiSample.AvgSnr[1]);
+			pStats->noise = RTMPMaxNoise(pAd, pAd->StaCfg.RssiSample.LastNoiseLevel[0],
+			pAd->StaCfg.RssiSample.LastNoiseLevel[1],
+			pAd->StaCfg.RssiSample.LastNoiseLevel[2]);
 #endif /* CONFIG_STA_SUPPORT */
 		}
 			break;
@@ -1726,6 +1732,13 @@ INT RTMP_COM_IoctlHandle(
 #ifdef CONFIG_ATE
 #ifdef CONFIG_QA
 		case CMD_RTPRIV_IOCTL_ATE:
+			if (!wrq) {
+				DBGPRINT(RT_DEBUG_WARN,
+					 ("null wrq in CMD_RTPRIV_IOCTL_ATE\n"));
+				Status = -EINVAL;
+				break;
+			}
+
 			RtmpDoAte(pAd, wrq, pData);
 			break;
 #endif /* CONFIG_QA */ 
@@ -1751,6 +1764,7 @@ INT RTMP_COM_IoctlHandle(
 					*(UCHAR *)(pData+i) = mac_addr[i];
 				break;
 			}
+
 #ifdef CONFIG_AP_SUPPORT
 		case CMD_RTPRIV_IOCTL_AP_SIOCGIWRATEQ:
 		/* handle for SIOCGIWRATEQ */
@@ -1775,11 +1789,11 @@ INT RTMP_COM_IoctlHandle(
 #endif /* WDS_SUPPORT */
 				HtPhyMode = pAd->ApCfg.MBSSID[pObj->ioctl_if].wdev.HTPhyMode;
 
-			RtmpDrvMaxRateGet(pAd, HtPhyMode.field.MODE, HtPhyMode.field.ShortGI,
-							HtPhyMode.field.BW, HtPhyMode.field.MCS,
+		RtmpDrvMaxRateGet(pAd, (UINT8)HtPhyMode.field.MODE, (UINT8)HtPhyMode.field.ShortGI,
+			(UINT8)HtPhyMode.field.BW, (UINT8)HtPhyMode.field.MCS,
 							(UINT32 *)&pRate->BitRate);
 		}
-			break;
+		break;
 #endif /* CONFIG_AP_SUPPORT */
 
 		case CMD_RTPRIV_IOCTL_SIOCGIWNAME:
@@ -1797,7 +1811,6 @@ INT RTMP_COM_IoctlHandle(
 			break;
 #endif /* CONFIG_TSO_SUPPORT */
 	}
-
 #ifdef RT_CFG80211_SUPPORT
 	if ((CMD_RTPRIV_IOCTL_80211_START <= cmd) &&
 		(cmd <= CMD_RTPRIV_IOCTL_80211_END))
@@ -2131,7 +2144,7 @@ INT	Set_MultiMacAddrExt_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
 
 INT set_tssi_enable(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
 {
-	UINT8 tssi_enable = 0;
+	long tssi_enable = 0;
 
 	tssi_enable = simple_strtol(arg, 0, 10);
 
@@ -2142,7 +2155,7 @@ INT set_tssi_enable(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
 		pAd->chipCap.tssi_enable = FALSE;
 		DBGPRINT(RT_DEBUG_OFF, ("turn off TSS mechanism\n"));
 	} else {
-		DBGPRINT(RT_DEBUG_OFF, ("illegal param(%u)\n", tssi_enable));
+		DBGPRINT(RT_DEBUG_OFF, ("illegal param(%ld)\n", tssi_enable));
 		return FALSE;
     }
 	return TRUE;
@@ -2242,7 +2255,8 @@ INT set_fw_debug(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
 INT set_get_fid(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
 {
     //TODO: Carter, at present, only can read pkt in Port2(LMAC port)
-    volatile UCHAR   q_idx = 0, loop = 0, dw_idx = 0;
+	UCHAR   loop = 0, dw_idx = 0;
+	long q_idx = 0;
     UINT32  head_fid_addr = 0, dw_content, next_fid_addr = 0;
     volatile UINT32  value = 0x00000000L;
     q_idx = simple_strtol(arg, 0, 10);
@@ -2253,7 +2267,7 @@ INT set_get_fid(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
     head_fid_addr = head_fid_addr & 0xfff;
 
     if (head_fid_addr == 0xfff) {
-        DBGPRINT(RT_DEBUG_ERROR, ("%s, q_idx:%d empty!!\n", __func__, q_idx));
+	DBGPRINT(RT_DEBUG_ERROR, ("%s, q_idx:%ld empty!!\n", __func__, q_idx));
         return TRUE;
     }
 
@@ -2345,7 +2359,7 @@ INT set_fw_log(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
     LogType = simple_strtol(arg, 0, 10);
 
 	if (LogType < 3)
-		CmdFwLog2Host(pAd, LogType);
+		CmdFwLog2Host(pAd, (UINT8)LogType);
 	else
 		DBGPRINT(RT_DEBUG_OFF, (":%s: Unknown Log Type = %d\n", __FUNCTION__, LogType));
 
@@ -2513,7 +2527,7 @@ INT Set_themal_sensor(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
 
 	if ((value == 0) || (value == 1)) {
 #if defined(MT7603) || defined(MT7628)
-		temperature = MtAsicGetThemalSensor(pAd, value);
+		temperature = MtAsicGetThemalSensor(pAd, (CHAR)value);
 		DBGPRINT(RT_DEBUG_OFF, ("%s: ThemalSensor = 0x%x\n", __FUNCTION__, temperature));
 #else
 		CmdGetThemalSensorResult(pAd, value);
@@ -2530,8 +2544,8 @@ INT Set_rx_pspoll_filter_proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
 	UINT32 value;	
 	value = simple_strtol(arg, 0, 10);
 
-	pAd->rx_pspoll_filter = value;
-	MtAsicSetRxPspollFilter(pAd, pAd->rx_pspoll_filter);
+	pAd->rx_pspoll_filter = (USHORT)value;
+	MtAsicSetRxPspollFilter(pAd, (CHAR)pAd->rx_pspoll_filter);
 
 	DBGPRINT(RT_DEBUG_OFF, (":%s: rx_pspoll_filter=%d\n", __FUNCTION__, pAd->rx_pspoll_filter));
 	return TRUE;
@@ -2541,7 +2555,7 @@ INT Set_rx_pspoll_filter_proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
 #ifdef SINGLE_SKU_V2
 INT SetSKUEnable_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
 {
-	UCHAR value;
+	long value;
 	
 	value = simple_strtol(arg, 0, 10);
 	

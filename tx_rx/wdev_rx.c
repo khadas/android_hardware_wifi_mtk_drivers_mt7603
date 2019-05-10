@@ -36,11 +36,12 @@ VOID Update_Rssi_Sample(
 	IN RTMP_ADAPTER *pAd,
 	IN RSSI_SAMPLE *pRssi,
 	IN struct rx_signal_info *signal,
-	IN UCHAR phy_mode,
-	IN UCHAR bw)
+	IN USHORT phy_mode,
+	IN USHORT bw)
 {
 	BOOLEAN bInitial = FALSE;
-	INT ant_idx, ant_max = 3;
+	UCHAR ant_idx;
+	INT ant_max = 3;
 
 	if (!(pRssi->AvgRssi[0] | pRssi->AvgRssiX8[0] | pRssi->LastRssi[0]))
 		bInitial = TRUE;
@@ -62,7 +63,7 @@ VOID Update_Rssi_Sample(
 			else
 				pRssi->AvgSnrX8[ant_idx] = (pRssi->AvgSnrX8[ant_idx] - pRssi->AvgSnr[ant_idx]) + pRssi->LastSnr[ant_idx];
 
-			pRssi->AvgSnr[ant_idx] = pRssi->AvgSnrX8[ant_idx] >> 3;
+			pRssi->AvgSnr[ant_idx] = (CHAR)(pRssi->AvgSnrX8[ant_idx] >> 3);
 		}
 
 		if (signal->raw_rssi[ant_idx] != 0)
@@ -85,7 +86,7 @@ VOID Update_Rssi_Sample(
 			else
 				pRssi->AvgRssiX8[ant_idx] = (pRssi->AvgRssiX8[ant_idx] - pRssi->AvgRssi[ant_idx]) + pRssi->LastRssi[ant_idx];
 
-			pRssi->AvgRssi[ant_idx] = pRssi->AvgRssiX8[ant_idx] >> 3;
+			pRssi->AvgRssi[ant_idx] = (CHAR)(pRssi->AvgRssiX8[ant_idx] >> 3);
 		}
 	}
 }
@@ -272,7 +273,7 @@ VOID Announce_or_Forward_802_3_Packet(
 	IN UCHAR wdev_idx,
 	IN UCHAR op_mode)
 {
-	BOOLEAN to_os = FALSE;
+	INT to_os = FALSE;
 	struct wifi_dev *wdev;
 
 	ASSERT(wdev_idx < WDEV_NUM_MAX);
@@ -583,7 +584,7 @@ PNDIS_PACKET RTMPDeFragmentDataFrame(RTMP_ADAPTER *pAd, RX_BLK *pRxBlk)
 	PNDIS_PACKET pRetPacket = NULL;
 	UCHAR *pFragBuffer = NULL;
 	BOOLEAN bReassDone = FALSE;
-	UCHAR HeaderRoom = 0;
+	UINT HeaderRoom = 0;
 	RXWI_STRUC *pRxWI = pRxBlk->pRxWI;
 	UINT8 RXWISize = pAd->chipCap.RXWISize;
 
@@ -686,7 +687,7 @@ done:
 			pRxBlk->pRxWI = (RXWI_STRUC *) GET_OS_PKT_DATAPTR(pRetPacket);
 			pRxBlk->pHeader = (PHEADER_802_11) ((UCHAR *)pRxBlk->pRxWI + RXWISize);
 			pRxBlk->pData = (UCHAR *)pRxBlk->pHeader + HeaderRoom;
-			pRxBlk->DataSize = pAd->FragFrame.RxSize - HeaderRoom - RXWISize;
+			pRxBlk->DataSize = (USHORT)(pAd->FragFrame.RxSize - HeaderRoom - RXWISize);
 			pRxBlk->pRxPacket = pRetPacket;
 		}
 		else
@@ -814,7 +815,7 @@ VOID rx_eapol_frm_handle(
 #ifdef WPA_SUPPLICANT_SUPPORT
 		WPA_SUPPLICANT_INFO *sup_info = NULL;
 		CIPHER_KEY *share_key = NULL;
-		int BssIdx;
+		UCHAR BssIdx;
 
 #ifdef CONFIG_STA_SUPPORT
 		IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
@@ -856,7 +857,7 @@ VOID rx_eapol_frm_handle(
 			{
 				//UCHAR *Key;
 				UCHAR CipherAlg;
-				int idx = 0;
+				UCHAR idx = 0;
 
 				DBGPRINT_RAW(RT_DEBUG_TRACE, ("Receive EAP-SUCCESS Packet\n"));
 #ifdef CONFIG_AP_SUPPORT
@@ -1077,7 +1078,9 @@ bool check_duplicated_mgmt_frame(HEADER_802_11 *pHeader)
 	
 	if (MAC_ADDR_EQUAL(duplicated_frame[mgmt_type].prev_mgmt_src_addr, pHeader->Addr2) && retry == 1 
 		&& duplicated_frame[mgmt_type].prev_mgmt_frame_sn == current_sn) {
-		DBGPRINT(RT_DEBUG_OFF, ("%s:: Drop duplicated mgmt frame(subtype=%d, current_sn=%d, prev_sn=%d, retry=%d) \n",__FUNCTION__, 
+		DBGPRINT(RT_DEBUG_TRACE,
+		("%s:: Drop duplicated mgmt frame(subtype=%d, current_sn=%d, prev_sn=%d, retry=%d) \n",
+			__FUNCTION__,
 			mgmt_type, current_sn, duplicated_frame[mgmt_type].prev_mgmt_frame_sn, retry));
 		return TRUE;
 	} else {
@@ -1093,7 +1096,7 @@ VOID dev_rx_mgmt_frm(RTMP_ADAPTER *pAd, RX_BLK *pRxBlk)
 	HEADER_802_11 *pHeader = pRxBlk->pHeader;
 	PNDIS_PACKET pRxPacket = pRxBlk->pRxPacket;
 	MAC_TABLE_ENTRY *pEntry = NULL;
-	INT op_mode = pRxBlk->OpMode;
+	UCHAR op_mode = pRxBlk->OpMode;
 
 DBGPRINT(RT_DEBUG_FPGA, ("-->%s()\n", __FUNCTION__));
 
@@ -1317,7 +1320,8 @@ DBGPRINT(RT_DEBUG_FPGA, ("-->%s()\n", __FUNCTION__));
 		/* only PM bit of ACTION frame can be set */
 		if (((op_mode == OPMODE_AP) && IS_ENTRY_CLIENT(pEntry)) ||
 			((op_mode == OPMODE_STA) && (IS_ENTRY_TDLS(pEntry))))
-		   	RtmpPsIndicate(pAd, pHeader->Addr2, pRxBlk->wcid, pHeader->FC.PwrMgmt);
+			RtmpPsIndicate(pAd, pHeader->Addr2, pRxBlk->wcid
+							, (UCHAR)pHeader->FC.PwrMgmt);
 
 		/*
 			In IEEE802.11, 11.2.1.1 STA Power Management modes,
@@ -1874,20 +1878,20 @@ INT ate_rx_done_handle(RTMP_ADAPTER *pAd, RX_BLK *pRxBlk)
 				CSI_Steering = (pRxBlk->pData)[0] >> 6;
 				NDP_Announce = (pRxBlk->pData)[1] & 0x1;
 
-				printk("================== Sounding request info ==================\n"
+				DBGPRINT(RT_DEBUG_OFF, ("================== Sounding request info ==================\n"
 					"HTC low byte    = 0x%x\n"
 					"HTC high byte   = 0x%x\n"
 					"CSI_Steering    = %d\n"
 					"NDP Anouncement = %d\n",
 					(pRxBlk->pData)[0], (pRxBlk->pData)[1],
-					CSI_Steering, NDP_Announce);
+					CSI_Steering, NDP_Announce));
 
 				/* If sounding request packet i detected, send a null packet to AP immediately */
 				COPY_MAC_ADDR(pATEInfo->Addr1, pHeader->Addr2);
 				COPY_MAC_ADDR(pATEInfo->Addr2, pHeader->Addr1);
 				COPY_MAC_ADDR(pATEInfo->Addr3, pAd->CommonCfg.Bssid);
 
-				printk("=================== APSendNullFrame ===================\n"
+				DBGPRINT(RT_DEBUG_OFF, ("=================== APSendNullFrame ===================\n"
 		   			"From AP : \n"
 		   			"pATEInfo->Addr1 = %x:%x:%x:%x:%x:%x\n"
 		   			"pATEInfo->Addr2 = %x:%x:%x:%x:%x:%x\n"
@@ -1898,7 +1902,7 @@ INT ate_rx_done_handle(RTMP_ADAPTER *pAd, RX_BLK *pRxBlk)
 					pATEInfo->Addr2[0], pATEInfo->Addr2[2], pATEInfo->Addr2[2],
 					pATEInfo->Addr2[3], pATEInfo->Addr2[4], pATEInfo->Addr2[5],
 					pATEInfo->Addr3[0], pATEInfo->Addr3[1], pATEInfo->Addr3[2],
-					pATEInfo->Addr3[3], pATEInfo->Addr3[4], pATEInfo->Addr3[5]);
+					pATEInfo->Addr3[3], pATEInfo->Addr3[4], pATEInfo->Addr3[5]));
 
 				pATEInfo->TxCount= 1;
 				pATEInfo->TxPower0 = 18;
@@ -1908,7 +1912,7 @@ INT ate_rx_done_handle(RTMP_ADAPTER *pAd, RX_BLK *pRxBlk)
 				Set_ATE_Proc(pAd, "RXFRAME");
 
 				if (CSI_Steering >= 2 && NDP_Announce == TRUE)
-					printk("================== Sounding request is found ==================\n");
+					DBGPRINT(RT_DEBUG_OFF, ("================== Sounding request is found ==================\n"));
 			}
 		}
 	}
@@ -2238,7 +2242,8 @@ DBGPRINT(RT_DEBUG_OFF, ("%s():  Not my bss! pRxInfo->MyBss=%d\n", __FUNCTION__, 
 	{
 		UCHAR OldPwrMgmt;
 
-		OldPwrMgmt = RtmpPsIndicate(pAd, pHeader->Addr2, pEntry->wcid, pFmeCtrl->PwrMgmt);
+		OldPwrMgmt = RtmpPsIndicate(pAd, pHeader->Addr2, pEntry->wcid
+									, (UCHAR)pFmeCtrl->PwrMgmt);
 #ifdef UAPSD_SUPPORT
 		RTMP_PS_VIRTUAL_TIMEOUT_RESET(pEntry);
 
@@ -2655,7 +2660,8 @@ VOID rx_data_frm_announce(
 					UCHAR HS2_Header[4] = {0x50,0x6f,0x9a,0x12};
 					memcpy(&pRxBlk->pData[pRxBlk->DataSize], HS2_Header, 4);
 					memcpy(&pRxBlk->pData[pRxBlk->DataSize+4], &pEntry->hs_info, sizeof(struct _sta_hs_info));
-					printk("rcv eapol start, %x:%x:%x:%x\n",pRxBlk->pData[pRxBlk->DataSize+4], pRxBlk->pData[pRxBlk->DataSize+5],pRxBlk->pData[pRxBlk->DataSize+6], pRxBlk->pData[pRxBlk->DataSize+7]);
+					DBGPRINT(RT_DEBUG_OFF, ("rcv eapol start, %x:%x:%x:%x\n", pRxBlk->pData[pRxBlk->DataSize+4]
+					, pRxBlk->pData[pRxBlk->DataSize+5], pRxBlk->pData[pRxBlk->DataSize+6], pRxBlk->pData[pRxBlk->DataSize+7]));
 					pRxBlk->DataSize += 8;
 				}
 			}
@@ -3542,6 +3548,11 @@ BOOLEAN rtmp_rx_done_handle(RTMP_ADAPTER *pAd)
 
 		/* get rx descriptor and data buffer */
 		pHeader = rxblk.pHeader;
+		if (!pHeader) {
+			DBGPRINT(RT_DEBUG_ERROR,
+				 ("%s(): null rxblk.pHeader!\n", __func__));
+			continue;
+		}
 
 #ifdef MT_MAC
 		if (pAd->chipCap.hif_type == HIF_MT) {

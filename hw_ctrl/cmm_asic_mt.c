@@ -915,14 +915,13 @@ INT AsicWtblSetRDG(RTMP_ADAPTER *pAd, BOOLEAN bEnable)
     {
         pEntry = &pMacTable->Content[wcid];
 
-        if (CLIENT_STATUS_TEST_FLAG(pEntry, fCLIENT_STATUS_RALINK_CHIPSET))
-        {
-            if (mt_wtbl_get_entry234(pAd, wcid, &tb_entry) == FALSE)
-            {
-                DBGPRINT(RT_DEBUG_ERROR, ("%s():Cannot found WTBL2/3/4 for WCID(%d)\n",
-                            __FUNCTION__, wcid));
-                return FALSE;
-            }
+		if (CLIENT_STATUS_TEST_FLAG(pEntry, fCLIENT_STATUS_RALINK_CHIPSET)) {
+			if (mt_wtbl_get_entry234(pAd, (UCHAR)wcid, &tb_entry) == FALSE) {
+				DBGPRINT(RT_DEBUG_ERROR,
+					("%s():Cannot found WTBL2/3/4 for WCID(%d)\n",
+					__func__, wcid));
+				return FALSE;
+			}
 
             RTMP_IO_READ32(pAd, tb_entry.wtbl_addr[0] + (2 * 4), &dw2->word);
 
@@ -1148,7 +1147,7 @@ static VOID DumpBcnQMessage(RTMP_ADAPTER *pAd, INT apidx)
 
 	DBGPRINT(RT_DEBUG_ERROR, ("\ncheck PSE Q:\n"));
 	for (j = 0; j <= 8; j++) {
-		sprintf(tmp,"%d",j);
+		snprintf(tmp, sizeof(tmp), "%d", j);
 		set_get_fid(pAd, tmp);
 	}
 
@@ -1235,7 +1234,8 @@ VOID APCheckBcnQHandler(RTMP_ADAPTER *pAd, INT apidx, BOOLEAN *is_pretbtt_int)
 			j++;
 			OS_WAIT(1);
 			if (j > 1000) {
-				printk("%s, bcn_flush too long!, j = %x\n", __func__, j);
+				DBGPRINT(RT_DEBUG_ERROR,
+					("%s, bcn_flush too long!, j = %x\n", __func__, j));
 				break;
 			}
 		}
@@ -1258,7 +1258,9 @@ VOID APCheckBcnQHandler(RTMP_ADAPTER *pAd, INT apidx, BOOLEAN *is_pretbtt_int)
 			j++;
 			OS_WAIT(1);
 			if (j > 1000) {
-				printk("%s, flush all stuck bcn too long!! j = %x\n", __func__, j);
+				DBGPRINT(RT_DEBUG_ERROR,
+					("%s, flush all stuck bcn too long!! j = %x\n",
+					__func__, j));
 				break;
 			}
 		}
@@ -1802,24 +1804,24 @@ INT AsicSetWmmParam(RTMP_ADAPTER *pAd, UINT ac, UINT type, UINT val)
 	NdisZeroMemory(&EdcaParam,sizeof(CMD_EDCA_SET_T));
 	EdcaParam.ucTotalNum = 1;
 	pAcParam = &EdcaParam.rAcParam[0];
-	pAcParam->ucAcNum = ac;
+	pAcParam->ucAcNum = (UINT8)ac;
 
 	switch (type) {
 	case WMM_PARAM_TXOP:
 		pAcParam->ucVaildBit = CMD_EDCA_TXOP_BIT;
-		pAcParam->u2Txop= val;
+		pAcParam->u2Txop = (UINT16)val;
 		break;
 	case WMM_PARAM_AIFSN:
 		pAcParam->ucVaildBit = CMD_EDCA_AIFS_BIT;
-		pAcParam->ucAifs = val;
+		pAcParam->ucAifs = (UINT8)val;
 		break;
 	case WMM_PARAM_CWMIN:
 		pAcParam->ucVaildBit = CMD_EDCA_WIN_MIN_BIT;
-		pAcParam->ucWinMin= val;
+		pAcParam->ucWinMin = (UINT8)val;
 		break;
 	case WMM_PARAM_CWMAX:
 		pAcParam->ucVaildBit = CMD_EDCA_WIN_MAX_BIT;
-		pAcParam->u2WinMax= val;
+		pAcParam->u2WinMax = (UINT16)val;
 		break;
 	default:
 		DBGPRINT(RT_DEBUG_OFF, ("%s(%d): Error type=%d\n", __FUNCTION__, __LINE__, type));
@@ -1848,7 +1850,7 @@ INT AsicSetAllWmmParam(RTMP_ADAPTER *pAd,PEDCA_PARM pEdcaParm)
 		index = wmm_aci_2_hw_ac_queue[ac];
 		pAcParam = &EdcaParam.rAcParam[index];
 		pAcParam->ucVaildBit = CMD_EDCA_ALL_BITS;
-		pAcParam->ucAcNum = ac;
+		pAcParam->ucAcNum = (UINT8)ac;
 		pAcParam->ucAifs = pEdcaParm->Aifsn[index];
 		pAcParam->ucWinMin= (1 << pEdcaParm->Cwmin[index]) -1;
 		pAcParam->u2WinMax= (1 << pEdcaParm->Cwmax[index]) -1;
@@ -2186,7 +2188,8 @@ VOID AsicSetSlotTime(
 	else
 		SifsTime = SIFS_TIME_24G;
 
-	CmdSlotTimeSet(pAd,SlotTime,SifsTime,RIFS_TIME,EIFS_TIME);
+	CmdSlotTimeSet(pAd, (UINT8)SlotTime,
+		(UINT8)SifsTime, RIFS_TIME, EIFS_TIME);
 
 
 	DBGPRINT(RT_DEBUG_TRACE, ("%s: SlotTime =%u us, SIFS Time = %u us,\
@@ -2234,7 +2237,7 @@ VOID RTMPGetTxTscFromAsic(RTMP_ADAPTER *pAd, UCHAR apidx, UCHAR *pTxTsc)
 
 		GET_GroupKey_WCID(pAd, Wcid, apidx);
 		NdisZeroMemory(&tb_entry, sizeof(tb_entry));
-		if (mt_wtbl_get_entry234(pAd, Wcid, &tb_entry) == FALSE) {
+		if (mt_wtbl_get_entry234(pAd, (UCHAR)Wcid, &tb_entry) == FALSE) {
 			DBGPRINT(RT_DEBUG_ERROR, ("%s():Cannot found WTBL2/3/4 for WCID(%d)\n",
 						__FUNCTION__, Wcid));
 			return;
@@ -2295,7 +2298,7 @@ VOID RTMPGetTxTscFromAsic(RTMP_ADAPTER *pAd, UCHAR apidx, UCHAR *pTxTsc)
 		}
 #endif /* RTMP_MAC */
 		/* Read IVEIV from Asic */
-		offset = iveiv_tb_base + (Wcid * iveiv_tb_size);
+		offset = (USHORT)(iveiv_tb_base + (Wcid * iveiv_tb_size));
 
 		/* Use Read32 to avoid endian problem */
 		RTMP_IO_READ32(pAd, offset, &temp1);
@@ -2429,18 +2432,18 @@ VOID AsicAddSharedKeyEntry(
 
 #ifdef RTMP_MAC_USB
 		{
-			RTUSBMultiWrite(pAd, offset, pKey, MAX_LEN_OF_SHARE_KEY, FALSE);
+			RTUSBMultiWrite(pAd, (USHORT)offset, pKey, MAX_LEN_OF_SHARE_KEY, FALSE);
 
 			offset += MAX_LEN_OF_SHARE_KEY;
 			if (pTxMic)
 			{
-				RTUSBMultiWrite(pAd, offset, pTxMic, 8, FALSE);
+				RTUSBMultiWrite(pAd, (USHORT)offset, pTxMic, 8, FALSE);
 			}
 
 			offset += 8;
 			if (pRxMic)
 			{
-				RTUSBMultiWrite(pAd, offset, pRxMic, 8, FALSE);
+				RTUSBMultiWrite(pAd, (USHORT)offset, pRxMic, 8, FALSE);
 			}
 		}
 #endif /* RTMP_MAC_USB */
@@ -2760,14 +2763,14 @@ VOID AsicTxCntUpdate(RTMP_ADAPTER *pAd, MAC_TABLE_ENTRY *pEntry, MT_TX_COUNTER *
 		pTxInfo->TxFailCount = tx_cnt_info.wtbl_2_d7.field.current_bw_fail_cnt ;
 		pTxInfo->TxFailCount += tx_cnt_info.wtbl_2_d8.field.other_bw_fail_cnt;
 
-		pTxInfo->Rate1TxCnt = tx_cnt_info.wtbl_2_d5.field.rate_1_tx_cnt;
-		pTxInfo->Rate1FailCnt = tx_cnt_info.wtbl_2_d5.field.rate_1_fail_cnt;
-		pTxInfo->Rate2TxCnt = tx_cnt_info.wtbl_2_d6.field.rate_2_tx_cnt;
-		pTxInfo->Rate3TxCnt = tx_cnt_info.wtbl_2_d6.field.rate_3_tx_cnt;
-		pTxInfo->Rate4TxCnt = tx_cnt_info.wtbl_2_d6.field.rate_4_tx_cnt;
-		pTxInfo->Rate5TxCnt = tx_cnt_info.wtbl_2_d6.field.rate_5_tx_cnt;
+		pTxInfo->Rate1TxCnt = (UINT16)tx_cnt_info.wtbl_2_d5.field.rate_1_tx_cnt;
+		pTxInfo->Rate1FailCnt = (UINT16)tx_cnt_info.wtbl_2_d5.field.rate_1_fail_cnt;
+		pTxInfo->Rate2TxCnt = (UCHAR)tx_cnt_info.wtbl_2_d6.field.rate_2_tx_cnt;
+		pTxInfo->Rate3TxCnt = (UCHAR)tx_cnt_info.wtbl_2_d6.field.rate_3_tx_cnt;
+		pTxInfo->Rate4TxCnt = (UCHAR)tx_cnt_info.wtbl_2_d6.field.rate_4_tx_cnt;
+		pTxInfo->Rate5TxCnt = (UCHAR)tx_cnt_info.wtbl_2_d6.field.rate_5_tx_cnt;
 
-		pTxInfo->RateIndex = tx_cnt_info.wtbl_2_d9.field.rate_idx;
+		pTxInfo->RateIndex = (UCHAR)tx_cnt_info.wtbl_2_d9.field.rate_idx;
 /*
 		if ( pTxInfo->TxFailCount == 0 )
 			pEntry->OneSecTxNoRetryOkCount += pTxInfo->TxSuccessCount;
@@ -2815,17 +2818,20 @@ VOID AsicRssiUpdate(RTMP_ADAPTER *pAd)
 			Rssi1 = (wtbl_2_d13.field.resp_rcpi_1 - 220) / 2;
 			Rssi2 = 0;
 
-			pEntry->RssiSample.AvgRssi[0] = pEntry->RssiSample.LastRssi[0] = Rssi0;
-			pEntry->RssiSample.AvgRssi[1] = pEntry->RssiSample.LastRssi[1] = Rssi1;
-			pEntry->RssiSample.AvgRssi[2] = pEntry->RssiSample.LastRssi[2] = Rssi2;
+			pEntry->RssiSample.AvgRssi[0] =
+				pEntry->RssiSample.LastRssi[0] = (CHAR)Rssi0;
+			pEntry->RssiSample.AvgRssi[1] =
+				pEntry->RssiSample.LastRssi[1] = (CHAR)Rssi1;
+			pEntry->RssiSample.AvgRssi[2] =
+				pEntry->RssiSample.LastRssi[2] = (CHAR)Rssi2;
 
-			pAd->ApCfg.RssiSample.AvgRssi[0] = Rssi0;
-			pAd->ApCfg.RssiSample.AvgRssi[1] = Rssi1;
-			pAd->ApCfg.RssiSample.AvgRssi[2] = Rssi2;
+			pAd->ApCfg.RssiSample.AvgRssi[0] = (CHAR)Rssi0;
+			pAd->ApCfg.RssiSample.AvgRssi[1] = (CHAR)Rssi1;
+			pAd->ApCfg.RssiSample.AvgRssi[2] = (CHAR)Rssi2;
 
-			pAd->ApCfg.RssiSample.LastRssi[0] = Rssi0;
-			pAd->ApCfg.RssiSample.LastRssi[1] = Rssi1;
-			pAd->ApCfg.RssiSample.LastRssi[2] = Rssi2;
+			pAd->ApCfg.RssiSample.LastRssi[0] = (CHAR)Rssi0;
+			pAd->ApCfg.RssiSample.LastRssi[1] = (CHAR)Rssi1;
+			pAd->ApCfg.RssiSample.LastRssi[2] = (CHAR)Rssi2;
 		}
 		else
 		{
@@ -2839,9 +2845,12 @@ VOID AsicRssiUpdate(RTMP_ADAPTER *pAd)
 					Rssi1 = (wtbl_2_d13.field.resp_rcpi_1 - 220) / 2;
 					Rssi2 = 0;
 
-					pEntry->RssiSample.AvgRssi[0] = pEntry->RssiSample.LastRssi[0] = Rssi0;
-					pEntry->RssiSample.AvgRssi[1] = pEntry->RssiSample.LastRssi[1] = Rssi1;
-					pEntry->RssiSample.AvgRssi[2] = pEntry->RssiSample.LastRssi[2] = Rssi2;
+					pEntry->RssiSample.AvgRssi[0] =
+						pEntry->RssiSample.LastRssi[0] = (CHAR)Rssi0;
+					pEntry->RssiSample.AvgRssi[1] =
+						pEntry->RssiSample.LastRssi[1] = (CHAR)Rssi1;
+					pEntry->RssiSample.AvgRssi[2] =
+						pEntry->RssiSample.LastRssi[2] = (CHAR)Rssi2;
 
 					TotalRssi0 += Rssi0;
 					TotalRssi1 += Rssi1;
@@ -2849,9 +2858,15 @@ VOID AsicRssiUpdate(RTMP_ADAPTER *pAd)
 				}
 			}
 
-			pAd->ApCfg.RssiSample.AvgRssi[0] = pAd->ApCfg.RssiSample.LastRssi[0] = TotalRssi0 / pAd->MacTab.Size;
-			pAd->ApCfg.RssiSample.AvgRssi[1] = pAd->ApCfg.RssiSample.LastRssi[1] = TotalRssi1 / pAd->MacTab.Size;
-			pAd->ApCfg.RssiSample.AvgRssi[2] = pAd->ApCfg.RssiSample.LastRssi[2] = TotalRssi2 / pAd->MacTab.Size;
+			pAd->ApCfg.RssiSample.AvgRssi[0] =
+				pAd->ApCfg.RssiSample.LastRssi[0] =
+				(CHAR)(TotalRssi0 / pAd->MacTab.Size);
+			pAd->ApCfg.RssiSample.AvgRssi[1] =
+				pAd->ApCfg.RssiSample.LastRssi[1] =
+				(CHAR)(TotalRssi1 / pAd->MacTab.Size);
+			pAd->ApCfg.RssiSample.AvgRssi[2] =
+				pAd->ApCfg.RssiSample.LastRssi[2] =
+				(CHAR)(TotalRssi2 / pAd->MacTab.Size);
 		}
 
 	}
@@ -2867,17 +2882,17 @@ VOID AsicRssiUpdate(RTMP_ADAPTER *pAd)
 		Rssi1 = (wtbl_2_d13.field.resp_rcpi_1 - 220) / 2;
 		Rssi2 = 0;
 
-		pEntry->RssiSample.AvgRssi[0] = pEntry->RssiSample.LastRssi[0] = Rssi0;
-		pEntry->RssiSample.AvgRssi[1] = pEntry->RssiSample.LastRssi[1] = Rssi1;
-		pEntry->RssiSample.AvgRssi[2] = pEntry->RssiSample.LastRssi[2] = Rssi2;
+		pEntry->RssiSample.AvgRssi[0] = pEntry->RssiSample.LastRssi[0] = (CHAR)Rssi0;
+		pEntry->RssiSample.AvgRssi[1] = pEntry->RssiSample.LastRssi[1] = (CHAR)Rssi1;
+		pEntry->RssiSample.AvgRssi[2] = pEntry->RssiSample.LastRssi[2] = (CHAR)Rssi2;
 
-		pAd->StaCfg.RssiSample.AvgRssi[0] = Rssi0;
-		pAd->StaCfg.RssiSample.AvgRssi[1] = Rssi1;
-		pAd->StaCfg.RssiSample.AvgRssi[2] = Rssi2;
+		pAd->StaCfg.RssiSample.AvgRssi[0] = (CHAR)Rssi0;
+		pAd->StaCfg.RssiSample.AvgRssi[1] = (CHAR)Rssi1;
+		pAd->StaCfg.RssiSample.AvgRssi[2] = (CHAR)Rssi2;
 
-		pAd->StaCfg.RssiSample.LastRssi[0] = Rssi0;
-		pAd->StaCfg.RssiSample.LastRssi[1] = Rssi1;
-		pAd->StaCfg.RssiSample.LastRssi[2] = Rssi2;
+		pAd->StaCfg.RssiSample.LastRssi[0] = (CHAR)Rssi0;
+		pAd->StaCfg.RssiSample.LastRssi[1] = (CHAR)Rssi1;
+		pAd->StaCfg.RssiSample.LastRssi[2] = (CHAR)Rssi2;
 	}
 #endif /* CONFIG_STA_SUPPORT */
 }
@@ -3020,7 +3035,7 @@ VOID asic_mcs_lut_update(RTMP_ADAPTER *pAd, MAC_TABLE_ENTRY *pEntry)
 	else
 		preamble = LONG_PREAMBLE;
 
-    stbc = pEntry->HTPhyMode.field.STBC;
+	stbc = (UCHAR)pEntry->HTPhyMode.field.STBC;
 
 #ifdef THERMAL_PROTECT_SUPPORT
     if  (pAd->force_one_tx_stream == TRUE) {
@@ -3028,7 +3043,8 @@ VOID asic_mcs_lut_update(RTMP_ADAPTER *pAd, MAC_TABLE_ENTRY *pEntry)
     }
 #endif /* THERMAL_PROTECT_SUPPORT */
 
-	nss = get_nss_by_mcs(pEntry->HTPhyMode.field.MODE, pEntry->HTPhyMode.field.MCS, stbc);
+	nss = get_nss_by_mcs((UCHAR)pEntry->HTPhyMode.field.MODE,
+		(UCHAR)pEntry->HTPhyMode.field.MCS, stbc);
 
 
 	if (((pEntry->MmpsMode != MMPS_STATIC) || ( pEntry->HTPhyMode.field.MODE < MODE_HTMIX ))
@@ -3044,11 +3060,12 @@ VOID asic_mcs_lut_update(RTMP_ADAPTER *pAd, MAC_TABLE_ENTRY *pEntry)
 		}
 	}
 
-	rate[0] = tx_rate_to_tmi_rate(pEntry->HTPhyMode.field.MODE,
-											pEntry->HTPhyMode.field.MCS,
-											nss,
-											pEntry->HTPhyMode.field.MCS == MCS_32?0:stbc,
-											preamble);
+	rate[0] = tx_rate_to_tmi_rate(
+		(UCHAR)pEntry->HTPhyMode.field.MODE,
+		(UCHAR)pEntry->HTPhyMode.field.MCS,
+		nss,
+		pEntry->HTPhyMode.field.MCS == MCS_32?0:stbc,
+		preamble);
 	rate[0] &= 0xfff;
 
 	if ( pEntry->bAutoTxRateSwitch == TRUE )
@@ -3131,7 +3148,7 @@ VOID asic_mcs_lut_update(RTMP_ADAPTER *pAd, MAC_TABLE_ENTRY *pEntry)
 			}
 
 
-			nss = get_nss_by_mcs(mode, mcs, pEntry->HTPhyMode.field.STBC);
+			nss = get_nss_by_mcs(mode, mcs, (BOOLEAN)pEntry->HTPhyMode.field.STBC);
 			rate[ucIndex] = tx_rate_to_tmi_rate(mode,
 											mcs,
 											nss,
@@ -3210,7 +3227,18 @@ VOID asic_mcs_lut_update(RTMP_ADAPTER *pAd, MAC_TABLE_ENTRY *pEntry)
 				}
 				else
 				{
-					ucMaxTxRetryCnt = aucHtMaxRetryLimit[(pEntry->HTPhyMode.field.MCS*2) + 1];
+					if (((pEntry->HTPhyMode.field.MCS*2) + 1) <
+						sizeof(aucHtMaxRetryLimit)/sizeof(UCHAR))
+						ucMaxTxRetryCnt =
+							aucHtMaxRetryLimit[
+							(pEntry->HTPhyMode.field.MCS*2) + 1];
+					else {
+						DBGPRINT(RT_DEBUG_ERROR,
+							("%s(): Invalid index!(%d)\n",
+							__func__,
+							(pEntry->HTPhyMode.field.MCS*2) + 1));
+						return;
+					}
 				}
 			}
 		}
@@ -3261,57 +3289,57 @@ UINT16 AsicGetTidSn(RTMP_ADAPTER *pAd, UCHAR Wcid, UCHAR Tid)
         case 0:
             Reg = Entry.wtbl_addr[1] + (4 * 2); //WTBL2.DW2
             RTMP_IO_READ32(pAd, Reg, &Wtbl_2->wtbl_2_d2.word);
-            Sn = Wtbl_2->wtbl_2_d2.field.tid_ac_0_sn;
+			Sn = (UINT16)Wtbl_2->wtbl_2_d2.field.tid_ac_0_sn;
             break;
 
         case 1:
             Reg = Entry.wtbl_addr[1] + (4 * 2); //WTBL2.DW2
             RTMP_IO_READ32(pAd, Reg, &Wtbl_2->wtbl_2_d2.word);
-            Sn = Wtbl_2->wtbl_2_d2.field.tid_ac_1_sn;
+			Sn = (UINT16)Wtbl_2->wtbl_2_d2.field.tid_ac_1_sn;
             break;
 
         case 2:
             Reg = Entry.wtbl_addr[1] + (4 * 2); //WTBL2.DW2
             RTMP_IO_READ32(pAd, Reg, &Wtbl_2->wtbl_2_d2.word);
-            Sn = Wtbl_2->wtbl_2_d2.field.tid_ac_2_sn_0;
+			Sn = (UINT16)Wtbl_2->wtbl_2_d2.field.tid_ac_2_sn_0;
 
             Reg = Entry.wtbl_addr[1] + (4 * 3); //WTBL2.DW3
             RTMP_IO_READ32(pAd, Reg, &Wtbl_2->wtbl_2_d3.word);
-            Sn = (Wtbl_2->wtbl_2_d3.field.tid_ac_2_sn_9 << 8) | Sn;
+			Sn = (UINT16)((Wtbl_2->wtbl_2_d3.field.tid_ac_2_sn_9 << 8) | Sn);
             break;
 
         case 3:
             Reg = Entry.wtbl_addr[1] + (4 * 3); //WTBL2.DW3
             RTMP_IO_READ32(pAd, Reg, &Wtbl_2->wtbl_2_d3.word);
-            Sn = Wtbl_2->wtbl_2_d3.field.tid_ac_3_sn;
+			Sn = (UINT16)Wtbl_2->wtbl_2_d3.field.tid_ac_3_sn;
             break;
 
         case 4:
             Reg = Entry.wtbl_addr[1] + (4 * 3); //WTBL2.DW3
             RTMP_IO_READ32(pAd, Reg, &Wtbl_2->wtbl_2_d3.word);
-            Sn = Wtbl_2->wtbl_2_d3.field.tid_4_sn;
+			Sn = (UINT16)Wtbl_2->wtbl_2_d3.field.tid_4_sn;
             break;
 
         case 5:
             Reg = Entry.wtbl_addr[1] + (4 * 3); //WTBL2.DW3
             RTMP_IO_READ32(pAd, Reg, &Wtbl_2->wtbl_2_d3.word);
-            Sn = Wtbl_2->wtbl_2_d3.field.tid_5_sn_0;
+			Sn = (UINT16)Wtbl_2->wtbl_2_d3.field.tid_5_sn_0;
 
             Reg = Entry.wtbl_addr[1] + (4 * 4); //WTBL2.DW4
             RTMP_IO_READ32(pAd, Reg, &Wtbl_2->wtbl_2_d4.word);
-            Sn = (Wtbl_2->wtbl_2_d4.field.tid_5_sn_5 << 4) | Sn;
+			Sn = (UINT16)((Wtbl_2->wtbl_2_d4.field.tid_5_sn_5 << 4) | Sn);
             break;
 
         case 6:
             Reg = Entry.wtbl_addr[1] + (4 * 4); //WTBL2.DW4
             RTMP_IO_READ32(pAd, Reg, &Wtbl_2->wtbl_2_d4.word);
-            Sn = Wtbl_2->wtbl_2_d4.field.tid_6_sn;
+			Sn = (UINT16)Wtbl_2->wtbl_2_d4.field.tid_6_sn;
             break;
 
         case 7:
             Reg = Entry.wtbl_addr[1] + (4 * 4); //WTBL2.DW4
             RTMP_IO_READ32(pAd, Reg, &Wtbl_2->wtbl_2_d4.word);
-            Sn = Wtbl_2->wtbl_2_d4.field.tid_7_sn;
+			Sn = (UINT16)Wtbl_2->wtbl_2_d4.field.tid_7_sn;
             break;
 
         default:
@@ -3432,7 +3460,7 @@ VOID AsicUpdateRxWCIDTable(RTMP_ADAPTER *pAd, USHORT WCID, UCHAR *pAddr)
 	// TODO: shiang-7603
 
 	NdisZeroMemory(&tb_entry, sizeof(tb_entry));
-	if (mt_wtbl_get_entry234(pAd, WCID, &tb_entry) == FALSE) {
+	if (mt_wtbl_get_entry234(pAd, (UCHAR)WCID, &tb_entry) == FALSE) {
 		DBGPRINT(RT_DEBUG_ERROR, ("%s():Cannot found WTBL2/3/4 for WCID(%d)\n",
 					__FUNCTION__, WCID));
 		return;
@@ -3466,7 +3494,13 @@ VOID AsicUpdateRxWCIDTable(RTMP_ADAPTER *pAd, USHORT WCID, UCHAR *pAddr)
         dw0->field.rc_a2 = 1;
     }
     else {
-        mac_entry = &pAd->MacTab.Content[WCID];
+		if (WCID < MAX_LEN_OF_MAC_TABLE)
+			mac_entry = &pAd->MacTab.Content[WCID];
+		else {
+			DBGPRINT(RT_DEBUG_ERROR, ("%s():Invalid WCID(%d)!\n",
+					__func__, WCID));
+			return;
+		}
 
         //dw0->field.muar_idx = 0x0; // TODO: need to change depends on different BssIdx!
         if (IS_ENTRY_CLIENT(mac_entry)) {
@@ -3577,11 +3611,19 @@ VOID AsicUpdateRxWCIDTable(RTMP_ADAPTER *pAd, USHORT WCID, UCHAR *pAddr)
 
     /* Clear BA Information */
     RTMP_IO_WRITE32(pAd, tb_entry.wtbl_addr[1] + (15 * 4), tb_entry.wtbl_2.wtbl_2_d15.word);
+    /* IOT issue with BCM's AP (ex: TP-LINK AC1900 C8/C9): Clear PN in wtbl2
+    *  The PN shall be initialized when the corresponding TK is initialized or refreshed
+    *  If the PN (Packet Number) exceed the threshold, AP will drop the data frames.
+    */
+    tb_entry.wtbl_2.wtbl_2_d0.pn_0 = 0x0;
+    tb_entry.wtbl_2.wtbl_2_d1.field.pn_32 = 0x0;
+    RTMP_IO_WRITE32(pAd, tb_entry.wtbl_addr[1] + (0 * 4), tb_entry.wtbl_2.wtbl_2_d0.word);
+    RTMP_IO_WRITE32(pAd, tb_entry.wtbl_addr[1] + (1 * 4), tb_entry.wtbl_2.wtbl_2_d1.word);
 
     /* Clear WTBL2 TID SN to default */
 /* We need change disable TX to just disable TX Q only, or RX path may have problem due to we can not TX ack*/
     //AsicSetMacTxRx(pAd, ASIC_MAC_TX, FALSE);
-MtAsicACQueue(pAd, AC_QUEUE_STOP, apidx, 0xF);
+	MtAsicACQueue(pAd, AC_QUEUE_STOP, (UINT8)apidx, 0xF);
 	
     RTMP_IO_WRITE32(pAd, tb_entry.wtbl_addr[1] + (2 * 4), 0x0);
     RTMP_IO_WRITE32(pAd, tb_entry.wtbl_addr[1] + (3 * 4), 0x0);
@@ -3620,7 +3662,7 @@ MtAsicACQueue(pAd, AC_QUEUE_STOP, apidx, 0xF);
 	NdisReleaseSpinLock(&pAd->IndirectUpdateLock);
 #endif
         //AsicSetMacTxRx(pAd, ASIC_MAC_TX, TRUE);
-	MtAsicACQueue(pAd, AC_QUEUE_START, apidx, 0xF);
+	MtAsicACQueue(pAd, AC_QUEUE_START, (UINT8)apidx, 0xF);
 
         return;
     }
@@ -3632,7 +3674,7 @@ MtAsicACQueue(pAd, AC_QUEUE_STOP, apidx, 0xF);
     NdisReleaseSpinLock(&pAd->IndirectUpdateLock);
 #endif
     //AsicSetMacTxRx(pAd, ASIC_MAC_TX, TRUE);
-MtAsicACQueue(pAd, AC_QUEUE_START, apidx, 0xF);
+	MtAsicACQueue(pAd, AC_QUEUE_START, (UINT8)apidx, 0xF);
 
 
 #ifdef RTMP_USB_SUPPORT
@@ -4346,7 +4388,7 @@ VOID AsicAddPairwiseKeyEntry(
 	}
 #endif /* RTMP_MAC_PCI */
 #ifdef RTMP_MAC_USB
-	RTUSBMultiWrite(pAd, offset, &pCipherKey->Key[0], MAX_LEN_OF_PEER_KEY, FALSE);
+	RTUSBMultiWrite(pAd, (USHORT)offset, &pCipherKey->Key[0], MAX_LEN_OF_PEER_KEY, FALSE);
 #endif /* RTMP_MAC_USB */
 	for (i=0; i<MAX_LEN_OF_PEER_KEY; i+=4)
 	{
@@ -4365,7 +4407,7 @@ VOID AsicAddPairwiseKeyEntry(
 		}
 #endif /* RTMP_MAC_PCI */
 #ifdef RTMP_MAC_USB
-		RTUSBMultiWrite(pAd, offset, &pCipherKey->TxMic[0], 8, FALSE);
+		RTUSBMultiWrite(pAd, (USHORT)offset, &pCipherKey->TxMic[0], 8, FALSE);
 #endif /* RTMP_MAC_USB */
 	}
 	offset += 8;
@@ -4379,7 +4421,7 @@ VOID AsicAddPairwiseKeyEntry(
 		}
 #endif /* RTMP_MAC_PCI */
 #ifdef RTMP_MAC_USB
-		RTUSBMultiWrite(pAd, offset, &pCipherKey->RxMic[0], 8, FALSE);
+		RTUSBMultiWrite(pAd, (USHORT)offset, &pCipherKey->RxMic[0], 8, FALSE);
 #endif /* RTMP_MAC_USB */
 	}
 #ifdef RTMP_MAC
@@ -5285,7 +5327,7 @@ INT StopDmaRx(RTMP_ADAPTER *pAd, UCHAR Level)
 		pRxPacket = GetPacketFromRxRing(pAd, pRxBlk, &bReschedule, &RxPending, 0);
 		if ((RxPending == 0) && (bReschedule == FALSE))
 			break;
-		else
+		else if (pRxPacket)
 			RELEASE_NDIS_PACKET(pAd, pRxPacket, NDIS_STATUS_SUCCESS);
 	}
 
@@ -5507,7 +5549,7 @@ INT AsicSetBW(RTMP_ADAPTER *pAd, INT bw)
 	}
 	RTMP_IO_WRITE32(pAd, AGG_BWCR, val);
 
-	bbp_set_bw(pAd, bw);
+	bbp_set_bw(pAd, (UINT8)bw);
 
 	return TRUE;
 }
@@ -6262,288 +6304,6 @@ VOID AsicSetApCliBssid(
 	return;
 }
 #endif /* MAC_APCLI_SUPPORT */
-
-#ifdef NEW_WOW_SUPPORT
-VOID RT28xxAndesWOWEnable(
-	IN PRTMP_ADAPTER pAd)
-{
-	NEW_WOW_MASK_CFG_STRUCT mask_cfg;
-	NEW_WOW_SEC_CFG_STRUCT sec_cfg;
-	NEW_WOW_INFRA_CFG_STRUCT infra_cfg;
-	NEW_WOW_P2P_CFG_STRUCT p2p_cfg;
-	NEW_WOW_PARAM_STRUCT wow_param;
-	struct CMD_UNIT CmdUnit;
-	RTMP_CHIP_CAP *pChipCap = &pAd->chipCap;
-	INT32 Ret;
-	MAC_TABLE_ENTRY *pEntry = NULL;
-
-
-	NdisZeroMemory(&CmdUnit, sizeof(CmdUnit));
-
-	/* WOW enable */
-	NdisZeroMemory(&wow_param, sizeof(wow_param));
-
-	wow_param.Parameter = WOW_ENABLE; /* WOW enable */
-	wow_param.Value = TRUE;
-
-	CmdUnit.u.ANDES.Type = CMD_WOW_FEATURE; /* feature enable */
-	CmdUnit.u.ANDES.CmdPayloadLen = sizeof(NEW_WOW_PARAM_STRUCT);
-	CmdUnit.u.ANDES.CmdPayload = (PUCHAR)&wow_param;
-
-	Ret = AsicSendCmdToAndes(pAd, &CmdUnit);
-
-	if (Ret != NDIS_STATUS_SUCCESS)
-	{
-		printk("\x1b[31m%s: send WOW config command failed(%d/%d)!!\x1b[m\n", __FUNCTION__,
-					CmdUnit.u.ANDES.Type, wow_param.Parameter);
-		return;
-	}
-
-	RtmpOsMsDelay(1);
-	/* mask configuration */
-	NdisZeroMemory(&mask_cfg, sizeof(mask_cfg));
-
-	mask_cfg.Config_Type = WOW_MASK_CFG; 	/* detect mask config */
-	mask_cfg.Function_Enable = TRUE;
-	mask_cfg.Detect_Mask = 1UL << WOW_MAGIC_PKT;	/* magic packet */
-	mask_cfg.Event_Mask = 0;
-
-	CmdUnit.u.ANDES.Type = CMD_WOW_CONFIG; /* WOW config */
-	CmdUnit.u.ANDES.CmdPayloadLen = sizeof(NEW_WOW_MASK_CFG_STRUCT);
-	CmdUnit.u.ANDES.CmdPayload = (PUCHAR)&mask_cfg;
-
-	Ret = AsicSendCmdToAndes(pAd, &CmdUnit);
-
-	if (Ret != NDIS_STATUS_SUCCESS)
-	{
-		printk("\x1b[31m%s: send WOW config command failed!!(%d/%d)\x1b[m\n", __FUNCTION__,
-					CmdUnit.u.ANDES.Type, mask_cfg.Config_Type);
-		return;
-	}
-
-	RtmpOsMsDelay(1);
-
-	/* security configuration */
-	if (pAd->StaCfg.AuthMode >= Ndis802_11AuthModeWPAPSK)
-	{
-		NdisZeroMemory(&sec_cfg, sizeof(sec_cfg));
-
-		sec_cfg.Config_Type = WOW_SEC_CFG; 	/* security config */
-
-		if (pAd->StaCfg.AuthMode == Ndis802_11AuthModeWPAPSK)
-			sec_cfg.WPA_Ver = 0;
-		else if (pAd->StaCfg.AuthMode == Ndis802_11AuthModeWPA2PSK)
-			sec_cfg.WPA_Ver = 1;
-
-		pEntry = &pAd->MacTab.Content[BSSID_WCID];
-
-		NdisCopyMemory(sec_cfg.PTK, pEntry->PTK, 64);
-		NdisCopyMemory(sec_cfg.R_COUNTER, pEntry->R_Counter, LEN_KEY_DESC_REPLAY);
-
-		sec_cfg.Key_Id = pAd->StaCfg.DefaultKeyId;
-		sec_cfg.Cipher_Alg = pEntry->WepStatus;
-		printk("\x1b[31m%s: wep status %d\x1b[m\n", __FUNCTION__, pEntry->WepStatus);
-		sec_cfg.Group_Cipher = pAd->StaCfg.GroupCipher;
-		printk("\x1b[31m%s: group status %d\x1b[m\n", __FUNCTION__, sec_cfg.Group_Cipher);
-		printk("\x1b[31m%s: aid %d\x1b[m\n", __FUNCTION__, pEntry->Aid);
-		sec_cfg.WCID = BSSID_WCID;
-
-		CmdUnit.u.ANDES.Type = CMD_WOW_CONFIG; /* WOW config */
-		CmdUnit.u.ANDES.CmdPayloadLen = sizeof(NEW_WOW_SEC_CFG_STRUCT);
-		CmdUnit.u.ANDES.CmdPayload = (PUCHAR)&sec_cfg;
-
-		Ret = AsicSendCmdToAndes(pAd, &CmdUnit);
-
-		if (Ret != NDIS_STATUS_SUCCESS)
-		{
-			printk("\x1b[31m%s: send WOW config command failed(%d/%d)!!\x1b[m\n", __FUNCTION__,
-					CmdUnit.u.ANDES.Type, sec_cfg.Config_Type);
-			return;
-		}
-
-		RtmpOsMsDelay(1);
-	}
-
-	/* Infra configuration */
-
-	NdisZeroMemory(&infra_cfg, sizeof(infra_cfg));
-
-	infra_cfg.Config_Type = WOW_INFRA_CFG; 	/* infra config */
-
-	COPY_MAC_ADDR(infra_cfg.STA_MAC, pAd->CurrentAddress);
-	COPY_MAC_ADDR(infra_cfg.AP_MAC, pAd->CommonCfg.Bssid);
-
-	CmdUnit.u.ANDES.Type = CMD_WOW_CONFIG; /* WOW config */
-	CmdUnit.u.ANDES.CmdPayloadLen = sizeof(NEW_WOW_INFRA_CFG_STRUCT);
-	CmdUnit.u.ANDES.CmdPayload = (PUCHAR)&infra_cfg;
-
-	if (OPSTATUS_TEST_FLAG(pAd, fOP_STATUS_MEDIA_STATE_CONNECTED))
-		infra_cfg.AP_Status = TRUE;
-	else
-		infra_cfg.AP_Status = FALSE;
-
-	Ret = AsicSendCmdToAndes(pAd, &CmdUnit);
-
-	if (Ret != NDIS_STATUS_SUCCESS)
-	{
-		printk("\x1b[31m%s: send WOW config command failed(%d/%d)!!\x1b[m\n", __FUNCTION__,
-					CmdUnit.u.ANDES.Type, infra_cfg.Config_Type);
-		return;
-	}
-
-	RtmpOsMsDelay(1);
-
-
-	/* P2P configuration */
-
-	/* Wakeup Option */
-	NdisZeroMemory(&wow_param, sizeof(wow_param));
-
-	wow_param.Parameter = WOW_WAKEUP; /* Wakeup Option */
-	if (pAd->WOW_Cfg.bInBand)
-	{
-#ifdef RTMP_MAC_PCI
-		wow_param.Value = WOW_WAKEUP_BY_PCIE;
-#else
-		wow_param.Value = WOW_WAKEUP_BY_USB;
-#endif /* RTMP_MAC_PCI */
-	}
-	else
-	{
-		INT32 Value;
-
-		wow_param.Value = WOW_WAKEUP_BY_GPIO;
-
-		RTMP_IO_READ32(pAd, WLAN_FUN_CTRL, &Value);
-		printk("\x1b[31m%s: 0x80 = %x\x1b[m\n", __FUNCTION__, Value);
-		Value &= ~0x01010000; /* GPIO0(ouput) --> 0(data) */
-		RTMP_IO_WRITE32(pAd, WLAN_FUN_CTRL, Value);
-	}
-
-	CmdUnit.u.ANDES.Type = CMD_WOW_FEATURE; /* feature enable */
-	CmdUnit.u.ANDES.CmdPayloadLen = sizeof(NEW_WOW_PARAM_STRUCT);
-	CmdUnit.u.ANDES.CmdPayload = (PUCHAR)&wow_param;
-
-	Ret = AsicSendCmdToAndes(pAd, &CmdUnit);
-
-	if (Ret != NDIS_STATUS_SUCCESS)
-	{
-		printk("\x1b[31m%s: send WOW config command failed(%d/%d)!!\x1b[m\n", __FUNCTION__,
-					CmdUnit.u.ANDES.Type, wow_param.Parameter);
-		return;
-	}
-
-	RtmpOsMsDelay(1);
-
-
-	/* traffic to Andes */
-	NdisZeroMemory(&wow_param, sizeof(wow_param));
-	wow_param.Parameter = WOW_TRAFFIC; /* Traffic switch */
-	wow_param.Value = WOW_PKT_TO_ANDES;	/* incoming packet to FW */
-
-	CmdUnit.u.ANDES.Type = CMD_WOW_FEATURE; /* feature enable */
-	CmdUnit.u.ANDES.CmdPayloadLen = sizeof(NEW_WOW_PARAM_STRUCT);
-	CmdUnit.u.ANDES.CmdPayload = (PUCHAR)&wow_param.Parameter;
-
-	Ret = AsicSendCmdToAndes(pAd, &CmdUnit);
-
-	if (Ret != NDIS_STATUS_SUCCESS)
-	{
-		printk("\x1b[31m%s: send WOW config command failed(%d/%d)!!\x1b[m\n", __FUNCTION__,
-					CmdUnit.u.ANDES.Type, wow_param.Parameter);
-		return;
-	}
-
-	RtmpOsMsDelay(1);
-
-    RTMP_SET_FLAG(pAd, fRTMP_ADAPTER_IDLE_RADIO_OFF);
-}
-
-VOID RT28xxAndesWOWDisable(
-    IN PRTMP_ADAPTER pAd)
-{
-    NEW_WOW_PARAM_STRUCT param;
-    struct CMD_UNIT CmdUnit;
-    RTMP_CHIP_CAP *pChipCap = &pAd->chipCap;
-    INT32 Ret;
-    UINT32 Value;
-    MAC_TABLE_ENTRY *pEntry = NULL;
-
-    printk("\x1b[31m%s: ...\x1b[m", __FUNCTION__);
-
-    /* clean BulkIn Reset flag */
-    //pAd->Flags &= ~0x80000;
-    RTMP_CLEAR_FLAG(pAd, fRTMP_ADAPTER_IDLE_RADIO_OFF);
-
-    NdisZeroMemory(&CmdUnit, sizeof(CmdUnit));
-
-    /* WOW disable */
-    NdisZeroMemory(&param, sizeof(param));
-    param.Parameter = WOW_ENABLE;
-    param.Value = FALSE;
-
-    CmdUnit.u.ANDES.Type = CMD_WOW_FEATURE; /* WOW enable */
-    CmdUnit.u.ANDES.CmdPayloadLen = sizeof(NEW_WOW_PARAM_STRUCT);
-    CmdUnit.u.ANDES.CmdPayload = (PUCHAR)&param;
-
-    Ret = AsicSendCmdToAndes(pAd, &CmdUnit);
-
-    if (Ret != NDIS_STATUS_SUCCESS)
-    {
-        printk("\x1b[31m%s: send WOW config command failed!!\x1b[m\n", __FUNCTION__);
-        return;
-    }
-
-    RtmpOsMsDelay(1);
-
-
-    /* traffic to Host */
-    NdisZeroMemory(&param, sizeof(param));
-    param.Parameter = WOW_TRAFFIC;
-    param.Value = WOW_PKT_TO_HOST;
-
-    CmdUnit.u.ANDES.Type = CMD_WOW_FEATURE;
-    CmdUnit.u.ANDES.CmdPayloadLen = sizeof(NEW_WOW_PARAM_STRUCT);
-    CmdUnit.u.ANDES.CmdPayload = (PUCHAR)&param;
-
-    Ret = AsicSendCmdToAndes(pAd, &CmdUnit);
-
-    if (Ret != NDIS_STATUS_SUCCESS)
-    {
-        printk("\x1b[31m%s: send WOW config command failed!!\x1b[m\n", __FUNCTION__);
-        return;
-    }
-
-    RtmpOsMsDelay(1);
-
-
-    /* Restore MAC TX/RX */
-	if (pAd->CommonCfg.bTXRX_RXV_ON)
-		AsicSetMacTxRx(pAd, ASIC_MAC_TXRX_RXV, TRUE);
-	else
-		AsicSetMacTxRx(pAd, ASIC_MAC_TXRX, TRUE);
-
-    RTUSBBulkReceive(pAd);
-    RTUSBBulkCmdRspEventReceive(pAd);
-
-    /* restore hardware remote wakeup flag */
-    RTMP_IO_READ32(pAd, WLAN_FUN_CTRL, &Value);
-    printk("\x1b[31m%s: 0x80 %08x\x1b[m\n", __FUNCTION__, Value);
-    Value &= ~0x80;
-    RTMP_IO_WRITE32(pAd, WLAN_FUN_CTRL, Value);
-
-	if (pAd->WOW_Cfg.bInBand == FALSE)
-	{
-		INT32 Value;
-
-		RTMP_IO_READ32(pAd, WLAN_FUN_CTRL, &Value);
-		printk("\x1b[31m%s: 0x80 = %x\x1b[m\n", __FUNCTION__, Value);
-		Value &= ~0x01010000; /* GPIO0(ouput) --> 0(data) */
-		RTMP_IO_WRITE32(pAd, WLAN_FUN_CTRL, Value);
-	}
-}
-#endif /* NEW_WOW_SUPPORT */
-
 
 VOID MTPciMlmeRadioOn(PRTMP_ADAPTER pAd)
 {

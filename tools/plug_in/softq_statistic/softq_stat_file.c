@@ -31,12 +31,12 @@ int softq_stat_fileOpen(char *fname)
 		filp = filp_open(fname, O_RDWR | O_CREAT, 0);
 	}else
 	{
-		printk("file is exist!!\n");
+		DBGPRINT(RT_DEBUG_OFF, ("file is exist!!\n"));
 		result = -1;
 	}
 	if (IS_ERR(filp)) 
 	{
-		printk("%s():  error occured while opening file %s, exiting...\n",__FUNCTION__,fname);
+		DBGPRINT(RT_DEBUG_ERROR, ("%s():  error occurred while opening file %s, exiting...\n", __func__, fname));
 		result = -1;
 	}
 	return result;

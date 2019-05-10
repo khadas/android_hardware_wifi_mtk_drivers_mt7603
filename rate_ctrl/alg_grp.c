@@ -1547,7 +1547,7 @@ VOID QuickResponeForRateUpExecAdaptMT(/* actually for both up and down */
 
 	if (TxTotalCnt != 0)
 	{
-		Rate1ErrorRatio = 100 - ((Rate1SuccessCnt * 100) / TxTotalCnt);
+		Rate1ErrorRatio = (UCHAR)(100 - ((Rate1SuccessCnt * 100) / TxTotalCnt));
 	}
 	else
 	{
@@ -1648,9 +1648,9 @@ VOID QuickResponeForRateUpExecAdaptMT(/* actually for both up and down */
 		&& (pAd->CommonCfg.DebugFlags & DBF_FORCE_QUICK_DRS)==0
 #endif /* DBG_CTRL_SUPPORT */
 	)
-		ratio = RA_INTERVAL / pAd->ra_fast_interval;
+		ratio = (UCHAR)(RA_INTERVAL / pAd->ra_fast_interval);
 	else
-		ratio = (RA_INTERVAL - pAd->ra_fast_interval) / pAd->ra_fast_interval;
+		ratio = (UCHAR)((RA_INTERVAL - pAd->ra_fast_interval) / pAd->ra_fast_interval);
 
 /*
 	if (pAd->MacTab.Size == 1)
@@ -1855,7 +1855,7 @@ VOID DynamicTxRateSwitchingAdaptMT(RTMP_ADAPTER *pAd, UINT i)
 
 	if (TxTotalCnt != 0)
 	{
-		Rate1ErrorRatio = 100 - ((Rate1SuccessCnt * 100) / TxTotalCnt);
+		Rate1ErrorRatio = (UCHAR)(100 - ((Rate1SuccessCnt * 100) / TxTotalCnt));
 	}
 	else
 	{
@@ -1919,11 +1919,12 @@ VOID DynamicTxRateSwitchingAdaptMT(RTMP_ADAPTER *pAd, UINT i)
 
 
 	/* Handle low traffic case */
-	if (TxTotalCnt <= 15)
+	if (TxTotalCnt <= 15 || BOOL_IS_THERMAL_PROTECTION_SWITCH_TX(pAd))
 	{
 		pEntry->lowTrafficCount++;
 
 		if (pEntry->lowTrafficCount >= pAd->CommonCfg.lowTrafficThrd
+				|| BOOL_IS_THERMAL_PROTECTION_SWITCH_TX(pAd)
 #ifdef DOT11N_DRAFT3
 				|| (pAd->CommonCfg.Bss2040CoexistFlag & BSS_2040_COEXIST_BW_SYNC)
 #endif /* DOT11N_DRAFT3 */
@@ -1933,7 +1934,15 @@ VOID DynamicTxRateSwitchingAdaptMT(RTMP_ADAPTER *pAd, UINT i)
 			CHAR mcs[24];
 			CHAR RssiOffset = 0;
 
-			pEntry->lowTrafficCount = 0;
+#ifdef THERMAL_PROTECT_SUPPORT
+			if (pAd->switch_tx_stream) {
+				DBGPRINT(RT_DEBUG_ERROR, ("[%s] tx stream switch\n", __func__));
+				pAd->switch_tx_stream = FALSE;
+			} else
+#endif /* THERMAL_PROTECT_SUPPORT */
+			{
+				pEntry->lowTrafficCount = 0;
+			}
 
 			/* Check existence and get index of each MCS */
 			MlmeGetSupportedMcsAdapt(pAd, pEntry, GI_400, mcs);
@@ -2246,9 +2255,9 @@ VOID APQuickResponeForRateUpExecAdapt(/* actually for both up and down */
 		&& (pAd->CommonCfg.DebugFlags & DBF_FORCE_QUICK_DRS)==0
 #endif /* DBG_CTRL_SUPPORT */
 	)
-		ratio = RA_INTERVAL / pAd->ra_fast_interval;
+		ratio = (CHAR) (RA_INTERVAL / pAd->ra_fast_interval);
 	else
-		ratio = (RA_INTERVAL - pAd->ra_fast_interval) / pAd->ra_fast_interval;
+		ratio = (CHAR)((RA_INTERVAL - pAd->ra_fast_interval) / pAd->ra_fast_interval);
 
 	if (pAd->MacTab.Size == 1)
 		OneSecTxNoRetryOKRationCount = (TxSuccess * ratio);
@@ -2864,9 +2873,9 @@ VOID StaQuickResponeForRateUpExecAdapt(
 		&& (pAd->CommonCfg.DebugFlags & DBF_FORCE_QUICK_DRS)==0
 #endif /* DBG_CTRL_SUPPORT */
 	)
-		ratio = RA_INTERVAL/pAd->ra_fast_interval;
+		ratio = (CHAR)(RA_INTERVAL/pAd->ra_fast_interval);
 	else
-		ratio = (RA_INTERVAL-pAd->ra_fast_interval)/pAd->ra_fast_interval;
+		ratio = (CHAR)((RA_INTERVAL-pAd->ra_fast_interval)/pAd->ra_fast_interval);
 
 	OneSecTxNoRetryOKRationCount = (TxSuccess * ratio);
 
@@ -3381,7 +3390,7 @@ INT Set_RateTable_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
 		while (*arg<'0' || *arg>'9')
 			arg++;
 		value = simple_strtol(arg, &arg, 10);
-		pRateEntry[rtIndex] = value;
+		pRateEntry[rtIndex] = (UCHAR)value;
 		DBGPRINT(RT_DEBUG_OFF, ("Set_RateTable_Proc::%d:%d:%d\n", itemNo, rtIndex, value));
 	}
 
@@ -3398,8 +3407,13 @@ INT	Set_PerThrdAdj_Proc(
 	IN	RTMP_STRING *arg)
 {
 	UCHAR i;
+	long thrd;
+	int ret;
 	for (i=0; i<MAX_LEN_OF_MAC_TABLE; i++){
-		pAd->MacTab.Content[i].perThrdAdj = simple_strtol(arg, 0, 10);
+		ret = kstrtol(arg, 10, &thrd);
+		if (ret < 0)
+			return FALSE;
+		pAd->MacTab.Content[i].perThrdAdj = (BOOLEAN)thrd;
 	}
 	return TRUE;	
 }
@@ -3409,7 +3423,13 @@ INT	Set_LowTrafficThrd_Proc(
 	IN	PRTMP_ADAPTER	pAd,
 	IN	RTMP_STRING *arg)
 {
-	pAd->CommonCfg.lowTrafficThrd = simple_strtol(arg, 0, 10);
+	long thrd;
+	int ret;
+
+	ret = kstrtol(arg, 10, &thrd);
+	if (ret < 0)
+		return FALSE;
+	pAd->CommonCfg.lowTrafficThrd = (USHORT)thrd;
 
 	return TRUE;
 }
@@ -3419,7 +3439,13 @@ INT	Set_TrainUpRule_Proc(
 	IN	PRTMP_ADAPTER	pAd,
 	IN	RTMP_STRING *arg)
 {
-	pAd->CommonCfg.TrainUpRule = simple_strtol(arg, 0, 10);
+	long thrd;
+	int ret;
+
+	ret = kstrtol(arg, 10, &thrd);
+	if (ret < 0)
+		return FALSE;
+	pAd->CommonCfg.TrainUpRule = (BOOLEAN)thrd;
 
 	return TRUE;
 }
@@ -3429,7 +3455,13 @@ INT	Set_TrainUpRuleRSSI_Proc(
 	IN	PRTMP_ADAPTER	pAd,
 	IN	RTMP_STRING *arg)
 {
-	pAd->CommonCfg.TrainUpRuleRSSI = simple_strtol(arg, 0, 10);
+	long thrd;
+	int ret;
+
+	ret = kstrtol(arg, 10, &thrd);
+	if (ret < 0)
+		return FALSE;
+	pAd->CommonCfg.TrainUpRuleRSSI = (SHORT)thrd;
 
 	return TRUE;
 }
@@ -3439,7 +3471,13 @@ INT	Set_TrainUpLowThrd_Proc(
 	IN	PRTMP_ADAPTER	pAd,
 	IN	RTMP_STRING *arg)
 {
-	pAd->CommonCfg.TrainUpLowThrd = simple_strtol(arg, 0, 10);
+	long thrd;
+	int ret;
+
+	ret = kstrtol(arg, 10, &thrd);
+	if (ret < 0)
+		return FALSE;
+	pAd->CommonCfg.TrainUpLowThrd = (USHORT)thrd;
 
 	return TRUE;
 }
@@ -3449,7 +3487,13 @@ INT	Set_TrainUpHighThrd_Proc(
 	IN	PRTMP_ADAPTER	pAd,
 	IN	RTMP_STRING *arg)
 {
-	pAd->CommonCfg.TrainUpHighThrd = simple_strtol(arg, 0, 10);
+	long thrd;
+	int ret;
+
+	ret = kstrtol(arg, 10, &thrd);
+	if (ret < 0)
+		return FALSE;
+	pAd->CommonCfg.TrainUpHighThrd = (USHORT)thrd;
 
 	return TRUE;
 }

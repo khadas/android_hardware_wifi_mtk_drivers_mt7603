@@ -279,7 +279,7 @@ CHAR RTMP_GetTxPwr(RTMP_ADAPTER *pAd, HTTRANSMIT_SETTING HTTxMode)
 		case MODE_CCK:
 		case MODE_OFDM:
 			Value = TxPwr[1];
-			TxPwrRef = (Value & 0x00000f00) >> 8;
+			TxPwrRef = (UINT8)((Value & 0x00000f00) >> 8);
 			
 			break;
 
@@ -289,23 +289,23 @@ CHAR RTMP_GetTxPwr(RTMP_ADAPTER *pAd, HTTRANSMIT_SETTING HTTxMode)
 			if (pAd->CommonCfg.TxStream == 1)
 			{
 				Value = TxPwr[2];
-				TxPwrRef = (Value & 0x00000f00) >> 8;
+				TxPwrRef = (UINT8)((Value & 0x00000f00) >> 8);
 			}
 			else if (pAd->CommonCfg.TxStream == 2)
 			{
 				Value = TxPwr[3];
-				TxPwrRef = (Value & 0x00000f00) >> 8;
+				TxPwrRef = (UINT8)((Value & 0x00000f00) >> 8);
 			}
 			break;
 #endif /* DOT11_N_SUPPORT */
 	}
 
-	PhyMode =
+	PhyMode = (UINT8)(
 #ifdef DOT11_N_SUPPORT
 				(HTTxMode.field.MODE == MODE_HTGREENFIELD)
 				? MODE_HTMIX :
 #endif /* DOT11_N_SUPPORT */
-				HTTxMode.field.MODE;
+				HTTxMode.field.MODE);
 
 	for (Idx = 0; Idx < MAX_TXPWR_TAB_SIZE; Idx++)
 	{
@@ -1891,7 +1891,7 @@ static VOID PeerChSwAnnAction(RTMP_ADAPTER *pAd, MLME_QUEUE_ELEM *Elem)
 	if (pAd->OpMode == OPMODE_STA)
 	{
 		Bssidx = BssTableSearch(&pAd->ScanTab, pFr->Hdr.Addr3, pAd->CommonCfg.Channel);
-		if (Bssidx == BSS_NOT_FOUND)
+		if (Bssidx == BSS_NOT_FOUND || Bssidx >= ARRAY_SIZE(pAd->ScanTab.BssEntry))
 		{
 			DBGPRINT(RT_DEBUG_TRACE, ("PeerChSwAnnAction - Bssidx is not found\n"));
 			return;  
@@ -2231,7 +2231,7 @@ INT Set_MeasureReq_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
 				break;
 
 			case 2: /* Measurement Request Type.*/
-				MeasureReqType = simple_strtol(thisChar, 0, 16);
+				MeasureReqType = (UINT8)simple_strtol(thisChar, 0, 16);
 				if (MeasureReqType > 3)
 				{
 					DBGPRINT(RT_DEBUG_ERROR, ("%s: unknow MeasureReqType(%d)\n", __FUNCTION__, MeasureReqType));
@@ -2369,7 +2369,7 @@ typedef struct __PWR_CONSTRAIN_CFG
 	{
 		if (DaltaPwr < PwrConstrainTab[Idx].Attenuation)
 		{
-			pAd->CommonCfg.PwrConstraint = Value;
+			pAd->CommonCfg.PwrConstraint = (UINT8)Value;
 			pAd->CommonCfg.TxPowerPercentage =
 					PwrConstrainTab[Idx].TxPowerPercentage;
 

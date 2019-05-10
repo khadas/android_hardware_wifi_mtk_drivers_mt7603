@@ -120,7 +120,7 @@ INT rtmp_wdev_idx_unreg(RTMP_ADAPTER *pAd, struct wifi_dev *wdev)
 
 INT rtmp_wdev_idx_reg(RTMP_ADAPTER *pAd, struct wifi_dev *wdev)
 {
-	INT idx;
+	CHAR idx;
 	ULONG flags;
 
 	if (!wdev)

@@ -253,7 +253,7 @@ NDIS_STATUS	RTMPReadParametersHook(RTMP_ADAPTER *pAd)
 		{
 #ifndef OS_ABL_SUPPORT
 			// TODO: need to roll back when convert into OSABL code
-				 fsize = (ULONG)srcf->f_dentry->d_inode->i_size;
+				 fsize = (ULONG) srcf->f_path.dentry->d_inode->i_size;
 				if (buf_size < (fsize + 1))
 					buf_size = fsize + 1;
 #endif /* OS_ABL_SUPPORT */
@@ -291,7 +291,7 @@ NDIS_STATUS	RTMPReadParametersHook(RTMP_ADAPTER *pAd)
 #endif /*HOSTAPD_SUPPORT */
 
 #ifdef SINGLE_SKU_V2
-	RTMPSetSingleSKUParameters(pAd);
+	retval = RTMPSetSingleSKUParameters(pAd);
 #endif /* SINGLE_SKU_V2 */
 
 	return (retval);
@@ -1435,7 +1435,7 @@ VOID AP_E2PROM_IOCTL_PostCtrl(
 	IN	RTMP_IOCTL_INPUT_STRUCT	*wrq,
 	IN	RTMP_STRING *msg)
 {
-	wrq->u.data.length = strlen(msg);
+	wrq->u.data.length = (UINT16)strlen(msg);
 	if (copy_to_user(wrq->u.data.pointer, msg, wrq->u.data.length))
 	{
 		DBGPRINT(RT_DEBUG_TRACE, ("%s: copy_to_user() fail\n", __FUNCTION__));			

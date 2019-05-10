@@ -646,12 +646,24 @@ static VOID ApCliEnqueueProbeRequest(
 	}
 	else
 	{
-		if(MAC_ADDR_EQUAL(pAd->ApCfg.ApCliTab[ifIndex].CfgApCliBssid, ZERO_MAC_ADDR))
+		if (MAC_ADDR_EQUAL(pAd->ApCfg.ApCliTab[ifIndex].CfgApCliBssid, ZERO_MAC_ADDR)) {
 			ApCliMgtMacHeaderInit(pAd, &Hdr80211, SUBTYPE_PROBE_REQ, 0,
 				BROADCAST_ADDR, BROADCAST_ADDR, ifIndex);
-		else
+		} else {
+#if 1
+			/* Fix WFD Certification 6.1.21B and IOT issue:
+			*  DUT will not reply probe response
+			*  if we send the probe request by unicast
+			*/
+			DBGPRINT(RT_DEBUG_TRACE,
+				 ("force out a ProbeRequest by broadcast but not unicast...\n"));
+			ApCliMgtMacHeaderInit(pAd, &Hdr80211, SUBTYPE_PROBE_REQ, 0,
+				BROADCAST_ADDR, BROADCAST_ADDR, ifIndex);
+#else
 			ApCliMgtMacHeaderInit(pAd, &Hdr80211, SUBTYPE_PROBE_REQ, 0,
 				pAd->ApCfg.ApCliTab[ifIndex].CfgApCliBssid, pAd->ApCfg.ApCliTab[ifIndex].CfgApCliBssid, ifIndex);
+#endif
+		}
 
 		ssidLen = SsidLen;
 		NdisZeroMemory(ssid, MAX_LEN_OF_SSID);

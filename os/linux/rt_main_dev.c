@@ -277,6 +277,7 @@ int rt28xx_open(VOID *dev)
 
 	RTMP_DRIVER_OP_MODE_GET(pAd, &OpMode);
 
+#ifdef CONFIG_WIRELESS_EXT
 #if WIRELESS_EXT >= 12
 /*	if (RT_DEV_PRIV_FLAGS_GET(net_dev) == INT_MAIN) */
 	if (RTMP_DRIVER_MAIN_INF_CHECK(pAd, RT_DEV_PRIV_FLAGS_GET(net_dev)) == NDIS_STATUS_SUCCESS)
@@ -285,14 +286,13 @@ int rt28xx_open(VOID *dev)
 		if (OpMode == OPMODE_AP)
 			net_dev->wireless_handlers = (struct iw_handler_def *) &rt28xx_ap_iw_handler_def;
 #endif /* CONFIG_APSTA_MIXED_SUPPORT */
-#ifdef CONFIG_WIRELESS_EXT
 #ifdef CONFIG_STA_SUPPORT
 		if (OpMode == OPMODE_STA)
 			net_dev->wireless_handlers = (struct iw_handler_def *) &rt28xx_iw_handler_def;
 #endif /* CONFIG_STA_SUPPORT */
-#endif
 	}
 #endif /* WIRELESS_EXT >= 12 */
+#endif /* #ifdef CONFIG_WIRELESS_EXT */
 
 	/*
 		Request interrupt service routine for PCI device
@@ -366,8 +366,8 @@ int rt28xx_open(VOID *dev)
 	RTMPDrvOpen(pAd);
 
 #ifdef VENDOR_FEATURE2_SUPPORT
-	printk("Number of Packet Allocated in open = %lu\n", OS_NumOfPktAlloc);
-	printk("Number of Packet Freed in open = %lu\n", OS_NumOfPktFree);
+	DBGPRINT(RT_DEBUG_OFF, ("Number of Packet Allocated in open = %lu\n", OS_NumOfPktAlloc));
+	DBGPRINT(RT_DEBUG_OFF, ("Number of Packet Freed in open = %lu\n", OS_NumOfPktFree));
 #endif /* VENDOR_FEATURE2_SUPPORT */
 
 	return (retval);
@@ -394,7 +394,9 @@ PNET_DEV RtmpPhyNetDevInit(VOID *pAd, RTMP_OS_NETDEV_OP_HOOK *pNetDevHook)
 	RTMP_DRIVER_MAIN_INF_CREATE(pAd, &net_dev);
 	if (net_dev == NULL)
 	{
-		printk("%s(): main physical net device creation failed!\n", __FUNCTION__);
+		DBGPRINT(RT_DEBUG_OFF,
+			("%s(): main physical net device creation failed!\n",
+			__func__));
 		return NULL;
 	}
 
@@ -532,37 +534,37 @@ VOID dump_skb_info(struct sk_buff *skb)
 	struct sock *sk = skb->sk;
 
 
-	printk("Binding sock info:\n");
+	DBGPRINT(RT_DEBUG_OFF, ("Binding sock info:\n"));
 	if (sk) {
 		//NETIF_F_HW_CSUM;NETIF_F_TSO
-		printk("\tsk_route_caps=0x%x\n", sk->sk_route_caps);
-		printk("\tsk_gso_type=%d\n", sk->sk_gso_type);
+		DBGPRINT(RT_DEBUG_OFF, ("\tsk_route_caps=0x%x\n", sk->sk_route_caps));
+		DBGPRINT(RT_DEBUG_OFF, ("\tsk_gso_type=%d\n", sk->sk_gso_type));
 	} else {
-		printk("\tNo binding sock!\n");
+		DBGPRINT(RT_DEBUG_OFF, ("\tNo binding sock!\n"));
 	}
 
-	printk("Binding Skb info:\n");
-	printk("\tprotocol=%d\n", skb->protocol);
-	printk("\tip_summed=%d", skb->ip_summed);
+	DBGPRINT(RT_DEBUG_OFF, ("Binding Skb info:\n"));
+	DBGPRINT(RT_DEBUG_OFF, ("\tprotocol=%d\n", skb->protocol));
+	DBGPRINT(RT_DEBUG_OFF, ("\tip_summed=%d", skb->ip_summed));
 	if (skb->ip_summed <= 3)
-		printk("(%s)\n", ip_sum_str[skb->ip_summed]);
+		DBGPRINT(RT_DEBUG_OFF, ("(%s)\n", ip_sum_str[skb->ip_summed]));
 	else
-		printk("\n");
+		DBGPRINT(RT_DEBUG_OFF, ("\n"));
 
-	printk("\tcsum=0x%x\n", skb->csum);
-	printk("\tcsum_start=%d\n", skb->csum_start);
-	printk("\tcsum_offset=%d\n", skb->csum_offset);
-	printk("\tskb->head=0x%x\n", skb->head);
-	printk("\tskb->data=0x%x\n", skb->data);
-	printk("\tskb->len=%d\n", skb->len);
+	DBGPRINT(RT_DEBUG_OFF, ("\tcsum=0x%x\n", skb->csum));
+	DBGPRINT(RT_DEBUG_OFF, ("\tcsum_start=%d\n", skb->csum_start));
+	DBGPRINT(RT_DEBUG_OFF, ("\tcsum_offset=%d\n", skb->csum_offset));
+	DBGPRINT(RT_DEBUG_OFF, ("\tskb->head=0x%x\n", skb->head));
+	DBGPRINT(RT_DEBUG_OFF, ("\tskb->data=0x%x\n", skb->data));
+	DBGPRINT(RT_DEBUG_OFF, ("\tskb->len=%d\n", skb->len));
 	if (skb->protocol == htons(ETH_P_IP)){
-		printk("\tip_hdr=0x%x\n", ip_hdr(skb));
-		printk("\ttcp_hdr=0x%x\n", tcp_hdr(skb));
+		DBGPRINT(RT_DEBUG_OFF, ("\tip_hdr=0x%x\n", ip_hdr(skb)));
+		DBGPRINT(RT_DEBUG_OFF, ("\ttcp_hdr=0x%x\n", tcp_hdr(skb)));
 	}
-	printk("\tgso_size=%d\n", skb_shinfo(skb)->gso_size);
-	printk("\tgso_type=%d\n", skb_shinfo(skb)->gso_type);
-	printk("\tgso_seg=%d\n", skb_shinfo(skb)->gso_segs);
-	printk("\tnr_frags=%d\n", skb_shinfo(skb)->nr_frags);
+	DBGPRINT(RT_DEBUG_OFF, ("\tgso_size=%d\n", skb_shinfo(skb)->gso_size));
+	DBGPRINT(RT_DEBUG_OFF, ("\tgso_type=%d\n", skb_shinfo(skb)->gso_type));
+	DBGPRINT(RT_DEBUG_OFF, ("\tgso_seg=%d\n", skb_shinfo(skb)->gso_segs));
+	DBGPRINT(RT_DEBUG_OFF, ("\tnr_frags=%d\n", skb_shinfo(skb)->nr_frags));
 }
 
 
@@ -571,8 +573,12 @@ VOID dump_nonlinear_pkt(struct sk_buff *skb)
 	if (skb_is_nonlinear(skb)) {
 		int i, nr_frags = skb_shinfo(skb)->nr_frags, len;
 		void *buf;
-		printk("%s(): skb is non-linear! skb->len=%d, skb->data_len=%d, non-paged data len=%d, nr_frags=%d!\n",
-				__FUNCTION__, skb->len, skb->data_len, skb_headlen(skb), nr_frags);
+		DBGPRINT(RT_DEBUG_OFF,
+			("%s(): skb is non-linear! skb->len=%d, skb->data_len=%d, ",
+			__func__, skb->len, skb->data_len));
+		DBGPRINT(RT_DEBUG_OFF,
+			("non-paged data len=%d, nr_frags=%d!\n",
+			skb_headlen(skb), nr_frags));
 
 		len = skb->len;
 		buf = kmalloc(len, GFP_KERNEL);
@@ -587,7 +593,9 @@ VOID dump_nonlinear_pkt(struct sk_buff *skb)
 				void *addr;
 
 				addr = ((void *) page_address(frag->page)) + frag->page_offset;
-				printk("frag %d: page=0x%x, offset=%d, addr=0x%x, size=%d\n", i, frag->page, frag->page_offset, addr, frag->size);
+				DBGPRINT(RT_DEBUG_OFF,
+					("frag %d: page=0x%x, offset=%d, addr=0x%x, size=%d\n",
+					i, frag->page, frag->page_offset, addr, frag->size));
 				memcpy(ptr, addr, frag->size);
 				ptr += frag->size;
 				len += frag->size;
@@ -621,7 +629,9 @@ INT rt28xx_tso_xmit(struct sk_buff *skb)
 
 	if (skb_is_gso(skb) || (skb->ip_summed == CHECKSUM_PARTIAL)) {
 		if (skb_is_gso(skb)) {
-			printk("%s(): skb_is_gso()=%d, skb->ip_summed=%d!\n", __FUNCTION__, skb_is_gso(skb), skb->ip_summed);
+			DBGPRINT(RT_DEBUG_OFF,
+				("%s(): skb_is_gso()=%d, skb->ip_summed=%d!\n",
+				__func__, skb_is_gso(skb), skb->ip_summed));
 			if (skb_is_nonlinear(skb))
 				dump_nonlinear_pkt(skb);
 				//hex_dump("rt28xx_tso_xmit", (UCHAR *)skb->data, skb->len);
@@ -675,22 +685,27 @@ INT rt28xx_tso_xmit(struct sk_buff *skb)
 		}
 
 		if (skb_is_gso(skb)) {
-			printk("\tmss=%d, gso_type=GSO_%s(0x%x), nr_frags=%d!\n",
+			DBGPRINT(RT_DEBUG_OFF, ("\tmss=%d, gso_type=GSO_%s(0x%x), nr_frags=%d!\n",
 					mss, (gso_type == SKB_GSO_TCPV4 ? "TCP" : "NonTCP"),
-					gso_type, nr_frags);
-			printk("\tips=0x%x, ipcso=0x%x, tups=0x%x, tucso=0x%x, tucse=0x%x\n",
-					ips, ipcso, tups, tucso, tucse);
-			printk("RalinkRequiredFields: \n\tcso/tso=%d/%d, is_tcp=%d, ips=%d, tups=%d, mss=%d!\n",
-					((skb->ip_summed == CHECKSUM_PARTIAL) ? 1 : 0),
-					(skb_is_gso(skb) ? 1 : 0),
-					is_tcp, ips, tups, mss);
-			printk("\tfields saved in CB[]:cso/tso=%d:%d, is_tcp=%d, ips=%d, tups=%d, mss=%d!\n",
-					RTMP_GET_PKT_CSO(skb),
-					RTMP_GET_PKT_TSO(skb),
-					RTMP_GET_PKT_TCP(skb),
-					RTMP_GET_PKT_IPS(skb),
-					RTMP_GET_PKT_TUPS(skb),
-					RTMP_GET_PKT_MSS(skb));
+					gso_type, nr_frags));
+			DBGPRINT(RT_DEBUG_OFF,
+				("\tips=0x%x, ipcso=0x%x, tups=0x%x, tucso=0x%x, tucse=0x%x\n",
+					ips, ipcso, tups, tucso, tucse));
+			DBGPRINT(RT_DEBUG_OFF,
+				("RalinkRequiredFields:\n\tcso/tso=%d/%d,",
+				((skb->ip_summed == CHECKSUM_PARTIAL) ? 1 : 0),
+				(skb_is_gso(skb) ? 1 : 0)));
+			DBGPRINT(RT_DEBUG_OFF,
+				("is_tcp=%d, ips=%d, tups=%d, mss=%d!\n",
+				is_tcp, ips, tups, mss));
+			DBGPRINT(RT_DEBUG_OFF, ("\tfields saved in CB[]:cso/tso=%d:%d,",
+				RTMP_GET_PKT_CSO(skb),
+				RTMP_GET_PKT_TSO(skb)));
+			DBGPRINT(RT_DEBUG_OFF, ("is_tcp=%d, ips=%d, tups=%d, mss=%d!\n",
+				RTMP_GET_PKT_TCP(skb),
+				RTMP_GET_PKT_IPS(skb),
+				RTMP_GET_PKT_TUPS(skb),
+				RTMP_GET_PKT_MSS(skb)));
 		}
 		return TRUE;
 	}
@@ -779,7 +794,7 @@ struct iw_statistics *rt28xx_get_wireless_stats(struct net_device *net_dev)
 	GET_PAD_FROM_NET_DEV(pAd, net_dev);
 
 
-	DBGPRINT(RT_DEBUG_TRACE, ("rt28xx_get_wireless_stats --->\n"));
+	/*DBGPRINT(RT_DEBUG_TRACE, ("rt28xx_get_wireless_stats --->\n"));*/
 
 	pDrvIwStats->priv_flags = RT_DEV_PRIV_FLAGS_GET(net_dev);
 	pDrvIwStats->dev_addr = (PUCHAR)net_dev->dev_addr;
@@ -882,7 +897,7 @@ struct iw_statistics *rt28xx_get_wireless_stats(struct net_device *net_dev)
 	pStats->discard.nwid = 0;     /* Rx : Wrong nwid/essid */
 	pStats->miss.beacon = 0;      /* Missed beacons/superframe */
 
-	DBGPRINT(RT_DEBUG_TRACE, ("<--- rt28xx_get_wireless_stats\n"));
+	/*DBGPRINT(RT_DEBUG_TRACE, ("<--- rt28xx_get_wireless_stats\n"));*/
 	return pStats;
 }
 #endif /* WIRELESS_EXT */
@@ -1062,10 +1077,14 @@ BOOLEAN RtmpPhyNetDevExit(VOID *pAd, PNET_DEV net_dev)
 	/* Unregister network device */
 	if (net_dev != NULL)
 	{
-		printk("RtmpOSNetDevDetach(): RtmpOSNetDeviceDetach(), dev->name=%s!\n", net_dev->name);
-		RtmpOSNetDevProtect(1);
+		DBGPRINT(RT_DEBUG_OFF,
+			("RtmpOSNetDevDetach(): RtmpOSNetDeviceDetach(), dev->name=%s!\n",
+			net_dev->name));
+		/* Remove wifi dirver to lock the rtnl_lock here.
+		*  It will cause kernel crash sometimes.
+		*  The lock action leave to kernel.
+		*/
 		RtmpOSNetDevDetach(net_dev);
-		RtmpOSNetDevProtect(0);
 	}
 
 	return TRUE;
@@ -1103,7 +1122,7 @@ int RtmpOSIRQRequest(IN PNET_DEV pNetDev)
 
 		retval = request_irq(pci_dev->irq,  rt2860_interrupt, SA_SHIRQ, (net_dev)->name, (net_dev));
 		if (retval != 0)
-			printk("RT2860: request_irq  ERROR(%d)\n", retval);
+			DBGPRINT(RT_DEBUG_OFF, ("RT2860: request_irq  ERROR(%d)\n", retval));
 	}
 #endif /* RTMP_PCI_SUPPORT */
 
@@ -1116,7 +1135,7 @@ int RtmpOSIRQRequest(IN PNET_DEV pNetDev)
 		if ((retval = request_irq(net_dev->irq,rt2860_interrupt, SA_INTERRUPT, net_dev->name ,net_dev)))
 #endif
 		{
-			printk("RT2860: request_irq  ERROR(%d)\n", retval);
+			DBGPRINT(RT_DEBUG_OFF, ("RT2860: request_irq  ERROR(%d)\n", retval));
 		}
 	}
 #endif /* RTMP_RBUS_SUPPORT */

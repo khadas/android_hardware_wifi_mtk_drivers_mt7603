@@ -3337,9 +3337,17 @@ VOID RTMPSetSupportMCS(
 			else
 #endif /* WDS_SUPPORT */
 #ifdef APCLI_SUPPORT
-			if (IS_ENTRY_APCLI(pEntry))
+			if (IS_ENTRY_APCLI(pEntry)) {
+				if (pEntry->func_tb_idx >= ARRAY_SIZE(pAd->ApCfg.ApCliTab)) {
+					DBGPRINT(RT_DEBUG_ERROR,
+						 ("%s: invalid apcli entry idx %d table sz %zu\n",
+						  __func__, pEntry->func_tb_idx,
+						  ARRAY_SIZE(pAd->ApCfg.ApCliTab)));
+					return;
+				}
+
 				pDesired_ht_phy = &pAd->ApCfg.ApCliTab[pEntry->func_tb_idx].wdev.DesiredHtPhyInfo;
-			else
+			} else {
 #endif /* APCLI_SUPPORT */
 #ifdef MESH_SUPPORT
 			if (IS_ENTRY_MESH(pEntry))
@@ -3347,6 +3355,7 @@ VOID RTMPSetSupportMCS(
 			else
 #endif /* MESH_SUPPORT */
 				pDesired_ht_phy = &pAd->ApCfg.MBSSID[pEntry->func_tb_idx].wdev.DesiredHtPhyInfo;
+			}
 		}
 #endif /* CONFIG_AP_SUPPORT */
 

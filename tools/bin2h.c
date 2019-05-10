@@ -21,11 +21,15 @@
 #include <string.h>
 #include <stdlib.h>
 
+#define MAX_FIRMWARE_NAME_BUFFER_LENGTH 128
+#define MAX_NAME_BUFFER_LENGTH 512
+#define MAX_CHIPSETS_BUFFER_LENGTH 1024
+
 int bin2h(char *infname, char *outfname, char *fw_name)
 {
 	int ret = 0;
     FILE *infile, *outfile;
-    unsigned char c;
+	int c;
     int i=0;
 
     infile = fopen(infname,"r");
@@ -66,7 +70,7 @@ int bin2h(char *infname, char *outfname, char *fw_name)
 		}
 
 		fputs("0x", outfile);
-		sprintf(cc,"%02x",c);
+		snprintf(cc, sizeof(cc), "%02x", c);
 		fputs(cc, outfile);
 		fputs(", ", outfile);
 		i++;
@@ -80,13 +84,14 @@ int bin2h(char *infname, char *outfname, char *fw_name)
 
 int main(int argc ,char *argv[])
 {
-    char infname[512], ine2pname[512], in_rom_patch[512];
-	char infname1[512];
-    char outfname[512], oute2pname[512], out_rom_patch[512];
-	char outfname1[512];
-	char chipsets[1024];
-	char fw_name[128], e2p_name[128], rom_patch_name[128];
-	char fw_name1[128];
+	char infname[MAX_NAME_BUFFER_LENGTH], ine2pname[MAX_NAME_BUFFER_LENGTH];
+	char infname1[MAX_NAME_BUFFER_LENGTH], in_rom_patch[MAX_NAME_BUFFER_LENGTH];
+	char outfname[MAX_NAME_BUFFER_LENGTH], oute2pname[MAX_NAME_BUFFER_LENGTH];
+	char outfname1[MAX_NAME_BUFFER_LENGTH], out_rom_patch[MAX_NAME_BUFFER_LENGTH];
+	char chipsets[MAX_CHIPSETS_BUFFER_LENGTH];
+	char fw_name[MAX_FIRMWARE_NAME_BUFFER_LENGTH], e2p_name[MAX_FIRMWARE_NAME_BUFFER_LENGTH];
+	char fw_name1[MAX_FIRMWARE_NAME_BUFFER_LENGTH];
+	char rom_patch_name[MAX_FIRMWARE_NAME_BUFFER_LENGTH];
     char *rt28xxdir;
     char *chipset, *token;
 	char *wow, *rt28xx_mode;
@@ -115,8 +120,9 @@ int main(int argc ,char *argv[])
 		printf("Environment value \"CHIPSET\" over 1024 bytes\n");
 		return -1;
 	}
-    memset(chipsets, 0, 1024);
-	memcpy(chipsets, chipset, strlen(chipset));
+	memset(chipsets, 0, MAX_CHIPSETS_BUFFER_LENGTH);
+	strncpy(chipsets, chipset, MAX_CHIPSETS_BUFFER_LENGTH - 1);
+	chipsets[MAX_CHIPSETS_BUFFER_LENGTH - 1] = '\0';
 
 	if (strlen(rt28xxdir) > (sizeof(infname)-100)) {
 		printf("Environment value \"RT28xx_DIR\" is too long!\n");
@@ -127,26 +133,27 @@ int main(int argc ,char *argv[])
 
 	while (chipset != NULL) {
 		printf("chipset = %s\n", chipset);
-    	memset(infname, 0, 512);
-    	memset(infname1, 0, 512);
-		memset(ine2pname, 0, 512);
-    	memset(outfname, 0, 512);
-    	memset(outfname1, 0, 512);
-		memset(oute2pname, 0, 512);
-		memset(fw_name, 0, 128);
-		memset(fw_name1, 0, 128);
-		memset(e2p_name, 0, 128);
-		memset(in_rom_patch, 0, 512);
-		memset(out_rom_patch, 0, 512);
-		memset(rom_patch_name, 0, 128);
-    	strcat(infname,rt28xxdir);
-    	strcat(infname1,rt28xxdir);
-		strcat(ine2pname, rt28xxdir);
-		strcat(in_rom_patch, rt28xxdir);
-    	strcat(outfname,rt28xxdir);
-    	strcat(outfname1,rt28xxdir);
-		strcat(oute2pname, rt28xxdir);
-		strcat(out_rom_patch, rt28xxdir);
+		memset(infname, 0, MAX_NAME_BUFFER_LENGTH);
+		memset(infname1, 0, MAX_NAME_BUFFER_LENGTH);
+		memset(ine2pname, 0, MAX_NAME_BUFFER_LENGTH);
+		memset(outfname, 0, MAX_NAME_BUFFER_LENGTH);
+		memset(outfname1, 0, MAX_NAME_BUFFER_LENGTH);
+		memset(oute2pname, 0, MAX_NAME_BUFFER_LENGTH);
+		memset(fw_name, 0, MAX_FIRMWARE_NAME_BUFFER_LENGTH);
+		memset(fw_name1, 0, MAX_FIRMWARE_NAME_BUFFER_LENGTH);
+		memset(e2p_name, 0, MAX_FIRMWARE_NAME_BUFFER_LENGTH);
+		memset(in_rom_patch, 0, MAX_NAME_BUFFER_LENGTH);
+		memset(out_rom_patch, 0, MAX_NAME_BUFFER_LENGTH);
+		memset(rom_patch_name, 0, MAX_FIRMWARE_NAME_BUFFER_LENGTH);
+		strncat(infname, rt28xxdir, MAX_NAME_BUFFER_LENGTH - strlen(infname) - 1);
+		strncat(infname1, rt28xxdir, MAX_NAME_BUFFER_LENGTH - strlen(infname1) - 1);
+		strncat(ine2pname, rt28xxdir, MAX_NAME_BUFFER_LENGTH - strlen(ine2pname) - 1);
+		strncat(in_rom_patch, rt28xxdir, MAX_NAME_BUFFER_LENGTH - strlen(in_rom_patch) - 1);
+		strncat(outfname, rt28xxdir, MAX_NAME_BUFFER_LENGTH - strlen(outfname) - 1);
+		strncat(outfname1, rt28xxdir, MAX_NAME_BUFFER_LENGTH - strlen(outfname1) - 1);
+		strncat(oute2pname, rt28xxdir, MAX_NAME_BUFFER_LENGTH - strlen(oute2pname) - 1);
+		strncat(out_rom_patch, rt28xxdir,
+				MAX_NAME_BUFFER_LENGTH - strlen(out_rom_patch) - 1);
 		is_bin2h_fw = 0;
 		is_bin2h_rom_patch = 0;
 		is_bin2h_e2p = 0;
@@ -321,9 +328,11 @@ int main(int argc ,char *argv[])
 					|| (strncmp(chipset, "mt7603u", 7) == 0)) {
 			strcat(infname, "/mcu/bin/WIFI_RAM_CODE_MT7603_e1.bin");
 			strcat(infname1, "/mcu/bin/WIFI_RAM_CODE_MT7603_e2.bin");
-			strcat(outfname, "/include/mcu/mt7603_firmware.h");
+			strncat(outfname, "/include/mcu/mt7603_firmware.h"
+					, MAX_NAME_BUFFER_LENGTH - strlen(outfname) - 1);
 			strcat(outfname1, "/include/mcu/mt7603_e2_firmware.h");
-			strcat(fw_name, "MT7603_FirmwareImage");
+			strncat(fw_name, "MT7603_FirmwareImage"
+					, MAX_FIRMWARE_NAME_BUFFER_LENGTH - strlen(fw_name) - 1);
 			strcat(fw_name1, "MT7603_e2_FirmwareImage");
 
 			strcat(e2p_name, "MT7603_E2PImage");
@@ -334,10 +343,12 @@ int main(int argc ,char *argv[])
 		} else if (strncmp(chipset, "mt7628", 7) == 0) {
 			//strcat(infname, "/mcu/bin/MT7628_ram_20140212_fpga_tv01.bin");
             strcat(infname, "/mcu/bin/WIFI_RAM_CODE_MT7628_e1.bin");
-			strcat(outfname, "/include/mcu/mt7628_firmware.h");
+			strncat(outfname, "/include/mcu/mt7628_firmware.h"
+					, MAX_NAME_BUFFER_LENGTH - strlen(outfname) - 1);
 			strcat(fw_name, "MT7628_FirmwareImage");
 		    strcat(e2p_name, "MT7628_E2PImage");
-			strcat(ine2pname, "/eeprom/MT7603E1_EEPROM_layout_20131206.bin");
+			strncat(ine2pname, "/eeprom/MT7603E1_EEPROM_layout_20131206.bin"
+					, MAX_NAME_BUFFER_LENGTH - strlen(ine2pname) - 1);
 			strcat(oute2pname, "/include/eeprom/mt7628_e2p.h");
 			is_bin2h_fw = 1;
 			is_bin2h_e2p = 1;

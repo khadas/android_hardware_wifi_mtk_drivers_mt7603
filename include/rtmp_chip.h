@@ -1564,7 +1564,7 @@ struct _RTMP_CHIP_OP {
 	VOID (*AsicWOWEnable)(struct _RTMP_ADAPTER *ad);
 	VOID (*AsicWOWDisable)(struct _RTMP_ADAPTER *ad);
 	VOID (*AsicWOWInit)(struct _RTMP_ADAPTER *ad);
-#endif /* (defined(WOW_SUPPORT) && defined(RTMP_MAC_USB)) || defined(NEW_WOW_SUPPORT)  || defined(MT_WOW_SUPPORT) */
+#endif /* (defined(WOW_SUPPORT) && defined(RTMP_MAC_USB)) || defined(MT_WOW_SUPPORT) */
 
 	void (*usb_cfg_read)(struct _RTMP_ADAPTER *ad, UINT32 *value);
 	void (*usb_cfg_write)(struct _RTMP_ADAPTER *ad, UINT32 value);
@@ -1908,7 +1908,7 @@ do {	\
 		_pAd->chipOps.AsicWOWInit(_pAd);	\
 } while(0)
 
-#endif /* (defined(WOW_SUPPORT) && defined(RTMP_MAC_USB)) || defined(NEW_WOW_SUPPORT) || defined(MT_WOW_SUPPORT) */
+#endif /* (defined(WOW_SUPPORT) && defined(RTMP_MAC_USB)) || defined(MT_WOW_SUPPORT) */
 
 #define MCU_CTRL_INIT(_pAd)	\
 do {	\

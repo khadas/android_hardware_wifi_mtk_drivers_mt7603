@@ -850,6 +850,10 @@ VOID RtmpPrepareHwNullFrame(
 	IN BOOLEAN bWaitACK,
 	IN CHAR Index)
 {
+
+#if defined(MT7603) || defined(MT7628)
+	/* nothing to handle */
+#else
 	UINT8 TXWISize = pAd->chipCap.TXWISize;
 	UCHAR *pNullFrame, *tmac_info = (UCHAR *)&pAd->NullTxWI;
 	NDIS_STATUS NState;
@@ -862,12 +866,6 @@ VOID RtmpPrepareHwNullFrame(
 	PAPCLI_STRUCT pApCliEntry = NULL;
 #endif /* P2P_SUPPORT */
 	MAC_TX_INFO mac_info;
-
-	// TODO: shiang-7603!! fix me
-	if (IS_MT7603(pAd) || IS_MT7628(pAd)) {
-		DBGPRINT(RT_DEBUG_OFF, ("%s(): MT7603 Not support yet!\n", __FUNCTION__));
-		return;
-	}
 
 	NState = MlmeAllocateMemory(pAd, (PUCHAR *)&pNullFrame);
 
@@ -934,7 +932,7 @@ VOID RtmpPrepareHwNullFrame(
 	mac_info.NSeq = TRUE;
 	mac_info.BASize = 0;
 	
-	mac_info.WCID = pEntry->Aid;
+	mac_info.WCID = (UCHAR)(pEntry->Aid);
 	mac_info.Length = Length;
 	
 	mac_info.TID = 0;
@@ -1016,6 +1014,7 @@ VOID RtmpPrepareHwNullFrame(
 
 	if (pNullFrame)
 		MlmeFreeMemory(pAd, pNullFrame);
+#endif /* defined(MT7603) || defined(MT7628) */
 }
 
 
@@ -1237,7 +1236,7 @@ VOID MlmeHandler(RTMP_ADAPTER *pAd)
 
 #ifdef APCLI_SUPPORT
 				case APCLI_AUTH_STATE_MACHINE:
-					apcliIfIndex = Elem->Priv;
+					apcliIfIndex = (SHORT)Elem->Priv;
 #ifdef MAC_REPEATER_SUPPORT
 					if (apcliIfIndex >= 64)
 						apcliIfIndex = ((apcliIfIndex - 64) / 16);		
@@ -1249,7 +1248,7 @@ VOID MlmeHandler(RTMP_ADAPTER *pAd)
 #ifdef MAC_REPEATER_SUPPORT
 						UCHAR CliIdx = 0;
 
-						apcliIfIndex = Elem->Priv;
+						apcliIfIndex = (SHORT)Elem->Priv;
 
 						if (apcliIfIndex >= 64)
 						{
@@ -1268,7 +1267,7 @@ VOID MlmeHandler(RTMP_ADAPTER *pAd)
 					break;
 
 				case APCLI_ASSOC_STATE_MACHINE:
-					apcliIfIndex = Elem->Priv;
+					apcliIfIndex = (SHORT)Elem->Priv;
 #ifdef MAC_REPEATER_SUPPORT
 					if (apcliIfIndex >= 64)
 						apcliIfIndex = ((apcliIfIndex - 64) / 16);		
@@ -1280,7 +1279,7 @@ VOID MlmeHandler(RTMP_ADAPTER *pAd)
 #ifdef MAC_REPEATER_SUPPORT
 						UCHAR CliIdx = 0;
 
-						apcliIfIndex = Elem->Priv;
+						apcliIfIndex = (SHORT)Elem->Priv;
 
 						if (apcliIfIndex >= 64)
 						{
@@ -1295,14 +1294,14 @@ VOID MlmeHandler(RTMP_ADAPTER *pAd)
 					break;
 
 				case APCLI_SYNC_STATE_MACHINE:
-					apcliIfIndex = Elem->Priv;
+					apcliIfIndex = (SHORT)Elem->Priv;
 					if(isValidApCliIf(apcliIfIndex))
 						StateMachinePerformAction(pAd, &pAd->Mlme.ApCliSyncMachine, Elem,
 							(pAd->ApCfg.ApCliTab[apcliIfIndex].SyncCurrState));
 					break;
 
 				case APCLI_CTRL_STATE_MACHINE:
-					apcliIfIndex = Elem->Priv;
+					apcliIfIndex = (SHORT)Elem->Priv;
 #ifdef MAC_REPEATER_SUPPORT
 					if (apcliIfIndex >= 64)
 						apcliIfIndex = ((apcliIfIndex - 64) / 16);		
@@ -1314,7 +1313,7 @@ VOID MlmeHandler(RTMP_ADAPTER *pAd)
 #ifdef MAC_REPEATER_SUPPORT
 						UCHAR CliIdx = 0;
 
-						apcliIfIndex = Elem->Priv;
+						apcliIfIndex = (SHORT)Elem->Priv;
 
 						if (apcliIfIndex >= 64)
 						{
@@ -2003,7 +2002,7 @@ VOID MlmeHalt(RTMP_ADAPTER *pAd)
 
 #if (defined(WOW_SUPPORT) && defined(RTMP_MAC_USB)) || defined(MT_WOW_SUPPORT)
 		if (!(pAd->WOW_Cfg.bEnable == TRUE) && INFRA_ON(pAd))
-#endif /* (defined(WOW_SUPPORT) && defined(RTMP_MAC_USB)) || defined(NEW_WOW_SUPPORT) || defined(MT_WOW_SUPPORT)*/
+#endif /* (defined(WOW_SUPPORT) && defined(RTMP_MAC_USB)) || defined(MT_WOW_SUPPORT)*/
 			if (pChipOps->AsicHaltAction)
 				pChipOps->AsicHaltAction(pAd);
 	}
@@ -2068,7 +2067,6 @@ NTSTATUS MlmePeriodicExec(IN PRTMP_ADAPTER pAd, IN PCmdQElmt CMDQelmt)
 #ifdef ANT_DIVERSITY_SUPPORT
 	SHORT realavgrssi;
 #endif /* ANT_DIVERSITY_SUPPORT */
-
 
 	/* No More 0x84 MCU CMD from v.30 FW*/
 #if 0
@@ -2465,7 +2463,8 @@ NTSTATUS MlmePeriodicExec(IN PRTMP_ADAPTER pAd, IN PCmdQElmt CMDQelmt)
             {
                 DBGPRINT(RT_DEBUG_TRACE, ("Current TP=%lu < Threshold(%lu), turn-off TxOP\n", 
                         (((TxTotalByteCnt + RxTotalByteCnt) << 3) >> 20), pAd->CommonCfg.ManualTxopThreshold));
-                AsicUpdateTxOP(pAd, WMM_PARAM_AC_1, 0x0);
+		if (!pAd->bLink11b)
+			AsicUpdateTxOP(pAd, WMM_PARAM_AC_1, 0x0);
             }
         }
         else if (pAd->MacTab.Size > 1)
@@ -2635,6 +2634,7 @@ NTSTATUS MlmePeriodicExec(IN PRTMP_ADAPTER pAd, IN PCmdQElmt CMDQelmt)
 		/* the dynamic tuning mechanism below are based on most up-to-date information*/
 		/* Hint: throughput impact is very serious in the function */
 #ifndef RTMP_SDIO_SUPPORT
+		NicUpdatFalseCCACounters(pAd);
 		NICUpdateRawCounters(pAd);
 #endif /*leonardo mark it for FPGA debug*/
 		RTMP_SECOND_CCA_DETECTION(pAd);
@@ -2898,9 +2898,22 @@ NTSTATUS MlmePeriodicExec(IN PRTMP_ADAPTER pAd, IN PCmdQElmt CMDQelmt)
     			}
 #endif /* TDLS_AUTOLINK_SUPPORT */
 #endif /* defined(DOT11Z_TDLS_SUPPORT) || defined(CFG_TDLS_SUPPORT) */
+
 			STAMlmePeriodicExec(pAd);
 		}
 #endif /* CONFIG_STA_SUPPORT */
+
+
+#ifdef SMART_CARRIER_SENSE_SUPPORT
+#if 0 /* move to MtCmdNICUpdateRawCounters*/
+			pAd->SCSCtrl.PdCount = PDCnt;
+			pAd->SCSCtrl.MdrdyCount = MDRDYCnt;
+			pAd->SCSCtrl.FalseCCA = pAd->RalinkCounters.FalseCCACnt;
+#endif
+
+			if (pAd->SCSCtrl.SCSEnable == SCS_ENABLE)
+				MTSmartCarrierSense(pAd);
+#endif/*SMART_CARRIER_SENSE_SUPPORT */
 
 #if defined(RT5370) || defined(RT5372) || defined(RT5390) || defined(RT5392)
 		if (IS_RT5392(pAd) && ((pAd->MACVersion & 0x0000FFFF) < 0x0223))
@@ -4054,6 +4067,13 @@ VOID LinkDownExec(
 
 VOID MlmeAutoScan(RTMP_ADAPTER *pAd)
 {
+	if (pAd->MlmeAux.AutoReconnectSsidLen > MAX_LEN_OF_SSID) {
+		DBGPRINT(RT_DEBUG_ERROR,
+			("%s(): invalid SsidLen(%d)\n",
+			__func__, pAd->MlmeAux.AutoReconnectSsidLen));
+		return;
+	}
+
 	/* check CntlMachine.CurrState to avoid collision with NDIS SetOID request*/
 	if (pAd->Mlme.CntlMachine.CurrState == CNTL_IDLE)
 	{
@@ -4719,7 +4739,7 @@ VOID MlmeUpdateTxRates(RTMP_ADAPTER *pAd, BOOLEAN bLinkUp, UCHAR apidx)
 #ifdef RT_CFG80211_P2P_SUPPORT
 		if (apidx >= MIN_NET_DEVICE_FOR_CFG80211_VIF_P2P_GO)
 		{
-			printk("%s: Update for GO\n", __FUNCTION__);
+			DBGPRINT(RT_DEBUG_INFO, ("%s: Update for GO\n", __func__));
 			wdev = &pAd->ApCfg.MBSSID[CFG_GO_BSSID_IDX].wdev;
 			break;
 		}
@@ -4815,7 +4835,7 @@ VOID MlmeUpdateTxRates(RTMP_ADAPTER *pAd, BOOLEAN bLinkUp, UCHAR apidx)
 		pMinHtPhy = &wdev->MinHTPhyMode;
 
 		auto_rate_cur_p = &wdev->bAutoTxRateSwitch;
-		HtMcs = wdev->DesiredTransmitSetting.field.MCS;
+		HtMcs = (UCHAR)wdev->DesiredTransmitSetting.field.MCS;
 	}
 
 	pAd->CommonCfg.MaxDesiredRate = MaxDesire;
@@ -5314,7 +5334,7 @@ VOID MlmeUpdateHtTxRates(RTMP_ADAPTER *pAd, UCHAR apidx)
 		pMaxHtPhy->field.MCS = 32;	
 	}
 
-	pMaxHtPhy->field.MCS = get_ht_max_mcs(pAd, &pDesireHtPhy->MCSSet[0],
+	pMaxHtPhy->field.MCS = (USHORT)get_ht_max_mcs(pAd, &pDesireHtPhy->MCSSet[0],
 											&pActiveHtPhy->MCSSet[0]);
 
 	/* Copy MIN ht rate.  rt2860???*/
@@ -5982,6 +6002,11 @@ ULONG BssTableSetEntry(
 
 
 	Idx = BssTableSearch(Tab, ie_list->Bssid, ie_list->Channel);
+	if (Idx >= MAX_LEN_OF_BSS_TABLE && Idx != BSS_NOT_FOUND) {
+		DBGPRINT(RT_DEBUG_ERROR,
+			("%s(): invalid BSS Idx(%ld)\n", __func__, Idx));
+		return BSS_NOT_FOUND;
+	}
 	if (Idx == BSS_NOT_FOUND) 
 	{
 		if (Tab->BssNr >= MAX_LEN_OF_BSS_TABLE)
@@ -7218,11 +7243,9 @@ BOOLEAN MlmeEnqueue(
 {
 	INT Tail;
 	MLME_QUEUE	*Queue = (MLME_QUEUE *)&pAd->Mlme.Queue;
+
 	/* Do nothing if the driver is starting halt state.*/
 	/* This might happen when timer already been fired before cancel timer with mlmehalt*/
-	if (Machine == APCLI_CTRL_STATE_MACHINE)
-         DBGPRINT(RT_DEBUG_TRACE, ("army 1debug for the APCLI_CTRL_STATE_MACHINE state:%ld\n",MsgType));
-
 	if (RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_HALT_IN_PROGRESS | fRTMP_ADAPTER_NIC_NOT_EXIST))
 		return FALSE;
 
@@ -7272,9 +7295,6 @@ BOOLEAN MlmeEnqueue(
 		NdisMoveMemory(Queue->Entry[Tail].Msg, Msg, MsgLen);
 	}
 		
-	if (Machine == APCLI_CTRL_STATE_MACHINE)
-		 DBGPRINT(RT_DEBUG_TRACE, ("army 2debug for the APCLI_CTRL_STATE_MACHINE state:%ld\n",MsgType));
-
 	NdisReleaseSpinLock(&(Queue->Lock));
 #ifdef RELEASE_EXCLUDE
 	DBGPRINT(RT_DEBUG_INFO, ("MlmeEnqueue, num=%ld\n",Queue->Num));
@@ -7479,7 +7499,7 @@ BOOLEAN MlmeEnqueueForRecv(
 	NdisMoveMemory(&Queue->Entry[Tail].rssi_info, rssi_info, sizeof(struct raw_rssi_info));
 	Queue->Entry[Tail].Signal = rssi_info->raw_snr;
 	Queue->Entry[Tail].Wcid = (UCHAR)Wcid;
-	Queue->Entry[Tail].OpMode = (ULONG)OpMode;
+	Queue->Entry[Tail].OpMode = (UCHAR)OpMode;
 	Queue->Entry[Tail].Channel = pAd->LatchRfRegs.Channel;
 	Queue->Entry[Tail].Priv = 0;
 #ifdef APCLI_SUPPORT
@@ -7906,8 +7926,9 @@ BOOLEAN MsgTypeSubst(RTMP_ADAPTER *pAd, FRAME_802_11 *pFrame, INT *Machine, INT 
 			break;
 		case SUBTYPE_AUTH:
 			/* get the sequence number from payload 24 Mac Header + 2 bytes algorithm*/
-			NdisMoveMemory(&Seq, &pFrame->Octet[2], sizeof(USHORT));
-			NdisMoveMemory(&Alg, &pFrame->Octet[0], sizeof(USHORT));
+		NdisMoveMemory(&Seq, (UCHAR *)pFrame+sizeof(HEADER_802_11)+2, sizeof(USHORT));
+		NdisMoveMemory(&Alg, (UCHAR *)pFrame+sizeof(HEADER_802_11), sizeof(USHORT));
+
 			if (Seq == 1 || Seq == 3) 
 			{
 				*Machine = AUTH_RSP_STATE_MACHINE;
@@ -8124,7 +8145,7 @@ UCHAR RandomByte2(RTMP_ADAPTER *pAd)
 	a &= 0x0000ffff;
 	b = AsicGetCrcErrCnt(pAd);
 	b &= 0x0000ffff;
-	value = (a<<16)|b;
+	value = (UCHAR)((a<<16)|b);
 
 	/*get seed by RSSI or SNR related info */
 	seed = get_random_seed_by_phy(pAd);
@@ -8328,10 +8349,13 @@ BOOLEAN RTMPCheckHt(
 	/* Send Assoc Req with my HT capability.*/
 	pAd->MlmeAux.HtCapability.HtCapInfo.AMsduSize =  pAd->CommonCfg.DesiredHtPhy.AmsduSize;
 	pAd->MlmeAux.HtCapability.HtCapInfo.MimoPs =  pAd->CommonCfg.DesiredHtPhy.MimoPs;
-	pAd->MlmeAux.HtCapability.HtCapInfo.ShortGIfor20 =  (pAd->CommonCfg.DesiredHtPhy.ShortGIfor20) & (pHtCap->HtCapInfo.ShortGIfor20);
-	pAd->MlmeAux.HtCapability.HtCapInfo.ShortGIfor40 =  (pAd->CommonCfg.DesiredHtPhy.ShortGIfor40) & (pHtCap->HtCapInfo.ShortGIfor40);
-	pAd->MlmeAux.HtCapability.HtCapInfo.TxSTBC =  (pAd->CommonCfg.DesiredHtPhy.TxSTBC)&(pHtCap->HtCapInfo.RxSTBC);
-	pAd->MlmeAux.HtCapability.HtCapInfo.RxSTBC =  (pAd->CommonCfg.DesiredHtPhy.RxSTBC)&(pHtCap->HtCapInfo.TxSTBC);
+	/* The HT Capabilities element are used to advertise optional HT capabilities of an HT STA.
+	 * We shouldn't care about the AP's Capabilities in here
+	 */
+	pAd->MlmeAux.HtCapability.HtCapInfo.ShortGIfor20 = pAd->CommonCfg.DesiredHtPhy.ShortGIfor20;
+	pAd->MlmeAux.HtCapability.HtCapInfo.ShortGIfor40 = pAd->CommonCfg.DesiredHtPhy.ShortGIfor40;
+	pAd->MlmeAux.HtCapability.HtCapInfo.TxSTBC = pAd->CommonCfg.DesiredHtPhy.TxSTBC;
+	pAd->MlmeAux.HtCapability.HtCapInfo.RxSTBC = pAd->CommonCfg.DesiredHtPhy.RxSTBC;
 	
 	if (CLIENT_STATUS_TEST_FLAG(sta, fCLIENT_STATUS_HT_RX_LDPC_CAPABLE))
 		pAd->MlmeAux.HtCapability.HtCapInfo.ht_rx_ldpc = 1;
@@ -8451,16 +8475,16 @@ VOID RTMPUpdateMlmeRate(RTMP_ADAPTER *pAd)
 
 	switch (pAd->CommonCfg.PhyMode) 
 	{
-		case (WMODE_B):
+		case ((UCHAR)WMODE_B):
 			ProperMlmeRate = RATE_11;
 			MinimumRate = RATE_1;
 			break;
-		case (WMODE_B | WMODE_G):
+		case ((UCHAR)(WMODE_B | WMODE_G)):
 #ifdef DOT11_N_SUPPORT
-		case (WMODE_B | WMODE_G | WMODE_GN | WMODE_A |WMODE_AN):
-		case (WMODE_B | WMODE_G | WMODE_GN):
+		case ((UCHAR)(WMODE_B | WMODE_G | WMODE_GN | WMODE_A | WMODE_AN)):
+		case ((UCHAR)(WMODE_B | WMODE_G | WMODE_GN)):
 #ifdef DOT11_VHT_AC
-		case (WMODE_B | WMODE_G | WMODE_GN | WMODE_A |WMODE_AN | WMODE_AC):
+		case ((UCHAR)(WMODE_B | WMODE_G | WMODE_GN | WMODE_A | WMODE_AN | WMODE_AC)):
 #endif /* DOT11_VHT_AC */
 #endif /* DOT11_N_SUPPORT */
 			if ((pAd->MlmeAux.SupRateLen == 4) &&
@@ -8474,21 +8498,21 @@ VOID RTMPUpdateMlmeRate(RTMP_ADAPTER *pAd)
 			else
 				MinimumRate = RATE_6;
 			break;
-		case (WMODE_A):
+		case ((UCHAR)WMODE_A):
 #ifdef DOT11_N_SUPPORT
-		case (WMODE_GN):
-		case (WMODE_G | WMODE_GN):
-		case (WMODE_A | WMODE_G | WMODE_GN | WMODE_AN):
-		case (WMODE_A |WMODE_AN):
-		case (WMODE_AN):	
+		case ((UCHAR)WMODE_GN):
+		case ((UCHAR)(WMODE_G | WMODE_GN)):
+		case ((UCHAR)(WMODE_A | WMODE_G | WMODE_GN | WMODE_AN)):
+		case ((UCHAR)(WMODE_A | WMODE_AN)):
+		case ((UCHAR)WMODE_AN):
 #ifdef DOT11_VHT_AC
-		case (WMODE_A | WMODE_G | WMODE_GN | WMODE_AN | WMODE_AC):
+		case ((UCHAR)(WMODE_A | WMODE_G | WMODE_GN | WMODE_AN | WMODE_AC)):
 #endif /* DOT11_VHT_AC */
 #endif /* DOT11_N_SUPPORT */
 			ProperMlmeRate = RATE_24;
 			MinimumRate = RATE_6;
 			break;
-		case (WMODE_A |WMODE_B | WMODE_G):
+		case ((UCHAR)(WMODE_A | WMODE_B | WMODE_G)):
 			ProperMlmeRate = RATE_24;
 			if (pAd->MlmeAux.Channel <= 14)
 			   MinimumRate = RATE_1;
@@ -8615,6 +8639,24 @@ CHAR RTMPAvgRssi(RTMP_ADAPTER *pAd, RSSI_SAMPLE *pRssi)
 	return Rssi;
 }
 
+CHAR RTMPMaxNoise(RTMP_ADAPTER *pAd, CHAR Noise0, CHAR Noise1, CHAR Noise2)
+{
+	CHAR	larger = -127;
+
+	if ((pAd->Antenna.field.RxPath == 1) && (Noise0 != 0))
+		larger = Noise0;
+
+	if ((pAd->Antenna.field.RxPath >= 2) && (Noise1 != 0))
+		larger = max(Noise0, Noise1);
+
+	if ((pAd->Antenna.field.RxPath == 3) && (Noise2 != 0))
+		larger = max(larger, Noise2);
+
+	if (larger == -127)
+		larger = 0;
+
+	return larger;
+}
 
 CHAR RTMPMaxRssi(RTMP_ADAPTER *pAd, CHAR Rssi0, CHAR Rssi1, CHAR Rssi2)
 {
@@ -8641,6 +8683,24 @@ CHAR RTMPMaxRssi(RTMP_ADAPTER *pAd, CHAR Rssi0, CHAR Rssi1, CHAR Rssi2)
 	return larger;
 }
 
+CHAR RTMPMinRssi(RTMP_ADAPTER *pAd, CHAR Rssi0, CHAR Rssi1, CHAR Rssi2)
+{
+	CHAR	smaller = -127;
+
+	if ((pAd->Antenna.field.RxPath == 1) && (Rssi0 != 0))
+		smaller = Rssi0;
+
+	if ((pAd->Antenna.field.RxPath >= 2) && (Rssi1 != 0))
+		smaller = min(Rssi0, Rssi1);
+
+	if ((pAd->Antenna.field.RxPath == 3) && (Rssi2 != 0))
+		smaller = min(smaller, Rssi2);
+
+	if (smaller == -127)
+		smaller = 0;
+
+	return smaller;
+}
 
 CHAR RTMPMinSnr(RTMP_ADAPTER *pAd, CHAR Snr0, CHAR Snr1)
 {

@@ -325,6 +325,9 @@ enum MT_EVENT_TYPE {
 #define FW_FEATURE_RESET_IV (1 << 3)
 #define GET_FEATURE_SET_KEY(p) (((p) & FW_FEATURE_SET_KEY_MASK) >> 1)
 
+#define FW_KEEP_ALIVE_ENABLE_MASK 0x80
+#define FW_KEEP_ALIVE_PERIOD_MASK 0xF /* max 15s */
+
 /*
  * Erro code for target address/length response
  */
@@ -623,7 +626,7 @@ typedef struct _BIN_CONTENT_T {
 	UINT8          ucReserved;
 } BIN_CONTENT_T, *P_BIN_CONTENT_T;
 
-#define EFUSE_CONTENT_BUFFER_SIZE 0xff
+#define EFUSE_CONTENT_BUFFER_SIZE 0xf0
 typedef struct _EXT_CMD_EFUSE_BUFFER_MODE_T {
 UINT8 ucSourceMode;
 UINT8 ucCount;
@@ -804,6 +807,8 @@ typedef struct _CMD_PACKET_FILTER_GLOBAL_T {
     UINT32	PFType;
 	UINT32	FunctionSelect;
 	UINT32	Enable;
+	UINT8	extParam;
+	UINT8	resv[3];
 } CMD_PACKET_FILTER_GLOBAL_T, *P_CMD_PACKET_FILTER_GLOBAL_T;
 
 typedef struct _CMD_PACKET_FILTER_MAGIC_PACKET_T {

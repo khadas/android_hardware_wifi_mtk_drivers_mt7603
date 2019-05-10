@@ -145,6 +145,10 @@ VOID	RTUSBInitTxDesc(
 
 	pUrb = pTxContext->pUrb;
 	ASSERT(pUrb);
+	if (BulkOutPipeId >= 5) {
+		DBGPRINT(RT_DEBUG_ERROR, ("%s:Invalid BulkOutPipeId\n", __func__));
+		return;
+	}
 
 	/* Store BulkOut PipeId*/
 	pTxContext->BulkOutPipeId = BulkOutPipeId;
@@ -291,6 +295,10 @@ VOID	RTUSBInitHTTxDesc(
 #endif /* USB_BULK_BUF_ALIGMENT */
 
 	ASSERT(pUrb);
+	if (BulkOutPipeId >= 5) {
+		DBGPRINT(RT_DEBUG_ERROR, ("%s:Invalid BulkOutPipeId\n", __FUNCTION__));
+		return;
+	}
 
 	/* Store BulkOut PipeId*/
 	pTxContext->BulkOutPipeId = BulkOutPipeId;
@@ -1184,6 +1192,7 @@ VOID RTUSBBulkOutDataPacket(RTMP_ADAPTER *pAd, UCHAR BulkOutPipeId, UCHAR Index)
 #else
 		padding = (4 - (txd_0->tx_byte_cnt % 4)) & 0x03;
 		ThisBulkSize += txd_0->tx_byte_cnt+padding;
+		pAd->RalinkCounters.OneSecTransmittedByteCount += (txd_0->tx_byte_cnt+padding);
 		TmpBulkEndPos += txd_0->tx_byte_cnt+padding;
 #endif /* MT_MAC */
 				
@@ -1454,7 +1463,7 @@ VOID	RTUSBBulkOutNullFrame(
 	PTX_CONTEXT		pNullContext = &(pAd->NullContext);
 	PURB			pUrb;
 	int				ret = 0;
-	unsigned long	IrqFlags;
+	unsigned long	IrqFlags = 0;
 	
 	RTMP_IRQ_LOCK(&pAd->BulkOutLock[MGMTPIPEIDX], IrqFlags);
 	if ((pAd->BulkOutPending[MGMTPIPEIDX] == TRUE) || RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_NEED_STOP_TX))
@@ -1479,7 +1488,7 @@ VOID	RTUSBBulkOutNullFrame(
 #endif /* RT_BIG_ENDIAN */
 
 	/* Init Tx context descriptor*/
-	RTUSBInitTxDesc(pAd, pNullContext, MGMTPIPEIDX, (usb_complete_t)RtmpUsbBulkOutNullFrameComplete);
+	RTUSBInitTxDesc(pAd, pNullContext, EDCA_BMC_PIPE, (usb_complete_t)RtmpUsbBulkOutNullFrameComplete);
 
 	pUrb = pNullContext->pUrb;
 
@@ -1551,7 +1560,7 @@ VOID	RTUSBBulkOutMLMEPacket(
 	PTX_CONTEXT		pMLMEContext;
 	PURB			pUrb;
 	int				ret = 0;
-	unsigned long	IrqFlags;
+	unsigned long	IrqFlags = 0;
 		
 	pMLMEContext = (PTX_CONTEXT)pAd->MgmtRing.Cell[pAd->MgmtRing.TxDmaIdx].AllocVa;
 	pUrb = pMLMEContext->pUrb;
@@ -1606,7 +1615,7 @@ VOID	RTUSBBulkOutMLMEPacket(
 #endif /* RT_BIG_ENDIAN */
 
 	/* Init Tx context descriptor*/
-	RTUSBInitTxDesc(pAd, pMLMEContext, MGMTPIPEIDX, (usb_complete_t)RtmpUsbBulkOutMLMEPacketComplete);
+	RTUSBInitTxDesc(pAd, pMLMEContext, EDCA_BMC_PIPE, (usb_complete_t)RtmpUsbBulkOutMLMEPacketComplete);
 
 	RTUSB_URB_DMA_MAPPING(pUrb);
 
@@ -1661,7 +1670,7 @@ VOID	RTUSBBulkOutBCNPacket(
 	PTX_CONTEXT		pBcnContext;
 	PURB			pUrb;
 	int				ret = 0;
-	unsigned long	IrqFlags;
+	unsigned long	IrqFlags = 0;
 
 	pBcnContext = (PTX_CONTEXT)pAd->BcnRing.Cell[pAd->BcnRing.TxDmaIdx].AllocVa;
 	pUrb = pBcnContext->pUrb;
@@ -1708,7 +1717,7 @@ VOID	RTUSBBulkOutBCNPacket(
 #endif /* RT_BIG_ENDIAN */
 
 	/* Init Tx context descriptor*/
-	RTUSBInitTxDesc(pAd, pBcnContext, MGMTPIPEIDX, (usb_complete_t)RTUSBBulkOutBCNPacketComplete);
+	RTUSBInitTxDesc(pAd, pBcnContext, EDCA_BMC_PIPE, (usb_complete_t)RTUSBBulkOutBCNPacketComplete);
 
 	RTUSB_URB_DMA_MAPPING(pUrb);
 
@@ -1773,7 +1782,7 @@ VOID	RTUSBBulkOutPsPoll(
 	PTX_CONTEXT		pPsPollContext = &(pAd->PsPollContext);
 	PURB			pUrb;
 	int				ret = 0;
-	unsigned long	IrqFlags;
+	unsigned long	IrqFlags = 0;
 	
 	RTMP_IRQ_LOCK(&pAd->BulkOutLock[0], IrqFlags);
 	if ((pAd->BulkOutPending[0] == TRUE) || RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_NEED_STOP_TX))
@@ -1795,7 +1804,7 @@ VOID	RTUSBBulkOutPsPoll(
 #endif /* RT_BIG_ENDIAN */
 
 	/* Init Tx context descriptor*/
-	RTUSBInitTxDesc(pAd, pPsPollContext, /*MGMTPIPEIDX*/0, (usb_complete_t)RtmpUsbBulkOutPsPollComplete);
+	RTUSBInitTxDesc(pAd, pPsPollContext, EDCA_BMC_PIPE, (usb_complete_t)RtmpUsbBulkOutPsPollComplete);
 	
 	pUrb = pPsPollContext->pUrb;
 
@@ -2013,7 +2022,7 @@ VOID DoBulkIn(IN RTMP_ADAPTER *pAd)
 VOID RTUSBBulkReceive(RTMP_ADAPTER *pAd)
 {
 	PRX_CONTEXT pRxContext;
-	unsigned long IrqFlags;
+	unsigned long IrqFlags = 0;
 	
 	if (RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_NEED_STOP_HANDLE_RX) 
 					&& !RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_POLL_IDLE))
@@ -2161,7 +2170,7 @@ VOID	RTUSBKickBulkOut(
 		else if ((RTUSB_TEST_BULK_FLAG(pAd, fRTUSB_BULK_OUT_MLME)) ||
 				 (pAd->MgmtRing.TxSwFreeIdx < MGMT_RING_SIZE))
 		{
-			RTUSBBulkOutMLMEPacket(pAd, pAd->MgmtRing.TxDmaIdx);
+			RTUSBBulkOutMLMEPacket(pAd, (UCHAR)pAd->MgmtRing.TxDmaIdx);
 		}
 
 #ifdef MT_MAC
@@ -2169,7 +2178,7 @@ VOID	RTUSBKickBulkOut(
 		else if ((RTUSB_TEST_BULK_FLAG(pAd, fRTUSB_BULK_OUT_BCN)) ||
 				 (pAd->BcnRing.TxSwFreeIdx < BCN_RING_SIZE))
 		{
-			RTUSBBulkOutBCNPacket(pAd, pAd->BcnRing.TxDmaIdx);
+			RTUSBBulkOutBCNPacket(pAd, (UCHAR)pAd->BcnRing.TxDmaIdx);
 		}
 #endif
 #ifdef USE_BMC

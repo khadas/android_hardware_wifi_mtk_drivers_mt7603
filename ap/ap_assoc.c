@@ -293,8 +293,9 @@ static USHORT update_associated_mac_entry(
 #endif /* TXBF_SUPPORT */
 
 		/* find max fixed rate */
-		pEntry->MaxHTPhyMode.field.MCS = get_ht_max_mcs(pAd, &wdev->DesiredHtPhyInfo.MCSSet[0],
-														&ie_list->HTCapability.MCSSet[0]);
+		pEntry->MaxHTPhyMode.field.MCS = (USHORT)get_ht_max_mcs(pAd
+			, &wdev->DesiredHtPhyInfo.MCSSet[0]
+			, &ie_list->HTCapability.MCSSet[0]);
 		 
 		if (wdev->DesiredTransmitSetting.field.MCS != MCS_AUTO)
 		{
@@ -302,7 +303,8 @@ static USHORT update_associated_mac_entry(
 								pEntry->func_tb_idx,
 								wdev->DesiredTransmitSetting.field.MCS));
 
-			set_ht_fixed_mcs(pAd, pEntry, wdev->DesiredTransmitSetting.field.MCS, wdev->HTPhyMode.field.MCS);
+			set_ht_fixed_mcs(pAd, pEntry, (UCHAR)wdev->DesiredTransmitSetting.field.MCS
+							, (UCHAR)wdev->HTPhyMode.field.MCS);
 		}
 
 		pEntry->MaxHTPhyMode.field.STBC = (ie_list->HTCapability.HtCapInfo.RxSTBC & (pAd->CommonCfg.DesiredHtPhy.TxSTBC));
@@ -599,7 +601,7 @@ static USHORT APBuildAssociation(
 
 	MaxSupportedRate = dot11_2_ra_rate(MaxSupportedRateIn500Kbps);
 
-    if (pAd && (WMODE_EQUAL(pAd->CommonCfg.PhyMode, WMODE_G) 
+	if ((WMODE_EQUAL(pAd->CommonCfg.PhyMode, WMODE_G)
 #ifdef DOT11_N_SUPPORT
 		|| WMODE_EQUAL(pAd->CommonCfg.PhyMode, (WMODE_G | WMODE_GN))
 #endif /* DOT11_N_SUPPORT */
@@ -651,7 +653,10 @@ static USHORT APBuildAssociation(
 #endif /* WSC_AP_SUPPORT */
 			{
 				/* check the validity of the received RSNIE */
-				if ((StatusCode = APValidateRSNIE(pAd, pEntry, &ie_list->RSN_IE[0], ie_list->RSNIE_Len)) != MLME_SUCCESS)
+				StatusCode = (USHORT)APValidateRSNIE(pAd
+					, pEntry, &ie_list->RSN_IE[0]
+					, ie_list->RSNIE_Len);
+				if (StatusCode != MLME_SUCCESS)
 					return StatusCode;
 			}
         }
@@ -1536,7 +1541,10 @@ BOOLEAN PeerAssocReqCmmSanity(
 						NdisMoveMemory(&pEntry->hs_info.ppsmo_id, &eid_ptr->Octet[5], 2);
 						//NdisMoveMemory(tmp3, tmp, 2);
 					}				
-					printk("Assoc HS2 STA:version:%d,ppomo exist:%d, value:0x%x\n", pEntry->hs_info.version, pEntry->hs_info.ppsmo_exist, pEntry->hs_info.ppsmo_id);
+					DBGPRINT(RT_DEBUG_OFF,
+							("Assoc HS2 STA:version:%d,ppomo exist:%d, value:0x%x\n",
+							pEntry->hs_info.version, pEntry->hs_info.ppsmo_exist,
+							pEntry->hs_info.ppsmo_id));
 					break;
 				}
 #endif /* CONFIG_HOTSPOT_R2 */
@@ -1841,8 +1849,7 @@ VOID ap_cmm_peer_assoc_req_action(
 
 
 	/* disallow new association */
-	if (pAd && (pAd->ApCfg.BANClass3Data == TRUE))
-	{
+	if (pAd->ApCfg.BANClass3Data == TRUE) {
 		DBGPRINT(RT_DEBUG_TRACE, ("Disallow new Association\n"));
 		return;
 	}
@@ -2545,7 +2552,7 @@ SendAssocResponse:
 
 #ifdef CONFIG_HOTSPOT_R2
 	/* qosmap IE */
-	printk("entry=%d\n", pEntry->QosMapSupport);
+	DBGPRINT(RT_DEBUG_OFF, ("entry=%d\n", pEntry->QosMapSupport));
 	if (pEntry->QosMapSupport)
 	{
 		ULONG	TmpLen;
@@ -2678,11 +2685,11 @@ SendAssocResponse:
 }
 #ifdef RT_CFG80211_SUPPORT
     /* Append extra IEs provided by wpa_supplicant */
-    if (pAd->ApCfg.MBSSID[pEntry->func_tb_idx].AssocRespExtraIeLen)
+	if (pAd->ApCfg.MBSSID[pEntry->apidx].AssocRespExtraIeLen)
     {
         ULONG TmpLen = 0;
-        INT32 IesLen = pAd->ApCfg.MBSSID[pEntry->func_tb_idx].AssocRespExtraIeLen;
-        UCHAR *Ies = pAd->ApCfg.MBSSID[pEntry->func_tb_idx].AssocRespExtraIe;
+	INT32 IesLen = pAd->ApCfg.MBSSID[pEntry->apidx].AssocRespExtraIeLen;
+	UCHAR *Ies = pAd->ApCfg.MBSSID[pEntry->apidx].AssocRespExtraIe;
 
         //if (RTMPIsValidIEs(Ies, IesLen))
         {
@@ -3398,7 +3405,7 @@ VOID APMlmeKickOutSta(RTMP_ADAPTER *pAd, UCHAR *pStaAddr, UCHAR Wcid, USHORT Rea
 	{
 		return;
 	}
-	Aid = pEntry->Aid;
+	Aid = (UCHAR)pEntry->Aid;
 	ApIdx = pEntry->func_tb_idx;
 
 	ASSERT(Aid == Wcid);

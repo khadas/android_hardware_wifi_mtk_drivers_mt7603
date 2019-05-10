@@ -48,7 +48,8 @@ extern UINT16 const Country_Region_GroupNum_5GHZ;
  */
 VOID BuildChannelList(RTMP_ADAPTER *pAd)
 {
-	UCHAR i, j, index=0, num=0;
+	UCHAR i, j;
+	UINT16 index = 0, num = 0;
 	PCH_DESC pChDesc = NULL;
 	BOOLEAN bRegionFound = FALSE;
 	PUCHAR pChannelList = NULL;
@@ -267,7 +268,7 @@ VOID BuildChannelList(RTMP_ADAPTER *pAd)
 		}
 	}
 
-	pAd->ChannelListNum = index;
+	pAd->ChannelListNum = (UCHAR)index;
 	DBGPRINT(RT_DEBUG_TRACE,("CountryCode(2.4G/5G)=%d/%d, RFIC=%d, PHY mode=%d, support %d channels\n",
 		pAd->CommonCfg.CountryRegion, pAd->CommonCfg.CountryRegionForABand, pAd->RfIcType, pAd->CommonCfg.PhyMode, pAd->ChannelListNum));
 
@@ -678,7 +679,8 @@ CHAR ConvertToSnr(RTMP_ADAPTER *pAd, UCHAR Snr)
 	else if (pAd->chipCap.SnrFormula == SNR_FORMULA3)
 		return (Snr * 3 / 16 ); /* * 0.1881 */
 	else
-		return ((0xeb	- Snr) * 3) /	16 ;
+		return (Snr - 16);
+		/*return ((0xeb	- Snr) * 3) /	16 ; */
 }
 
 

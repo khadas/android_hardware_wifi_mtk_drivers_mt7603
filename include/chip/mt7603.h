@@ -35,6 +35,12 @@ INT Set_MT7603LED_Enhance_Proc(struct _RTMP_ADAPTER *pAd, RTMP_STRING *arg);
 INT Set_MT7603LED_Behavor_Proc(struct _RTMP_ADAPTER *pAd, RTMP_STRING *arg);
 #endif /* LED_CONTROL_SUPPORT */
 
+#ifdef SMART_CARRIER_SENSE_SUPPORT
+INT MTSmartCarrierSense(struct _RTMP_ADAPTER *pAd);
+/*INT ScsSetDftGainAtScanBegin(struct _RTMP_ADAPTER *pAd);
+INT ScsRestoreLastGainAtScanEnd(struct _RTMP_ADAPTER *pAd);
+INT ScsQuickCheckToSetDefGain(struct _RTMP_ADAPTER *pAd)*/;
+#endif /* SMART_CARRIER_SENSE_SUPPORT */
 
 
 #endif // __MT7603_H__

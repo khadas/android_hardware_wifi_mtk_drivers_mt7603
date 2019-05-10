@@ -802,16 +802,17 @@ INT Show_Repeater_Cli_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
 	if (!pAd->ApCfg.bMACRepeaterEn)
 		return TRUE;
 
-	printk("\n");
+	DBGPRINT(RT_DEBUG_OFF, ("\n"));
 
 #ifdef DOT11_N_SUPPORT
-	printk("HT Operating Mode : %d\n", pAd->CommonCfg.AddHTInfo.AddHtInfo2.OperaionMode);
-	printk("\n");
+	DBGPRINT(RT_DEBUG_OFF, ("HT Operating Mode : %d\n",
+	pAd->CommonCfg.AddHTInfo.AddHtInfo2.OperaionMode));
+	DBGPRINT(RT_DEBUG_OFF, ("\n"));
 #endif /* DOT11_N_SUPPORT */
 	
-	printk("\n%-19s%-4s%-4s%-4s%-4s%-8s%-7s%-7s%-7s%-10s%-6s%-6s%-6s%-6s%-7s%-7s\n",
+	DBGPRINT(RT_DEBUG_OFF, ("\n%-19s%-4s%-4s%-4s%-4s%-8s%-7s%-7s%-7s%-10s%-6s%-6s%-6s%-6s%-7s%-7s\n",
 		   "MAC", "AID", "BSS", "PSM", "WMM", "MIMOPS", "RSSI0", "RSSI1", 
-		   "RSSI2", "PhMd", "BW", "MCS", "SGI", "STBC", "Idle", "Rate");
+		   "RSSI2", "PhMd", "BW", "MCS", "SGI", "STBC", "Idle", "Rate"));
 
 	for (i = 0; i < MAX_LEN_OF_MAC_TABLE; i++)
 	{
@@ -821,30 +822,33 @@ INT Show_Repeater_Cli_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
 			DataRate=0;
 			getRate(pEntry->HTPhyMode, &DataRate);
 
-			printk("%02X:%02X:%02X:%02X:%02X:%02X  ",
+			DBGPRINT(RT_DEBUG_OFF, ("%02X:%02X:%02X:%02X:%02X:%02X  ",
 					pEntry->ReptCliAddr[0], pEntry->ReptCliAddr[1], pEntry->ReptCliAddr[2],
-					pEntry->ReptCliAddr[3], pEntry->ReptCliAddr[4], pEntry->ReptCliAddr[5]);
+					pEntry->ReptCliAddr[3], pEntry->ReptCliAddr[4], pEntry->ReptCliAddr[5]));
 
-			printk("%-4d", (int)pEntry->Aid);
-			printk("%-4d-%d", (int)pEntry->apidx, pEntry->func_tb_idx);
-			printk("%-4d", (int)pEntry->PsMode);
-			printk("%-4d", (int)CLIENT_STATUS_TEST_FLAG(pEntry, fCLIENT_STATUS_WMM_CAPABLE));
+			DBGPRINT(RT_DEBUG_OFF, ("%-4d", (int)pEntry->Aid));
+			DBGPRINT(RT_DEBUG_OFF, ("%-4d-%d", (int)pEntry->apidx, pEntry->func_tb_idx));
+			DBGPRINT(RT_DEBUG_OFF, ("%-4d", (int)pEntry->PsMode));
+			DBGPRINT(RT_DEBUG_OFF, ("%-4d",
+					(int)CLIENT_STATUS_TEST_FLAG(pEntry, fCLIENT_STATUS_WMM_CAPABLE)));
 #ifdef DOT11_N_SUPPORT
-			printk("%-8d", (int)pEntry->MmpsMode);
-#endif /* DOT11_N_SUPPORT */
-			printk("%-7d", pEntry->RssiSample.AvgRssi[0]);
-			printk("%-7d", pEntry->RssiSample.AvgRssi[1]);
-			printk("%-7d", pEntry->RssiSample.AvgRssi[2]);
-			printk("%-10s", get_phymode_str(pEntry->HTPhyMode.field.MODE));
-			printk("%-6s", get_bw_str(pEntry->HTPhyMode.field.BW));
-			printk("%-6d", pEntry->HTPhyMode.field.MCS);
-			printk("%-6d", pEntry->HTPhyMode.field.ShortGI);
-			printk("%-6d", pEntry->HTPhyMode.field.STBC);
-			printk("%-7d", (int)(pEntry->StaIdleTimeout - pEntry->NoDataIdleCount));
-			printk("%-7d", (int)DataRate);
-			printk("%-10d, %d, %d%%\n", pEntry->DebugFIFOCount, pEntry->DebugTxCount, 
-						(pEntry->DebugTxCount) ? ((pEntry->DebugTxCount-pEntry->DebugFIFOCount)*100/pEntry->DebugTxCount) : 0);
-			printk("\n");
+			DBGPRINT(RT_DEBUG_OFF, ("%-8d", (int)pEntry->MmpsMode));
+#endif /* DOT11_N_SUPPORT */)
+			DBGPRINT(RT_DEBUG_OFF, ("%-7d", pEntry->RssiSample.AvgRssi[0]));
+			DBGPRINT(RT_DEBUG_OFF, ("%-7d", pEntry->RssiSample.AvgRssi[1]));
+			DBGPRINT(RT_DEBUG_OFF, ("%-7d", pEntry->RssiSample.AvgRssi[2]));
+			DBGPRINT(RT_DEBUG_OFF, ("%-10s", get_phymode_str(pEntry->HTPhyMode.field.MODE)));
+			DBGPRINT(RT_DEBUG_OFF, ("%-6s", get_bw_str(pEntry->HTPhyMode.field.BW)));
+			DBGPRINT(RT_DEBUG_OFF, ("%-6d", pEntry->HTPhyMode.field.MCS));
+			DBGPRINT(RT_DEBUG_OFF, ("%-6d", pEntry->HTPhyMode.field.ShortGI));
+			DBGPRINT(RT_DEBUG_OFF, ("%-6d", pEntry->HTPhyMode.field.STBC));
+			DBGPRINT(RT_DEBUG_OFF, ("%-7d",
+					(int)(pEntry->StaIdleTimeout - pEntry->NoDataIdleCount)));
+			DBGPRINT(RT_DEBUG_OFF, ("%-7d", (int)DataRate));
+			DBGPRINT(RT_DEBUG_OFF, ("%-10d, %d, %d%%\n", pEntry->DebugFIFOCount,
+					pEntry->DebugTxCount, (pEntry->DebugTxCount) ?
+					((pEntry->DebugTxCount-pEntry->DebugFIFOCount)*100/pEntry->DebugTxCount) : 0));
+			DBGPRINT(RT_DEBUG_OFF, ("\n"));
 		}
 	} 
 

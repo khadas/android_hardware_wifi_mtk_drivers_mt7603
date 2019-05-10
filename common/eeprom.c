@@ -120,8 +120,8 @@ INT rtmp_read_rssi_langain_from_eeprom(RTMP_ADAPTER *pAd)
 #endif /* RT3593 */
 	{
 		RT28xx_EEPROM_READ16(pAd, EEPROM_RSSI_BG_OFFSET, value);
-		pAd->BGRssiOffset[0] = value & 0x00ff;
-		pAd->BGRssiOffset[1] = (value >> 8);
+		pAd->BGRssiOffset[0] = (signed char)(value & 0x00ff);
+		pAd->BGRssiOffset[1] = (signed char)(value >> 8);
 	}
 
 #ifdef RT3593
@@ -146,14 +146,14 @@ INT rtmp_read_rssi_langain_from_eeprom(RTMP_ADAPTER *pAd)
 		*/
 		if (IS_MT76x0(pAd))
 		{
-			pAd->ALNAGain1 = (value >> 8);
+			pAd->ALNAGain1 = (CHAR)(value >> 8);
 		}
 		else
 #endif /* MT76x0 */
 		{
 /*			if (IS_RT2860(pAd))  RT2860 supports 3 Rx and the 2.4 GHz RSSI #2 offset is in the EEPROM 0x48*/
-				pAd->BGRssiOffset[2] = value & 0x00ff;
-			pAd->ALNAGain1 = (value >> 8);
+				pAd->BGRssiOffset[2] = (signed char)(value & 0x00ff);
+			pAd->ALNAGain1 = (CHAR)(value >> 8);
 		}
 	}
 
@@ -166,9 +166,9 @@ INT rtmp_read_rssi_langain_from_eeprom(RTMP_ADAPTER *pAd)
 #endif /* RT3593 */
 	{
 		RT28xx_EEPROM_READ16(pAd, EEPROM_LNA_OFFSET, value);
-		pAd->BLNAGain = value & 0x00ff;
+		pAd->BLNAGain = (CHAR)(value & 0x00ff);
 		/* External LNA gain for 5GHz Band(CH36~CH64) */
-		pAd->ALNAGain0 = (value >> 8);
+		pAd->ALNAGain0 = (CHAR)(value >> 8);
 	}
 
 #ifdef RT3090
@@ -204,8 +204,8 @@ INT rtmp_read_rssi_langain_from_eeprom(RTMP_ADAPTER *pAd)
 #endif /* MT7601 */
 	{
 		RT28xx_EEPROM_READ16(pAd, EEPROM_RSSI_A_OFFSET, value);
-		pAd->ARssiOffset[0] = value & 0x00ff;
-		pAd->ARssiOffset[1] = (value >> 8);
+		pAd->ARssiOffset[0] = (signed char)(value & 0x00ff);
+		pAd->ARssiOffset[1] = (signed char)(value >> 8);
 	}
 
 #ifdef RT3593
@@ -233,8 +233,8 @@ INT rtmp_read_rssi_langain_from_eeprom(RTMP_ADAPTER *pAd)
 		else
 #endif /* MT76x0 */
 		{
-			pAd->ARssiOffset[2] = value & 0x00ff;
-			pAd->ALNAGain2 = (value >> 8);
+			pAd->ARssiOffset[2] = (signed char)(value & 0x00ff);
+			pAd->ALNAGain2 = (CHAR)(value >> 8);
 		}
 	}
 
@@ -316,13 +316,13 @@ INT rtmp_read_freq_offset_from_eeprom(RTMP_ADAPTER *pAd)
 #ifdef RT6352
 	if (IS_RT6352(pAd))
 	{
-		pAd->RfFreqOffset = (ULONG)(value & 0x00FF);
+		pAd->RfFreqOffset = (UCHAR)(value & 0x00FF);
 	}
 	else
 #endif /* RT6352 */
 	{
 		if ((value & 0x00FF) != 0x00FF)
-			pAd->RfFreqOffset = (ULONG) (value & 0x00FF);
+			pAd->RfFreqOffset = (UCHAR)(value & 0x00FF);
 		else
 			pAd->RfFreqOffset = 0;
 	}
@@ -502,31 +502,6 @@ INT rtmp_read_txpwr_from_eeprom(RTMP_ADAPTER *pAd)
 	return TRUE;
 }
 
-VOID rtmp_product_random_mac(IN PRTMP_ADAPTER pAd)
-{
-	UCHAR SETMAC[3] = {0x00, 0x0c, 0x43};
-	ULONG u4SysTime;
-	USHORT	Addr01, Addr23, Addr45;
-
-	u4SysTime = (ULONG) kalGetTimeTick();
-	pAd->CurrentAddress[0] = SETMAC[0];
-	pAd->CurrentAddress[1] = SETMAC[1];
-	pAd->CurrentAddress[2] = SETMAC[2];
-
-	kalMemCopy(&pAd->CurrentAddress[3], &u4SysTime, 3);
-	Addr01 = (USHORT)(pAd->CurrentAddress[1]<<8) + (USHORT)(pAd->CurrentAddress[0]);
-	Addr23 = (USHORT)(pAd->CurrentAddress[3]<<8) + (USHORT)(pAd->CurrentAddress[2]);
-	Addr45 = (USHORT)(pAd->CurrentAddress[5]<<8) + (USHORT)(pAd->CurrentAddress[4]);
-	DBGPRINT_RAW(RT_DEBUG_OFF, ("translate addr : =%02x:%02x:%02x\n",
-		Addr01, Addr23, Addr45));
-	RT28xx_EEPROM_WRITE16(pAd, 0x04, Addr01);
-	RT28xx_EEPROM_WRITE16(pAd, 0x06, Addr23);
-	RT28xx_EEPROM_WRITE16(pAd, 0x08, Addr45);
-	DBGPRINT_RAW(RT_DEBUG_OFF, ("Random produced MAC: =%02x:%02x:%02x:%02x:%02x:%02x\n",
-		PRINT_MAC(pAd->CurrentAddress)));
-	COPY_MAC_ADDR(pAd->PermanentAddress, pAd->CurrentAddress);
-}
-
 /*
 	========================================================================
 
@@ -572,27 +547,17 @@ INT NICReadEEPROMParameters(RTMP_ADAPTER *pAd, RTMP_STRING *mac_addr)
 
 	}
 
-	rtmp_ee_efuse_read16(pAd, 0x4, &Value01);
-	rtmp_ee_efuse_read16(pAd, 0x6, &Value23);
-	rtmp_ee_efuse_read16(pAd, 0x8, &Value45);
+	RT28xx_EEPROM_READ16(pAd, 0x4, Value01);
+	RT28xx_EEPROM_READ16(pAd, 0x6, Value23);
+	RT28xx_EEPROM_READ16(pAd, 0x8, Value45);
 
-	if (((Value01&0xffff) == 0xffff &&
-		(Value23&0xffff) == 0xffff &&
-		(Value45&0xffff) == 0xffff) ||
-		((Value01&0xffff) == 0x0 &&
-		(Value23&0xffff) == 0x0 &&
-		(Value45&0xffff) == 0x0) ||
-		((Value01&0x0200) == 0x0200)) {
-			rtmp_product_random_mac(pAd);
-	} else {
-		DBGPRINT(RT_DEBUG_TRACE, ("Initialize MAC Address from EFUSE!\n"));
-		pAd->PermanentAddress[0] = (UCHAR)(Value01 & 0xff);
-		pAd->PermanentAddress[1] = (UCHAR)(Value01 >> 8);
-		pAd->PermanentAddress[2] = (UCHAR)(Value23 & 0xff);
-		pAd->PermanentAddress[3] = (UCHAR)(Value23 >> 8);
-		pAd->PermanentAddress[4] = (UCHAR)(Value45 & 0xff);
-		pAd->PermanentAddress[5] = (UCHAR)(Value45 >> 8);
-	}
+	DBGPRINT(RT_DEBUG_TRACE, ("Initialize MAC Address from EEPROM!\n"));
+	pAd->PermanentAddress[0] = (UCHAR)(Value01 & 0xff);
+	pAd->PermanentAddress[1] = (UCHAR)(Value01 >> 8);
+	pAd->PermanentAddress[2] = (UCHAR)(Value23 & 0xff);
+	pAd->PermanentAddress[3] = (UCHAR)(Value23 >> 8);
+	pAd->PermanentAddress[4] = (UCHAR)(Value45 & 0xff);
+	pAd->PermanentAddress[5] = (UCHAR)(Value45 >> 8);
 
 	DBGPRINT(RT_DEBUG_TRACE, ("E2PROM MAC: =%02x:%02x:%02x:%02x:%02x:%02x\n",
 								PRINT_MAC(pAd->PermanentAddress)));
@@ -604,7 +569,8 @@ INT NICReadEEPROMParameters(RTMP_ADAPTER *pAd, RTMP_STRING *mac_addr)
 #if defined(BB_SOC)&&!defined(NEW_MBSSID_MODE)
 		//BBUPrepareMAC(pAd, pAd->CurrentAddress);
 		COPY_MAC_ADDR(pAd->PermanentAddress, pAd->CurrentAddress);
-		printk("now bb MainSsid mac %02x:%02x:%02x:%02x:%02x:%02x\n",PRINT_MAC(pAd->CurrentAddress));
+		DBGPRINT(RT_DEBUG_TRACE, ("now bb MainSsid mac %02x:%02x:%02x:%02x:%02x:%02x\n",
+									PRINT_MAC(pAd->CurrentAddress)));
 #endif
 	}
 	else if (mac_addr &&
@@ -801,11 +767,11 @@ INT NICReadEEPROMParameters(RTMP_ADAPTER *pAd, RTMP_STRING *mac_addr)
 
 	/* Choose the desired Tx&Rx stream.*/
 	if ((pAd->CommonCfg.TxStream == 0) || (pAd->CommonCfg.TxStream > Antenna.field.TxPath))
-		pAd->CommonCfg.TxStream = Antenna.field.TxPath;
+		pAd->CommonCfg.TxStream = (UCHAR)Antenna.field.TxPath;
 
 	if ((pAd->CommonCfg.RxStream == 0) || (pAd->CommonCfg.RxStream > Antenna.field.RxPath))
 	{
-		pAd->CommonCfg.RxStream = Antenna.field.RxPath;
+		pAd->CommonCfg.RxStream = (UCHAR)Antenna.field.RxPath;
 
 		if ((pAd->MACVersion != RALINK_3883_VERSION) &&
 			(pAd->MACVersion != RALINK_2883_VERSION) &&
@@ -1502,7 +1468,7 @@ INT RtmpChipOpsEepromHook(RTMP_ADAPTER *pAd, INT infType,INT forceMode)
 
 	if(forceMode != E2P_NONE && forceMode < NUM_OF_E2P_MODE)
 	{
-		e2p_type = forceMode;
+		e2p_type = (UCHAR)forceMode;
 		DBGPRINT(RT_DEBUG_OFF, ("%s::forceMode: %d , infType: %d\n",
 					__FUNCTION__, e2p_type, infType));
 		pAd->eeprom_type = (e2p_type == E2P_EFUSE_MODE) ? EEPROM_EFUSE : EEPROM_FLASH;
@@ -1916,7 +1882,7 @@ INT set_buffer_mode(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
 	if (value == 0) {
 		NdisZeroMemory(pAd->EEPROMImage, MAX_EEPROM_BIN_FILE_SIZE);
 		for (i = 0; i < MAX_EEPROM_BIN_FILE_SIZE; i += 2) {
-			eFuseRead(pAd, i, &efuse_val, 2);
+			eFuseRead(pAd, (USHORT)i, &efuse_val, 2);
 			efuse_val = cpu2le16(efuse_val);
 			NdisMoveMemory(&pAd->EEPROMImage[i], &efuse_val, 2);
 		}

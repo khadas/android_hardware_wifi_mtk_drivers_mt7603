@@ -366,7 +366,7 @@ VOID Adhoc_checkPeerBeaconLost(RTMP_ADAPTER *pAd)
 
 VOID LinkUp_Adhoc(RTMP_ADAPTER *pAd, struct wifi_dev *wdev)
 {
-	INT idx;
+	UINT8 idx;
 
 #ifdef MT_MAC
     if (pAd->chipCap.hif_type == HIF_MT) 
@@ -433,7 +433,7 @@ VOID LinkUp_Adhoc(RTMP_ADAPTER *pAd, struct wifi_dev *wdev)
 #ifdef MT_MAC
 			if (pAd->chipCap.hif_type == HIF_MT)
 			{
-				INT groupWcid = pAd->StaCfg.wdev.tr_tb_idx;
+				UCHAR groupWcid = pAd->StaCfg.wdev.tr_tb_idx;
 				MT_ADDREMOVE_KEY(pAd, 0, BSS0, wdev->DefaultKeyId, groupWcid, SHAREDKEYTABLE,
                                     	&pAd->SharedKey[BSS0][wdev->DefaultKeyId],BROADCAST_ADDR);
 			}

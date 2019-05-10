@@ -315,7 +315,7 @@ VOID MtHandleRxPsPoll(RTMP_ADAPTER *pAd, UCHAR *pAddr, USHORT wcid, BOOLEAN isAc
 
 	if (IsDequeu == TRUE)
 	{
-		RTMPDeQueuePacket(pAd, FALSE, DequeuAC, tr_entry->wcid, DequeuCOUNT);
+		RTMPDeQueuePacket(pAd, FALSE, (UCHAR)DequeuAC, tr_entry->wcid, DequeuCOUNT);
 		DBGPRINT(RT_DEBUG_INFO | DBG_FUNC_PS, ("RtmpHandleRxPsPoll IsDequeu == TRUE tr_entry->wcid=%x DequeuCOUNT=%d, ps_state=%d\n",tr_entry->wcid, DequeuCOUNT, tr_entry->ps_state));
 	}    
 	return;
@@ -562,7 +562,8 @@ VOID MtEnqTxSwqFromPsQueue(RTMP_ADAPTER *pAd, UCHAR qidx, STA_TR_ENTRY *tr_entry
 		if(pAcPsQue->Number > 0  && tr_entry->wcid > 0 && tr_entry->wcid < MAX_LEN_OF_TR_TABLE)
 		{
 			rtmp_ps_enq(pAd,tr_entry);			
-			printk("pAcPsQue->Number=%d,PS:%d\n",pAcPsQue->Number,tr_entry->PsTokenFlag);
+			DBGPRINT(RT_DEBUG_WARN,
+			("pAcPsQue->Number=%d,PS:%d\n", pAcPsQue->Number, tr_entry->PsTokenFlag));
 		}
 
 		while(pAcPsQue->Head)

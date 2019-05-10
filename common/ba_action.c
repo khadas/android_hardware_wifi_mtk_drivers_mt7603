@@ -403,7 +403,7 @@ static USHORT ba_indicate_reordering_mpdus_in_order(
 		/* pass this frame up */
 		ANNOUNCE_REORDERING_PACKET(pAd, mpdu_blk);
 		/* move to next sequence */
-		StartSeq = mpdu_blk->Sequence;
+		StartSeq = (USHORT)mpdu_blk->Sequence;
 		LastIndSeq = StartSeq;
 		/* free mpdu_blk */
 		ba_mpdu_blk_free(pAd, mpdu_blk);
@@ -460,7 +460,7 @@ static void ba_refresh_reordering_mpdus(RTMP_ADAPTER *pAd, BA_REC_ENTRY *pBAEntr
 			/* pass this frame up */
 		ANNOUNCE_REORDERING_PACKET(pAd, mpdu_blk);
 
-		pBAEntry->LastIndSeq = mpdu_blk->Sequence;
+		pBAEntry->LastIndSeq = (USHORT)mpdu_blk->Sequence;
 			ba_mpdu_blk_free(pAd, mpdu_blk);
 			
 		/* update last indicated sequence */                    
@@ -602,7 +602,7 @@ VOID BAOriSessionSetUp(
 	pEntry->BAOriWcidArray[TID] = Idx;
 	
 
-    BAWinSize = pAd->CommonCfg.BACapability.field.TxBAWinLimit;
+	BAWinSize = (UCHAR)(pAd->CommonCfg.BACapability.field.TxBAWinLimit);
 
 #ifdef MT76XX_BTCOEX_SUPPORT
     /* In coex mode, if TxBA size is specified, should update to this value */ 
@@ -648,7 +648,7 @@ VOID BAOriSessionAdd(
 	UCHAR MaxPeerBufSize;
 	STA_TR_ENTRY *tr_entry;
 
-	TID = pFrame->BaParm.TID;
+	TID = (UCHAR)pFrame->BaParm.TID;
 	Idx = pEntry->BAOriWcidArray[TID];  
 	pBAEntry =&pAd->BATable.BAOriEntry[Idx];
 
@@ -683,7 +683,7 @@ VOID BAOriSessionAdd(
 		}
 
 		pBAEntry->TimeOutValue = pFrame->TimeOutValue;
-		pBAEntry->amsdu_cap = pFrame->BaParm.AMSDUSupported;
+		pBAEntry->amsdu_cap = (UCHAR)pFrame->BaParm.AMSDUSupported;
 		pBAEntry->ORI_BA_Status = Originator_Done;
 		pAd->BATable.numDoneOriginator ++;
 		
@@ -728,7 +728,7 @@ BOOLEAN BARecSessionAdd(
 	ASSERT(pEntry);
 
 	/* find TID*/
-	TID = pFrame->BaParm.TID;
+	TID = (UCHAR)pFrame->BaParm.TID;
 
 	BAWinSize = min(((UCHAR)pFrame->BaParm.BufSize), (UCHAR)pAd->CommonCfg.BACapability.field.RxBAWinLimit);
 #ifdef MT76XX_BTCOEX_SUPPORT
@@ -740,7 +740,7 @@ BOOLEAN BARecSessionAdd(
 #endif
 
 	if (BAWinSize == 0) {
-		BAWinSize = pAd->CommonCfg.BACapability.field.RxBAWinLimit;
+		BAWinSize = (UCHAR)pAd->CommonCfg.BACapability.field.RxBAWinLimit;
 	}
 
 	/* get software BA rec array index, Idx*/
@@ -830,7 +830,7 @@ BA_REC_ENTRY *BATableAllocRecEntry(RTMP_ADAPTER *pAd, USHORT *Idx)
 			/* get one */
 			pAd->BATable.numAsRecipient++;
 			pBAEntry->REC_BA_Status = Recipient_USED;
-			*Idx = i;
+			*Idx = (USHORT)i;
 			break;
 		}
 	}
@@ -860,7 +860,7 @@ BA_ORI_ENTRY *BATableAllocOriEntry(RTMP_ADAPTER *pAd, USHORT *Idx)
 			pAd->BATable.numAsOriginator++;
 			pBAEntry->ORI_BA_Status = Originator_USED;
 			pBAEntry->pAdapter = pAd;
-			*Idx = i;
+			*Idx = (USHORT)i;
 			break;
 		}
 	}
@@ -1129,8 +1129,8 @@ VOID BASessionTearDownALL(RTMP_ADAPTER *pAd, UCHAR Wcid)
 
 	for (i=0; i<NUM_OF_TID; i++)
 	{
-		BAOriSessionTearDown(pAd, Wcid, i, FALSE, FALSE);
-		BARecSessionTearDown(pAd, Wcid, i, FALSE);
+		BAOriSessionTearDown(pAd, Wcid, (UCHAR)i, FALSE, FALSE);
+		BARecSessionTearDown(pAd, Wcid, (UCHAR)i, FALSE);
 	}
 }
 
@@ -1207,7 +1207,7 @@ VOID BAOriSessionSetupTimeout(
 		COPY_MAC_ADDR(AddbaReq.pAddr, pEntry->Addr);
 		AddbaReq.Wcid = pEntry->wcid;
 		AddbaReq.TID = pBAEntry->TID;
-		AddbaReq.BaBufSize = pAd->CommonCfg.BACapability.field.RxBAWinLimit;
+		AddbaReq.BaBufSize = (UCHAR)pAd->CommonCfg.BACapability.field.RxBAWinLimit;
 		AddbaReq.TimeOutValue = 0;
 		AddbaReq.Token = pBAEntry->Token;
 		MlmeEnqueue(pAd, ACTION_STATE_MACHINE, MT2_MLME_ADD_BA_CATE, sizeof(MLME_ADDBA_REQ_STRUCT), (PVOID)&AddbaReq, 0);
@@ -1458,7 +1458,7 @@ VOID PeerAddBAReqAction(RTMP_ADAPTER *pAd, MLME_QUEUE_ELEM *Elem)
 	ADDframe.BaParm.BufSize = min(((UCHAR)pAddreqFrame->BaParm.BufSize), (UCHAR)pAd->CommonCfg.BACapability.field.RxBAWinLimit);
 	if (ADDframe.BaParm.BufSize == 0) {
 		//ADDframe.BaParm.BufSize = 64;
-		ADDframe.BaParm.BufSize = pAd->CommonCfg.BACapability.field.RxBAWinLimit;
+		ADDframe.BaParm.BufSize = (USHORT)pAd->CommonCfg.BACapability.field.RxBAWinLimit;
 	} 
 	ADDframe.TimeOutValue = 0; /* pAddreqFrame->TimeOutValue; */
 
@@ -1516,7 +1516,8 @@ VOID PeerAddBARspAction(RTMP_ADAPTER *pAd, MLME_QUEUE_ELEM *Elem)
 				break;
 			default:
 				/* check status == USED ??? */
-				BAOriSessionTearDown(pAd, Elem->Wcid, pFrame->BaParm.TID, TRUE, FALSE);
+				BAOriSessionTearDown(pAd, Elem->Wcid,
+					(UCHAR)pFrame->BaParm.TID, TRUE, FALSE);
 				break;
 		}
 		/* Rcv Decline StatusCode*/
@@ -1552,13 +1553,15 @@ VOID PeerDelBAAction(
 		if (pDelFrame->DelbaParm.Initiator == ORIGINATOR)
 		{
 			DBGPRINT(RT_DEBUG_TRACE,("BA - PeerDelBAAction----> ORIGINATOR\n"));
-			BARecSessionTearDown(pAd, Elem->Wcid, pDelFrame->DelbaParm.TID, TRUE);
+			BARecSessionTearDown(pAd,
+				Elem->Wcid, (UCHAR)pDelFrame->DelbaParm.TID, TRUE);
 		}
 		else
 		{
 			DBGPRINT(RT_DEBUG_TRACE,("BA - PeerDelBAAction----> RECIPIENT, Reason = %d\n",  pDelFrame->ReasonCode));
 			/*hex_dump("DelBA Frame", pDelFrame, Elem->MsgLen);*/
-			BAOriSessionTearDown(pAd, Elem->Wcid, pDelFrame->DelbaParm.TID, TRUE, FALSE);
+			BAOriSessionTearDown(pAd,
+				Elem->Wcid, (UCHAR)pDelFrame->DelbaParm.TID, TRUE, FALSE);
 		}
 	}
 }
@@ -2126,8 +2129,8 @@ VOID Indicate_AMPDU_Packet(RTMP_ADAPTER *pAd, RX_BLK *pRxBlk, UCHAR wdev_idx)
 			TmpSeq = (MAXSEQ+1) + TmpSeq;
 
 		WinStartSeq = (TmpSeq+1) & MAXSEQ;
-		ba_indicate_reordering_mpdus_le_seq(pAd, pBAEntry, WinStartSeq);
-		pBAEntry->LastIndSeq = WinStartSeq; /* TmpSeq; */
+		ba_indicate_reordering_mpdus_le_seq(pAd, pBAEntry, (USHORT)WinStartSeq);
+		pBAEntry->LastIndSeq = (USHORT)WinStartSeq; /* TmpSeq; */
 
 		pBAEntry->LastIndSeqAtTimer = Now32;
 
@@ -2135,7 +2138,7 @@ VOID Indicate_AMPDU_Packet(RTMP_ADAPTER *pAd, RX_BLK *pRxBlk, UCHAR wdev_idx)
 
 		TmpSeq = ba_indicate_reordering_mpdus_in_order(pAd, pBAEntry, pBAEntry->LastIndSeq);
 		if (TmpSeq != RESET_RCV_SEQ)
-			pBAEntry->LastIndSeq = TmpSeq;
+			pBAEntry->LastIndSeq = (USHORT)TmpSeq;
 #endif
 	}
 }

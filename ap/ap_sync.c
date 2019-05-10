@@ -1768,8 +1768,11 @@ VOID APPeerBeaconAtScanAction(RTMP_ADAPTER *pAd, MLME_QUEUE_ELEM *Elem)
             Rssi = RealRssi + pAd->BbpRssiToDbmDelta;
 
 		Idx = BssTableSetEntry(pAd, &pAd->ScanTab, ie_list, Rssi, LenVIE, pVIE);
-		if (Idx != BSS_NOT_FOUND)
-		{
+		if ((Idx != BSS_NOT_FOUND) && (Idx >= ARRAY_SIZE(pAd->ScanTab.BssEntry))) {
+			DBGPRINT(RT_DEBUG_OFF,
+				 ("%s wrong idx %lu BssEntry sz %zu\n", __func__,
+				  Idx, ARRAY_SIZE(pAd->ScanTab.BssEntry)));
+		} else if (Idx != BSS_NOT_FOUND) {
 			NdisMoveMemory(pAd->ScanTab.BssEntry[Idx].PTSF, &Elem->Msg[24], 4);
 			NdisMoveMemory(&pAd->ScanTab.BssEntry[Idx].TTSF[0], &Elem->TimeStamp.u.LowPart, 4);
 			NdisMoveMemory(&pAd->ScanTab.BssEntry[Idx].TTSF[4], &Elem->TimeStamp.u.LowPart, 4);
@@ -1855,10 +1858,10 @@ VOID ApSiteSurvey(
 
 	RTMPZeroMemory(ScanReq.Ssid, MAX_LEN_OF_SSID);
 	ScanReq.SsidLen = 0;
-	if (pSsid)
-	{
-	    ScanReq.SsidLen = pSsid->SsidLength;
-	    NdisMoveMemory(ScanReq.Ssid, pSsid->Ssid, pSsid->SsidLength);
+	if (pSsid) {
+		ScanReq.SsidLen = (UCHAR)pSsid->SsidLength;
+		if (pSsid->SsidLength > 0)
+			NdisMoveMemory(ScanReq.Ssid, pSsid->Ssid, pSsid->SsidLength);
 	}
     ScanReq.BssType = BSS_ANY;
     ScanReq.ScanType = ScanType;

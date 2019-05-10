@@ -251,7 +251,7 @@ VOID RtmpDrvSendWirelessEvent(
 			pBufPtr += sprintf(pBufPtr, "%s", "unknown event");
 		
 		pBufPtr[pBufPtr - pBuf] = '\0';
-		BufLen = pBufPtr - pBuf;
+		BufLen = (USHORT)(pBufPtr - pBuf);
 		
 		RtmpOSWrielessEventSend(pAd->net_dev, RT_WLAN_EVENT_CUSTOM, Event_flag, NULL, (PUCHAR)pBuf, BufLen);
 		/*DBGPRINT(RT_DEBUG_TRACE, ("%s : %s\n", __FUNCTION__, pBuf)); */

@@ -41,7 +41,7 @@ int RtmpOsTxRxHookRegister(struct mt_wlanTxRxHookOps *ops)
 	list_for_each_safe(cur,next,&hookHead)
 	{
 		entry = list_entry(cur,struct mt_wlanTxRxHookOps,list);
-		if(entry && ops->priority > entry->priority)
+		if (ops->priority > entry->priority)
 		{
 			(ops->list).next = next;
 			cur->next =& ops->list;

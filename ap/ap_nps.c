@@ -141,7 +141,7 @@ VOID write_tmac_info_tim(RTMP_ADAPTER *pAd, INT apidx, UCHAR *tmac_buf, HTTRANSM
 	mac_info.Txopmode = IFS_HTTXOP;
 	mac_info.q_idx = Q_IDX_BCN;
 	mac_info.hdr_len = 24;
-	mac_info.bss_idx = apidx;
+	mac_info.bss_idx = (UCHAR)apidx;
 	mac_info.SpeEn = 1;
 	mac_info.Preamble = LONG_PREAMBLE;
 	write_tmac_info(pAd, tmac_buf, &mac_info, BeaconTransmit);
@@ -301,7 +301,7 @@ VOID APMakeBssTimFrame2(RTMP_ADAPTER *pAd, INT apidx)
 	UINT  i;
 
 	if(!TimTransmitRequired(pAd, apidx, pMbss)) {
-		printk("%s, apidx = %d\n", __func__, apidx);
+		DBGPRINT(RT_DEBUG_OFF, ("%s, apidx = %d\n", __func__, apidx));
 		return;
 	}
 
@@ -425,7 +425,7 @@ VOID APMakeBssTimFrame2(RTMP_ADAPTER *pAd, INT apidx)
 static UCHAR GetTimNum(RTMP_ADAPTER *pAd)
 {
 	int i;
-	int NumTim;
+	UCHAR NumTim;
 	TIM_BUF_STRUC *tim_info;
 
 	NumTim = 0;

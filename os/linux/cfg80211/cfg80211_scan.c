@@ -285,9 +285,11 @@ static void CFG80211_UpdateBssTableRssi(
 			
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,39)) 
 		if (pAd->ScanTab.BssEntry[index].Channel > 14) 
-			CenFreq = ieee80211_channel_to_frequency(pAd->ScanTab.BssEntry[index].Channel , IEEE80211_BAND_5GHZ);
+			CenFreq = ieee80211_channel_to_frequency(pAd->ScanTab.BssEntry[index].Channel,
+				KAL_BAND_5GHZ);
 		else 
-			CenFreq = ieee80211_channel_to_frequency(pAd->ScanTab.BssEntry[index].Channel , IEEE80211_BAND_2GHZ);
+			CenFreq = ieee80211_channel_to_frequency(pAd->ScanTab.BssEntry[index].Channel,
+				KAL_BAND_2GHZ);
 #else
 		CenFreq = ieee80211_channel_to_frequency(pAd->ScanTab.BssEntry[index].Channel);
 #endif
@@ -434,6 +436,10 @@ VOID CFG80211_ScanEnd(
 	}
 	
 	CFG80211OS_ScanEnd(CFG80211CB, FlgIsAborted);	
+#ifdef SMART_CARRIER_SENSE_SUPPORT
+	/*restore SCS gain when finish scanning*/
+	/*ScsRestoreLastGainAtScanEnd(pAd);*/
+#endif
 	pAd->cfg80211_ctrl.FlgCfg80211Scanning = FALSE;
 #endif /* CONFIG_STA_SUPPORT */
 } 

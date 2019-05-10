@@ -651,6 +651,7 @@ enum WIFI_MODE{
 #define MAX_AVAILABLE_CLIENT_WCID(__pAd)	(LAST_SPECIFIC_WCID(__pAd) - MAX_MBSSID_NUM(__pAd))
 #else
 #define LAST_SPECIFIC_WCID(__pAd)	(HW_RESERVED_WCID(__pAd) - 2)
+
 /* If MAX_MBSSID_NUM is 8, the maximum available wcid for the associated STA is 211. */
 /* If MAX_MBSSID_NUM is 7, the maximum available wcid for the associated STA is 228. */
 #define MAX_AVAILABLE_CLIENT_WCID(__pAd)	(LAST_SPECIFIC_WCID(__pAd) - MAX_MBSSID_NUM(__pAd) - 1)
@@ -2014,7 +2015,7 @@ enum WIFI_MODE{
 #define DEFAULT_RF_TX_POWER         5
 #define DEFAULT_BBP_TX_FINE_POWER_CTRL 0
 
-#define MAX_INI_BUFFER_SIZE		4096
+#define MAX_INI_BUFFER_SIZE		10000  /*4096*/
 #define MAX_PARAM_BUFFER_SIZE		(2048)	/* enough for ACL (18*64) */
 											/*18 : the length of Mac address acceptable format "01:02:03:04:05:06;") */
 											/*64 : MAX_NUM_OF_ACL_LIST */
@@ -2495,6 +2496,26 @@ enum {
 #define I_PSM_ENABLE	1
 #define I_PSM_DISABLE	0
 #endif /* MT_PS */
+
+#ifdef SMART_CARRIER_SENSE_SUPPORT
+enum {
+	SCS_DISABLE,
+	SCS_ENABLE,
+};
+
+enum {
+	SCS_STATUS_DEFAULT,
+	SCS_STATUS_MIDDLE,
+	SCS_STATUS_LOW,
+	SCS_STATUS_ULTRA_LOW,
+};
+
+enum {
+	Keep_Range,
+	Decrease_Range,
+	Increase_Range
+};
+#endif /* SMART_CARRIER_SENSE_SUPPORT */
 
 #define ABS(_x, _y) ((_x) > (_y)) ? ((_x) -(_y)) : ((_y) -(_x))
 

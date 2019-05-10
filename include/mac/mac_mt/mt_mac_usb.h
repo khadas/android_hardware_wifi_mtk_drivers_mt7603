@@ -659,19 +659,17 @@ typedef struct _CMD_RSP_CONTEXT
 
 #define MT_ADDREMOVE_KEY(_pAd, _AddRemove, _BssIdx, _KeyIdx, _Wcid, _KeyTabFlag, _pCipherKey, _PeerAddr)	\
 {																										\
-	MT_ASIC_SEC_INFO Info;												\
-																		\
-	Info.AddRemove = _AddRemove;										\
-	Info.BssIdx = _BssIdx;												\
-	Info.KeyIdx = _KeyIdx;												\
-	Info.Wcid = _Wcid;													\
-	Info.KeyTabFlag = _KeyTabFlag;										\
-	Info.AddRemove = _AddRemove;										\
-	NdisMoveMemory(&Info.CipherKey, _pCipherKey, sizeof(CIPHER_KEY));	\
-	NdisMoveMemory(Info.Addr, _PeerAddr, MAC_ADDR_LEN);					\
-																		\
-	RTEnqueueInternalCmd(_pAd, CMDTHREAD_ADDREMOVE_ASIC_KEY,			\
-							&Info, sizeof(MT_ASIC_SEC_INFO));			\
+	MT_ASIC_SEC_INFO Info;	\
+							\
+	Info.AddRemove = (UCHAR)(_AddRemove);\
+	Info.BssIdx = (UCHAR)(_BssIdx);	\
+	Info.KeyIdx = (UCHAR)(_KeyIdx);	\
+	Info.Wcid = (UCHAR)(_Wcid);	\
+	Info.KeyTabFlag = (UCHAR)(_KeyTabFlag);	\
+	NdisMoveMemory(&Info.CipherKey, _pCipherKey, sizeof(CIPHER_KEY));\
+	NdisMoveMemory(Info.Addr, _PeerAddr, MAC_ADDR_LEN);	\
+	RTEnqueueInternalCmd(_pAd, CMDTHREAD_ADDREMOVE_ASIC_KEY,\
+							&Info, sizeof(MT_ASIC_SEC_INFO));\
 }
 
 #define RTMP_OS_IRQ_RELEASE(_pAd, _NetDev)

@@ -101,4 +101,4 @@ WOW_Interface=2
 WOW_GPIO=2
 WOW_Hold=100000
 WOW_GPIOHighLow=1
-
+SCSEnable=1

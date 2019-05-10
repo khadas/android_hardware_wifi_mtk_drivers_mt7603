@@ -35,6 +35,9 @@ INT RTMPSTAPrivIoctlSet(
 	IN RTMP_STRING *SetProcName,
 	IN RTMP_STRING *ProcArg);
 
+INT Set_GPIOHigh_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg);
+INT Set_GPIOLow_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg);
+
 #if (defined(WOW_SUPPORT) && defined(RTMP_MAC_USB)) || defined(MT_WOW_SUPPORT)
 /* set WOW enable */
 INT Set_WOW_Enable(RTMP_ADAPTER *pAd, RTMP_STRING *arg);
@@ -50,8 +53,9 @@ INT Set_WOW_InBand(RTMP_ADAPTER *pAd, RTMP_STRING *arg);
 INT Set_WOW_Interface(RTMP_ADAPTER *pAd, RTMP_STRING *arg);
 /* set wakeup GPIO High Low */
 INT Set_WOW_GPIOHighLow(RTMP_ADAPTER *pAd, RTMP_STRING *arg);
+INT Set_WOW_KeepAlive_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg);
 
-#endif /* (defined(WOW_SUPPORT) && defined(RTMP_MAC_USB)) || defined(NEW_WOW_SUPPORT)  || defined(MT_WOW_SUPPORT)*/
+#endif /* (defined(WOW_SUPPORT) && defined(RTMP_MAC_USB)) || defined(MT_WOW_SUPPORT)*/
 
 #ifdef RTMP_MAC_USB
 INT Set_UsbSuspend(RTMP_ADAPTER *pAd, RTMP_STRING *arg);

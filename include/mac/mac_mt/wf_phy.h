@@ -20,6 +20,13 @@
 #define CR_RFINTF_02		WF_PHY_BASE + 0x0208
 #define CR_RFINTF_03        WF_PHY_BASE + 0x020C
 
+#ifdef SMART_CARRIER_SENSE_SUPPORT
+#define CR_AGC_0			(WF_PHY_BASE + 0x0500)
+#define CR_AGC_0_RX1		(WF_PHY_BASE + 0x1500)
+#define CR_AGC_3			(WF_PHY_BASE + 0x050c)
+#define CR_AGC_3_RX1		(WF_PHY_BASE + 0x150c)
+#define CR_CCK_PD_TH		(WF_PHY_BASE + 0x0614)
+#endif
 #define RO_AGC_DEBUG_2	    WF_PHY_BASE + 0x05A4
 
 #define CR_RXTD_39			WF_PHY_BASE + 0x06F8

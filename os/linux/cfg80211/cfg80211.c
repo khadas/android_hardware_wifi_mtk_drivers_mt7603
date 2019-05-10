@@ -126,7 +126,7 @@
 #ifdef RT_CFG80211_SUPPORT
 
 #ifdef CONFIG_PM
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 11, 0))
 static const struct wiphy_wowlan_support mtk_wowlan_support = {
 	.flags = WIPHY_WOWLAN_MAGIC_PKT,
 };
@@ -418,9 +418,9 @@ static int CFG80211_OpsMonitorChannelSet(struct wiphy *pWiphy,
 	
 
 	
-	    printk("control:%d MHz width:%d center: %d/%d MHz",
+	    CFG80211DBG(RT_DEBUG_OFF, ("control:%d MHz width:%d center: %d/%d MHz",
 	     pChan->center_freq, chandef->width,
-	     chandef->center_freq1, chandef->center_freq2);
+	     chandef->center_freq1, chandef->center_freq2));
 	
 
 	/* get channel number */
@@ -430,7 +430,7 @@ static int CFG80211_OpsMonitorChannelSet(struct wiphy *pWiphy,
 
 	/* init */
 	memset(&ChanInfo, 0, sizeof(ChanInfo));
-	ChanInfo.ChanId = ChanId;
+	ChanInfo.ChanId = (UINT8)ChanId;
 
 	p80211CB = NULL;
 	RTMP_DRIVER_80211_CB_GET(pAd, &p80211CB);
@@ -441,7 +441,7 @@ static int CFG80211_OpsMonitorChannelSet(struct wiphy *pWiphy,
 		return 0;
 } 
 
-	ChanInfo.IfType = pNetDev->ieee80211_ptr->iftype;
+	ChanInfo.IfType = (UINT8)pNetDev->ieee80211_ptr->iftype;
 
 	CFG80211DBG(RT_DEBUG_ERROR, ("80211> ChanInfo.IfType == %d!\n",ChanInfo.IfType));
 
@@ -539,8 +539,8 @@ static int CFG80211_OpsVirtualInfChg(
 	pNetDev->ieee80211_ptr->iftype = Type;
 
 	VifInfo.net_dev = pNetDev;
-	VifInfo.newIfType = Type;
-	VifInfo.oldIfType = oldType;
+	VifInfo.newIfType = (UINT8)Type;
+	VifInfo.oldIfType = (UINT8)oldType;
 	
 	if (pFlags != NULL)
 	{
@@ -1060,7 +1060,11 @@ Note:
 static int CFG80211_OpsStaGet(
 	IN struct wiphy						*pWiphy,
 	IN struct net_device				*pNdev,
-	IN UINT8							*pMac,
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 16, 0))
+	IN const UINT8						* pMac,
+#else
+	IN UINT8						* pMac,
+#endif
 	IN struct station_info				*pSinfo)
 {
 	VOID *pAd;
@@ -1082,53 +1086,97 @@ static int CFG80211_OpsStaGet(
 	if (StaInfo.TxRateFlags != RT_CMD_80211_TXRATE_LEGACY)
 	{
 		pSinfo->txrate.flags = RATE_INFO_FLAGS_MCS;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0))
+		pSinfo->txrate.bw = RATE_INFO_BW_20;
+		if (StaInfo.TxRateFlags & RT_CMD_80211_TXRATE_BW_40)
+			pSinfo->txrate.bw = RATE_INFO_BW_40;
+#else
 		if (StaInfo.TxRateFlags & RT_CMD_80211_TXRATE_BW_40)
 			pSinfo->txrate.flags |= RATE_INFO_FLAGS_40_MHZ_WIDTH;
+#endif
+
 
 		if (StaInfo.TxRateFlags & RT_CMD_80211_TXRATE_SHORT_GI)
 			pSinfo->txrate.flags |= RATE_INFO_FLAGS_SHORT_GI;
 
 
-		pSinfo->txrate.mcs = StaInfo.TxRateMCS;
+		pSinfo->txrate.mcs = (u8)StaInfo.TxRateMCS;
 	}
 	else
 	{
-		pSinfo->txrate.legacy = StaInfo.TxRateMCS;
+		pSinfo->txrate.legacy = (u16)StaInfo.TxRateMCS;
 	} 
-
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0))
+	pSinfo->filled |= BIT(NL80211_STA_INFO_TX_BITRATE);
+#else
 	pSinfo->filled |= STATION_INFO_TX_BITRATE;
+#endif
 
 	/* fill signal */
-	pSinfo->signal = StaInfo.Signal;
+	pSinfo->signal = (s8)StaInfo.Signal;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0))
+	pSinfo->filled |= BIT(NL80211_STA_INFO_SIGNAL);
+#else
 	pSinfo->filled |= STATION_INFO_SIGNAL;
+#endif
 
 #ifdef CONFIG_AP_SUPPORT
 	/* fill tx count */
 	pSinfo->tx_packets = StaInfo.TxPacketCnt;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0))
+	pSinfo->filled |= BIT(NL80211_STA_INFO_TX_PACKETS);
+#else
 	pSinfo->filled |= STATION_INFO_TX_PACKETS;
+#endif
 
 	/* fill inactive time */
 	pSinfo->inactive_time = StaInfo.InactiveTime;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0))
+	pSinfo->filled |= BIT(NL80211_STA_INFO_INACTIVE_TIME);
+#else
 	pSinfo->filled |= STATION_INFO_INACTIVE_TIME;
+#endif
 #endif /* CONFIG_AP_SUPPORT */
 
 #ifdef CONFIG_STA_SUPPORT
 	/* fill tx/rx count */
 	pSinfo->tx_packets = StaInfo.tx_packets;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0))
+	pSinfo->filled |= BIT(NL80211_STA_INFO_TX_PACKETS);
+#else
 	pSinfo->filled |= STATION_INFO_TX_PACKETS;
+#endif
 
 	pSinfo->tx_retries = StaInfo.tx_retries;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0))
+	pSinfo->filled |= BIT(NL80211_STA_INFO_TX_RETRIES);
+#else
 	pSinfo->filled |= STATION_INFO_TX_RETRIES;
+#endif
+
 
 	pSinfo->tx_failed = StaInfo.tx_failed;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0))
+	pSinfo->filled |= BIT(NL80211_STA_INFO_TX_FAILED);
+#else
 	pSinfo->filled |= STATION_INFO_TX_FAILED;
+#endif
+
 
 	pSinfo->rx_packets = StaInfo.rx_packets;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0))
+	pSinfo->filled |= BIT(NL80211_STA_INFO_RX_PACKETS);
+#else
 	pSinfo->filled |= STATION_INFO_RX_PACKETS;
+#endif
 
 	/* fill inactive time */
 	pSinfo->inactive_time = StaInfo.InactiveTime;
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 0, 0))
+	pSinfo->filled |= BIT(NL80211_STA_INFO_INACTIVE_TIME);
+#else
 	pSinfo->filled |= STATION_INFO_INACTIVE_TIME;
+#endif
 #endif /* CONFIG_STA_SUPPORT */
 
 	return 0;
@@ -1280,9 +1328,9 @@ static int CFG80211_OpsKeyAdd(
 	KeyInfo.KeyBuf[pParams->key_len] = 0x00;
 	KeyInfo.KeyId = KeyIdx;
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,37))		
-	KeyInfo.bPairwise = Pairwise;
+	KeyInfo.bPairwise = (BOOLEAN)Pairwise;
 #endif /* LINUX_VERSION_CODE: 2,6,37 */
-	KeyInfo.KeyLen = pParams->key_len;
+	KeyInfo.KeyLen = (UINT8)pParams->key_len;
 		
 	if ((pParams->cipher == WLAN_CIPHER_SUITE_WEP40))
 	{
@@ -1468,7 +1516,7 @@ static int CFG80211_OpsKeyDel(
 	KeyInfo.KeyId = KeyIdx;
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,37))
 	CFG80211DBG(RT_DEBUG_TRACE, ("80211> KeyDel isPairwise %d\n", Pairwise));
-    KeyInfo.bPairwise = Pairwise;	
+	KeyInfo.bPairwise = (BOOLEAN)Pairwise;
 #endif /* LINUX_VERSION_CODE 2.6.37 */
 
 #ifdef CONFIG_AP_SUPPORT
@@ -2112,9 +2160,9 @@ static int CFG80211_OpsRemainOnChannel(
 	/* init */
 	*cookie = rndCookie;
 	memset(&ChanInfo, 0, sizeof(ChanInfo));	
-	ChanInfo.ChanId = ChanId;	
-	ChanInfo.IfType = dev->ieee80211_ptr->iftype;
-	ChanInfo.ChanType = ChannelType;
+	ChanInfo.ChanId = (UINT8)ChanId;
+	ChanInfo.IfType = (UINT8)dev->ieee80211_ptr->iftype;
+	ChanInfo.ChanType = (UINT8)ChannelType;
 	ChanInfo.chan = pChan;
 	ChanInfo.cookie = rndCookie;
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,6,0))	
@@ -2194,15 +2242,8 @@ void CFG80211_OpsSetWakeup(IN struct wiphy *wiphy, bool enabled)
 
 int CFG80211_OpsResume(IN struct wiphy *wiphy)
 {
-#ifdef MT_WOW_SUPPORT
-	VOID *pAd;
-	CFG80211DBG(RT_DEBUG_OFF, ("%s\n",__FUNCTION__));
+	CFG80211DBG(RT_DEBUG_OFF, ("%s\n", __func__));
 
-	MAC80211_PAD_GET(pAd, wiphy);	
-#ifdef	NEW_FAST_CONNECT_SCHEME_SUPPORT
-	RTMP_DRIVER_ADAPTER_RT28XX_WOW_DISABLE(pAd);
-#endif
-#endif
 	return 0;
 }
 
@@ -2211,8 +2252,7 @@ int CFG80211_OpsSetRekeyData(struct wiphy *wiphy, struct net_device *dev,
 {
 	void *pAdSrc = NULL;
 	PRTMP_ADAPTER pAd = NULL;
-
-    CFG80211DBG(RT_DEBUG_OFF, ("%s\n", __FUNCTION__));
+	CFG80211DBG(RT_DEBUG_OFF, ("%s\n", __func__));
 
 	MAC80211_PAD_GET(pAdSrc, wiphy);
 	pAd = (PRTMP_ADAPTER)pAdSrc;
@@ -2225,17 +2265,27 @@ int CFG80211_OpsSetRekeyData(struct wiphy *wiphy, struct net_device *dev,
 
 #endif
 
-#if (LINUX_VERSION_CODE > KERNEL_VERSION(3,1,10))
+#if (KERNEL_VERSION(3, 4, 0) < LINUX_VERSION_CODE)
 //Supplicant_NEW_TDLS
 #ifdef CFG_TDLS_SUPPORT
 static int CFG80211_OpsTdlsMgmt
 	( 
 	IN struct wiphy *pWiphy,
     IN struct net_device *pDev,
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0))
+	IN const u8 *peer,
+#else
     IN u8 *peer,
+#endif
     IN u8 action_code, 
     IN u8 dialog_token,
     IN u16 status_code,
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0))
+	IN u32 peer_capability,
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 17, 0))
+	IN bool initiator,
+#endif
+#endif
     IN const u8 *extra_ies,
     IN size_t extra_ies_len
 	)
@@ -2247,18 +2297,18 @@ static int CFG80211_OpsTdlsMgmt
 	CFG80211DBG(RT_DEBUG_WARN, ("80211> extra_ies_len : %zd ==>\n", extra_ies_len));
 
 	switch (action_code) {
-	case WLAN_TDLS_SETUP_REQUEST:			
-	case WLAN_TDLS_DISCOVERY_REQUEST:
-	case WLAN_TDLS_SETUP_CONFIRM:
-	case WLAN_TDLS_TEARDOWN:
-	case WLAN_TDLS_SETUP_RESPONSE:		
-	case WLAN_PUB_ACTION_TDLS_DISCOVER_RES:
+	case (u8)(WLAN_TDLS_SETUP_REQUEST):
+	case (u8)(WLAN_TDLS_DISCOVERY_REQUEST):
+	case (u8)(WLAN_TDLS_SETUP_CONFIRM):
+	case (u8)(WLAN_TDLS_TEARDOWN):
+	case (u8)(WLAN_TDLS_SETUP_RESPONSE):
+	case (u8)(WLAN_PUB_ACTION_TDLS_DISCOVER_RES):
 		cfg_tlds_build_frame(pAd,peer,dialog_token,action_code,status_code,extra_ies,extra_ies_len,FALSE,0,0);
 		break;
-	case TDLS_ACTION_CODE_WFD_TUNNELED_PROBE_REQ:
+	case (u8)(TDLS_ACTION_CODE_WFD_TUNNELED_PROBE_REQ):
 		cfg_tdls_TunneledProbeRequest(pAd,peer,extra_ies,extra_ies_len);
 		break;
-	case TDLS_ACTION_CODE_WFD_TUNNELED_PROBE_RSP:
+	case (u8)(TDLS_ACTION_CODE_WFD_TUNNELED_PROBE_RSP):
 		cfg_tdls_TunneledProbeResponse(pAd,peer,extra_ies,extra_ies_len);
 		break;
 	default:
@@ -2273,7 +2323,11 @@ static int CFG80211_OpsTdlsMgmt
 static int CFG80211_OpsTdlsOper(
 	IN struct wiphy *pWiphy,
 	IN struct net_device *pDev,
-	IN u8 *peer,
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 15, 0))
+		IN const u8 *peer,
+#else
+		IN u8 *peer,
+#endif
 	IN enum nl80211_tdls_operation oper)
 {
 	
@@ -2283,10 +2337,10 @@ static int CFG80211_OpsTdlsOper(
 	switch(oper)
 	{
 	case NL80211_TDLS_ENABLE_LINK:				
-		RTMP_DRIVER_80211_STA_TDLS_INSERT_DELETE_PENTRY(pAd, peer, tdls_insert_entry);	
+		CFG80211DRV_StaTdlsInsertDeletepEntry(pAd, peer, tdls_insert_entry);
 	break;
 	case NL80211_TDLS_DISABLE_LINK:
-		RTMP_DRIVER_80211_STA_TDLS_INSERT_DELETE_PENTRY(pAd, peer, tdls_delete_entry);		
+		CFG80211DRV_StaTdlsInsertDeletepEntry(pAd, peer, tdls_delete_entry);
 	break;
 	default:
 		break;
@@ -2296,7 +2350,7 @@ static int CFG80211_OpsTdlsOper(
 #endif /*CFG_TDLS_SUPPORT*/
 #endif /* LINUX_VERSION_CODE: 3.1.10 */
 
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0))
 static int CFG80211_OpsMgmtTx(
     IN struct wiphy *pWiphy,
     IN struct wireless_dev *wdev,
@@ -2306,6 +2360,9 @@ static int CFG80211_OpsMgmtTx(
 static int CFG80211_OpsMgmtTx(
     IN struct wiphy *pWiphy,
     IN struct wireless_dev *wdev,
+#if (KERNEL_VERSION(3, 14, 0) <= LINUX_VERSION_CODE)
+	struct cfg80211_mgmt_tx_params *params,
+#else
     IN struct ieee80211_channel *pChan,
     IN bool Offchan,
     IN unsigned int Wait,
@@ -2313,6 +2370,7 @@ static int CFG80211_OpsMgmtTx(
     IN size_t Len,
     IN bool no_cck,	
     IN bool done_wait_for_ack, 
+#endif  /* >= 3.14.0 */
     IN u64 *pCookie)
 #else
 static int CFG80211_OpsMgmtTx(
@@ -2339,16 +2397,35 @@ static int CFG80211_OpsMgmtTx(
 	PRTMP_ADAPTER prAd;
 	PCFG80211_CTRL pCfg80211_ctrl;
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,6,0))
-	struct net_device *dev = NULL;
+	struct net_device *pDev = NULL;
 #endif /* LINUX_VERSION_CODE: 3.6.0 */
 
     CFG80211DBG(RT_DEBUG_INFO, ("80211> %s ==>\n", __FUNCTION__));
-    MAC80211_PAD_GET(pAd, pWiphy);
-    prAd = (PRTMP_ADAPTER)pAd;		
+
+	/* check null pointer */
+if (pWiphy == NULL || pCookie == NULL
+#if (KERNEL_VERSION(3, 18, 0) <= LINUX_VERSION_CODE)
+	|| wdev == NULL || params == NULL
+#elif (KERNEL_VERSION(3, 6, 0) <= LINUX_VERSION_CODE)
+	|| wdev == NULL
+#else
+	|| pDev == NULL
+#endif
+	) {
+		CFG80211DBG(RT_DEBUG_ERROR, ("80211> %s() NULL pointer parameters!\n", __func__));
+		return 0;
+	}
+
+#if (KERNEL_VERSION(3, 6, 0) <= LINUX_VERSION_CODE)
+	pDev = wdev->netdev;
+#endif /* LINUX_VERSION_CODE: 3.6.0 */
+
+	MAC80211_PAD_GET(pAd, pWiphy);
+	prAd = (PRTMP_ADAPTER)pAd;
     pCfg80211_ctrl = &prAd->cfg80211_ctrl;
     pCfg80211_ctrl->TxStatusSeq = 0;
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,3,0))
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0))
+#if (KERNEL_VERSION(3, 14, 0) <= LINUX_VERSION_CODE)
     pCfg80211_ctrl->IsNeedTxStatus = !(params->dont_wait_for_ack);
 #else
     pCfg80211_ctrl->IsNeedTxStatus = !done_wait_for_ack;
@@ -2357,12 +2434,20 @@ static int CFG80211_OpsMgmtTx(
     pCfg80211_ctrl->IsNeedTxStatus = FALSE;
 #endif
     CFG80211DBG(RT_DEBUG_INFO, ("80211> IsNeedTxStatus = %d\n", pCfg80211_ctrl->IsNeedTxStatus));
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,6,0))
-	RTMP_DRIVER_NET_DEV_GET(pAd, &dev);
-#endif /* LINUX_VERSION_CODE: 3.6.0 */
+
+#if (KERNEL_VERSION(3, 14, 0) <= LINUX_VERSION_CODE)
+	if (!(params->chan)) {
+#else
+	if (!pChan) {
+#endif
+		CFG80211DBG(RT_DEBUG_ERROR, ("80211> %s() NULL ieee80211_channel!\n", __func__));
+		*pCookie = 5678;
+		CFG80211_SendMgmtFrameDone(pAd, 5678, FALSE);
+		return 0;
+	}
 		
     /* get channel number */
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0))
+#if (KERNEL_VERSION(3, 14, 0) <= LINUX_VERSION_CODE)
     ChanId = ieee80211_frequency_to_channel(params->chan->center_freq);
 #else
     ChanId = ieee80211_frequency_to_channel(pChan->center_freq);
@@ -2371,7 +2456,7 @@ static int CFG80211_OpsMgmtTx(
 
 	/* Send the Frame with basic rate 6 */
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,2,0))
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0))
+#if (KERNEL_VERSION(3, 14, 0) <= LINUX_VERSION_CODE)
     if (params->no_cck)
 		; //pAd->isCfgDeviceInP2p = TRUE;
 #else
@@ -2382,9 +2467,10 @@ static int CFG80211_OpsMgmtTx(
 		
 #endif /* LINUX_VERSION_CODE: 3.2.0 */	
 	
-    *pCookie = 5678;	
+	*pCookie = 5678;
+	RTMP_DRIVER_80211_TX_NETDEV_SET(pAd, pDev);
     RTMP_DRIVER_80211_CHANNEL_LOCK(pAd, ChanId);
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0))
+#if (KERNEL_VERSION(3, 14, 0) <= LINUX_VERSION_CODE)
     RTMP_DRIVER_80211_MGMT_FRAME_SEND(pAd, (void *)(params->buf), params->len);
 #else
     RTMP_DRIVER_80211_MGMT_FRAME_SEND(pAd, (void *)pBuf, Len);
@@ -2396,7 +2482,9 @@ static int CFG80211_OpsMgmtTx(
 
 	if (pCfg80211_ctrl->IsNeedTxStatus)
 		*pCookie = pCfg80211_ctrl->TxStatusSeq;
-	CFG80211DBG(RT_DEBUG_TRACE, ("%s, Cookie = %d, IsNeedTxStatus (%d)\n", __func__, (int)*pCookie, pCfg80211_ctrl->IsNeedTxStatus));
+	CFG80211DBG(RT_DEBUG_TRACE, ("%s, Cookie = 0x%llx, IsNeedTxStatus (%d), DevName (%s)\n",
+					__func__, (long long unsigned int)*pCookie,
+					pCfg80211_ctrl->IsNeedTxStatus, pDev->name));
 	/*reset IsNeedTxStatus to FALSE*/
 	pCfg80211_ctrl->IsNeedTxStatus = FALSE; 
     return 0;
@@ -2428,7 +2516,7 @@ static int CFG80211_OpsCancelRemainOnChannel(
     CFG80211DBG(RT_DEBUG_INFO, ("80211> %s ==>\n", __FUNCTION__));	
     MAC80211_PAD_GET(pAd, pWiphy);
     /* It cause the Supplicant-based OffChannel Hang */	
-    RTMP_DRIVER_80211_CANCEL_REMAIN_ON_CHAN_SET(pAd, cookie);	
+	RTMP_DRIVER_80211_CANCEL_REMAIN_ON_CHAN_SET(pAd, (ULONG)cookie);
     return 0;
 }
  
@@ -2442,7 +2530,11 @@ static int CFG80211_OpsSetBeacon(
     VOID *pAd;
     CMD_RTPRIV_IOCTL_80211_BEACON bcn;
     UCHAR *beacon_head_buf, *beacon_tail_buf;
-	NdisZeroMemory(&bcn,sizeof(CMD_RTPRIV_IOCTL_80211_BEACON));
+#if (KERNEL_VERSION(3, 2, 0) <= LINUX_VERSION_CODE)
+	UCHAR *proberesp_ies, *assocresp_ies;
+#endif
+
+	NdisZeroMemory(&bcn, sizeof(CMD_RTPRIV_IOCTL_80211_BEACON));
 	
     CFG80211DBG(RT_DEBUG_TRACE, ("80211> %s ==>\n", __FUNCTION__));
     MAC80211_PAD_GET(pAd, pWiphy);	
@@ -2454,17 +2546,36 @@ static int CFG80211_OpsSetBeacon(
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,2,0)) 
     CFG80211DBG(RT_DEBUG_TRACE, ("80211>ssid = %s \n", info->ssid));
-    CFG80211DBG(RT_DEBUG_TRACE, ("80211>ssid_len = %s \n", info->ssid_len));
+	CFG80211DBG(RT_DEBUG_TRACE, ("80211>ssid_len = %u\n", info->ssid_len));
     	
     CFG80211DBG(RT_DEBUG_TRACE, ("80211>beacon_ies_len = %d \n", info->beacon_ies_len));
     CFG80211DBG(RT_DEBUG_TRACE, ("80211>proberesp_ies_len = %d \n", info->proberesp_ies_len));
     CFG80211DBG(RT_DEBUG_TRACE, ("80211>assocresp_ies_len = %d \n", info->assocresp_ies_len));		
 
-    if (info->proberesp_ies_len > 0 && info->proberesp_ies)
-        RTMP_DRIVER_80211_AP_PROBE_RSP(pAd, info->proberesp_ies, info->proberesp_ies_len);
+	if (info->proberesp_ies_len > 0 && info->proberesp_ies) {
+		os_alloc_mem(NULL, &proberesp_ies, info->proberesp_ies_len);
+		NdisCopyMemory(proberesp_ies, info->proberesp_ies, info->proberesp_ies_len);
 
-	if (info->assocresp_ies_len > 0 && info->assocresp_ies)
-		RTMP_DRIVER_80211_AP_ASSOC_RSP(pAd, info->assocresp_ies, info->assocresp_ies_len);	
+		if (proberesp_ies) {
+			RTMP_DRIVER_80211_AP_PROBE_RSP(pAd, proberesp_ies, info->proberesp_ies_len);
+			os_free_mem(NULL, proberesp_ies);
+		} else
+			CFG80211DBG(RT_DEBUG_ERROR, ("%s() alloc mem for proberesp_ies failed\n",
+				__func__));
+	}
+
+	if (info->assocresp_ies_len > 0 && info->assocresp_ies) {
+		os_alloc_mem(NULL, &assocresp_ies, info->assocresp_ies_len);
+		NdisCopyMemory(assocresp_ies, info->assocresp_ies, info->assocresp_ies_len);
+
+		if (assocresp_ies) {
+			RTMP_DRIVER_80211_AP_ASSOC_RSP(pAd, assocresp_ies, info->assocresp_ies_len);
+			os_free_mem(NULL, assocresp_ies);
+		} else
+			CFG80211DBG(RT_DEBUG_ERROR,
+				("%s() 80211>alloc mem for assocresp_ies failed\n",
+				__func__));
+	}
 #endif /* LINUX_VERSION_CODE: 3.2.0 */    		
 
     os_alloc_mem(NULL, &beacon_head_buf, info->head_len);
@@ -2501,7 +2612,10 @@ static int CFG80211_OpsAddBeacon(
     	VOID *pAd;
     	CMD_RTPRIV_IOCTL_80211_BEACON bcn;
     	UCHAR *beacon_head_buf, *beacon_tail_buf;
-  		NdisZeroMemory(&bcn,sizeof(CMD_RTPRIV_IOCTL_80211_BEACON));
+#if (KERNEL_VERSION(3, 2, 0) <= LINUX_VERSION_CODE)
+	UCHAR *proberesp_ies, *assocresp_ies;
+#endif
+	NdisZeroMemory(&bcn, sizeof(CMD_RTPRIV_IOCTL_80211_BEACON));
 		
     	MAC80211_PAD_GET(pAd, pWiphy);	
     	CFG80211DBG(RT_DEBUG_TRACE, ("80211> %s ==>\n", __FUNCTION__));
@@ -2513,36 +2627,56 @@ static int CFG80211_OpsAddBeacon(
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,2,0)) 
    	CFG80211DBG(RT_DEBUG_TRACE, ("80211>ssid = %s \n", info->ssid));
-    	CFG80211DBG(RT_DEBUG_TRACE, ("80211>ssid_len = %s \n", info->ssid_len));
+	CFG80211DBG(RT_DEBUG_TRACE, ("80211>ssid_len = %u\n", info->ssid_len));
 
-    	CFG80211DBG(RT_DEBUG_TRACE, ("80211>beacon_ies_len = %d \n", info->beacon_ies_len));
-    	CFG80211DBG(RT_DEBUG_TRACE, ("80211>proberesp_ies_len = %d \n", info->proberesp_ies_len));
-    	CFG80211DBG(RT_DEBUG_TRACE, ("80211>assocresp_ies_len = %d \n", info->assocresp_ies_len));
+	CFG80211DBG(RT_DEBUG_TRACE, ("80211>beacon_ies_len = %d\n", info->beacon_ies_len));
+	CFG80211DBG(RT_DEBUG_TRACE, ("80211>proberesp_ies_len = %d\n", info->proberesp_ies_len));
+	CFG80211DBG(RT_DEBUG_TRACE, ("80211>assocresp_ies_len = %d\n", info->assocresp_ies_len));
 
-    	if (info->proberesp_ies_len > 0 && info->proberesp_ies)
-        	RTMP_DRIVER_80211_AP_PROBE_RSP(pAd, info->proberesp_ies, info->proberesp_ies_len);
+	if (info->proberesp_ies_len > 0 && info->proberesp_ies) {
+		os_alloc_mem(NULL, &proberesp_ies, info->proberesp_ies_len);
+		NdisCopyMemory(proberesp_ies, info->proberesp_ies, info->proberesp_ies_len);
 
-	if (info->assocresp_ies_len > 0 && info->assocresp_ies)
-		RTMP_DRIVER_80211_AP_ASSOC_RSP(pAd, info->assocresp_ies, info->assocresp_ies_len);
+		if (proberesp_ies) {
+			RTMP_DRIVER_80211_AP_PROBE_RSP(pAd, proberesp_ies, info->proberesp_ies_len);
+			os_free_mem(NULL, proberesp_ies);
+		} else
+			CFG80211DBG(RT_DEBUG_ERROR,
+				("%s() alloc mem for proberesp_ies failed\n",
+				__func__));
+	}
+
+	if (info->assocresp_ies_len > 0 && info->assocresp_ies) {
+		os_alloc_mem(NULL, &assocresp_ies, info->assocresp_ies_len);
+		NdisCopyMemory(assocresp_ies, info->assocresp_ies, info->assocresp_ies_len);
+
+		if (assocresp_ies) {
+			RTMP_DRIVER_80211_AP_ASSOC_RSP(pAd, assocresp_ies, info->assocresp_ies_len);
+			os_free_mem(NULL, assocresp_ies);
+		} else
+			CFG80211DBG(RT_DEBUG_ERROR,
+				("%s() 80211>alloc mem for assocresp_ies failed\n",
+				__func__));
+	}
 #endif /* LINUX_VERSION_CODE: 3.2.0 */
 
-    	os_alloc_mem(NULL, &beacon_head_buf, info->head_len);
-    	NdisCopyMemory(beacon_head_buf, info->head, info->head_len);
+	os_alloc_mem(NULL, &beacon_head_buf, info->head_len);
+	NdisCopyMemory(beacon_head_buf, info->head, info->head_len);
     
 	os_alloc_mem(NULL, &beacon_tail_buf, info->tail_len);
 	NdisCopyMemory(beacon_tail_buf, info->tail, info->tail_len);
 
-    	bcn.beacon_head_len = info->head_len;
+	bcn.beacon_head_len = info->head_len;
 	bcn.beacon_tail_len = info->tail_len;
-    	bcn.beacon_head = beacon_head_buf;
+	bcn.beacon_head = beacon_head_buf;
 	bcn.beacon_tail = beacon_tail_buf;
-    	bcn.dtim_period = info->dtim_period;
+	bcn.dtim_period = info->dtim_period;
 	bcn.interval = info->interval;
 
-    	RTMP_DRIVER_80211_BEACON_ADD(pAd, &bcn);
+	RTMP_DRIVER_80211_BEACON_ADD(pAd, &bcn);
 
-    	if (beacon_head_buf)
-        	os_free_mem(NULL, beacon_head_buf);
+	if (beacon_head_buf)
+		os_free_mem(NULL, beacon_head_buf);
 	
 	if (beacon_tail_buf)	
 	    	os_free_mem(NULL, beacon_tail_buf);
@@ -2572,7 +2706,8 @@ static int CFG80211_OpsStartAp(
 {
     VOID *pAd;
     CMD_RTPRIV_IOCTL_80211_BEACON bcn;
-    UCHAR *beacon_head_buf, *beacon_tail_buf;
+	UCHAR *beacon_head_buf = NULL;
+	UCHAR *beacon_tail_buf = NULL;
     
     MAC80211_PAD_GET(pAd, pWiphy);	
     CFG80211DBG(RT_DEBUG_OFF, ("80211> %s ==>\n", __FUNCTION__));    
@@ -2581,13 +2716,17 @@ static int CFG80211_OpsStartAp(
 	if (settings->beacon.head_len > 0) 
 	{
 		os_alloc_mem(NULL, &beacon_head_buf, settings->beacon.head_len);
-		NdisCopyMemory(beacon_head_buf, settings->beacon.head, settings->beacon.head_len);
+		if (beacon_head_buf)
+			NdisCopyMemory(beacon_head_buf,
+				settings->beacon.head, settings->beacon.head_len);
 	}
 
 	if (settings->beacon.tail_len > 0) 
 	{
 		os_alloc_mem(NULL, &beacon_tail_buf, settings->beacon.tail_len);
-		NdisCopyMemory(beacon_tail_buf, settings->beacon.tail, settings->beacon.tail_len);
+		if (beacon_tail_buf)
+			NdisCopyMemory(beacon_tail_buf,
+				settings->beacon.tail, settings->beacon.tail_len);
 	}
 
 	bcn.beacon_head_len = settings->beacon.head_len;
@@ -2597,13 +2736,13 @@ static int CFG80211_OpsStartAp(
 	bcn.dtim_period = settings->dtim_period;
 	bcn.interval = settings->beacon_interval;
 	bcn.ssid_len = settings->ssid_len;
-	bcn.privacy = settings->privacy;
+	bcn.privacy = (BOOLEAN)settings->privacy;
 	NdisZeroMemory(&bcn.ssid[0], MAX_LEN_OF_SSID);
 	if (settings->ssid && (settings->ssid_len <= 32))
 		NdisCopyMemory(&bcn.ssid[0], settings->ssid, settings->ssid_len);
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0))
-	bcn.hidden_ssid = settings->hidden_ssid;
+	bcn.hidden_ssid = (UCHAR)settings->hidden_ssid;
 #endif /*LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0)*/
 
 
@@ -2634,7 +2773,7 @@ static int CFG80211_OpsStartAp(
 		/* get channel number */
 		ChanId = ieee80211_frequency_to_channel(settings->chandef.chan->center_freq);
 		CFG80211DBG(RT_DEBUG_OFF, ("80211> Channel = %d\n", ChanId));
-		ChanInfo.ChanId = ChanId;
+		ChanInfo.ChanId = (UINT8)ChanId;
 	
 		ChanInfo.IfType = RT_CMD_80211_IFTYPE_P2P_GO;
 	
@@ -2673,9 +2812,10 @@ static int CFG80211_OpsChangeBeacon(
 	struct net_device *netdev,
 	struct cfg80211_beacon_data *info)
 {
-    VOID *pAd;
-    CMD_RTPRIV_IOCTL_80211_BEACON bcn;
-    UCHAR *beacon_head_buf, *beacon_tail_buf;
+	VOID *pAd;
+	CMD_RTPRIV_IOCTL_80211_BEACON bcn;
+	UCHAR *beacon_head_buf = NULL;
+	UCHAR *beacon_tail_buf = NULL;
     
     MAC80211_PAD_GET(pAd, pWiphy);	
     CFG80211DBG(RT_DEBUG_TRACE, ("80211> %s ==>\n", __FUNCTION__));
@@ -2683,12 +2823,14 @@ static int CFG80211_OpsChangeBeacon(
 	if (info->head_len > 0) 
 	{
 		os_alloc_mem(NULL, &beacon_head_buf, info->head_len);
-		NdisCopyMemory(beacon_head_buf, info->head, info->head_len);
+		if (beacon_head_buf)
+			NdisCopyMemory(beacon_head_buf, info->head, info->head_len);
 	}
 
 	if (info->tail_len > 0) {
 		os_alloc_mem(NULL, &beacon_tail_buf, info->tail_len);
-		NdisCopyMemory(beacon_tail_buf, info->tail, info->tail_len);
+		if (beacon_tail_buf)
+			NdisCopyMemory(beacon_tail_buf, info->tail, info->tail_len);
 	}
 
 	memset(&bcn, 0, sizeof(CMD_RTPRIV_IOCTL_80211_BEACON));
@@ -2755,9 +2897,22 @@ static int CFG80211_OpsChangeBss(
 static int CFG80211_OpsStaDel(
 	struct wiphy *pWiphy, 
 	struct net_device *dev,
-	UINT8 *pMacAddr)
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)
+	struct station_del_parameters *params
+#else
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 16, 0))
+	const UINT8 * pMacAddr
+#else
+	UINT8 * pMacAddr
+#endif
+#endif
+
+)
 {
 	VOID *pAd;
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 19, 0)
+	const u8 *pMacAddr = params->mac;
+#endif
 	MAC80211_PAD_GET(pAd, pWiphy);
 
 	CFG80211DBG(RT_DEBUG_TRACE, ("80211> %s ==>\n", __FUNCTION__));
@@ -2769,7 +2924,7 @@ static int CFG80211_OpsStaDel(
 	{
 		CFG80211DBG(RT_DEBUG_TRACE, ("80211> Delete STA(%02X:%02X:%02X:%02X:%02X:%02X) ==>\n", 
 					PRINT_MAC(pMacAddr)));
-		RTMP_DRIVER_80211_AP_STA_DEL(pAd, pMacAddr);
+		CFG80211_ApStaDel(pAd, pMacAddr);
 	}
 
 	return 0;
@@ -2778,7 +2933,11 @@ static int CFG80211_OpsStaDel(
 static int CFG80211_OpsStaAdd(
         struct wiphy *wiphy,
         struct net_device *dev,
-        UINT8 *mac,
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 16, 0))
+		const UINT8 * mac,
+#else
+		UINT8 * mac,
+#endif
 	struct station_parameters *params)
 {
 	CFG80211DBG(RT_DEBUG_TRACE, ("80211> %s ==>\n", __FUNCTION__));
@@ -2788,7 +2947,11 @@ static int CFG80211_OpsStaAdd(
 static int CFG80211_OpsStaChg(
 	struct wiphy *pWiphy,
 	struct net_device *dev,
-	UINT8 *pMacAddr,
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 16, 0))
+	const UINT8 * pMacAddr,
+#else
+	UINT8 * pMacAddr,
+#endif
 	struct station_parameters *params)
 {
 	void *pAd;
@@ -2818,13 +2981,13 @@ static int CFG80211_OpsStaChg(
 	{
 		CFG80211DBG(RT_DEBUG_TRACE, ("80211> STA(%02X:%02X:%02X:%02X:%02X:%02X) ==> PortSecured\n", 
 			PRINT_MAC(pMacAddr)));
-		RTMP_DRIVER_80211_AP_MLME_PORT_SECURED(pAd, pMacAddr, 1);
+		CFG80211_StaPortSecured(pAd, pMacAddr, 1);
 	}
 	else	
 	{
 		CFG80211DBG(RT_DEBUG_TRACE, ("80211> STA(%02X:%02X:%02X:%02X:%02X:%02X) ==> PortNotSecured\n", 
                         PRINT_MAC(pMacAddr)));
-		RTMP_DRIVER_80211_AP_MLME_PORT_SECURED(pAd, pMacAddr, 0);
+		CFG80211_StaPortSecured(pAd, pMacAddr, 0);
 	}
 	return 0;
 }
@@ -2834,6 +2997,9 @@ static int CFG80211_OpsStaChg(
 static struct wireless_dev* CFG80211_OpsVirtualInfAdd(
         IN struct wiphy                                 *pWiphy,
         IN const char 									*name,
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 1, 0))
+							IN unsigned char name_assign_type,
+#endif
         IN enum nl80211_iftype                 			 Type,
         IN u32                                          *pFlags,
         struct vif_params                               *pParams)
@@ -2979,7 +3145,7 @@ ralink_mgmt_stypes[NUM_NL80211_IFTYPES] = {
 
 };
 #endif
-#if 0
+
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,0,0))
 static const struct ieee80211_iface_limit ra_p2p_sta_go_limits[] =
 {
@@ -2988,20 +3154,31 @@ static const struct ieee80211_iface_limit ra_p2p_sta_go_limits[] =
 		.types = BIT(NL80211_IFTYPE_STATION) |
 		         BIT(NL80211_IFTYPE_AP),
 	},
-#if 0
+
 	{
 		.max = 1,
 		.types = BIT(NL80211_IFTYPE_P2P_GO) |
-			 BIT(NL80211_IFTYPE_AP),
+			 BIT(NL80211_IFTYPE_P2P_CLIENT),
 	},
-    {
-            .max = 1,
-            .types = BIT(NL80211_IFTYPE_P2P_CLIENT),
-    },
-#endif
 };
 
-static const struct ieee80211_iface_combination 
+static const struct ieee80211_iface_combination
+ra_iface_combinations_ap_sta[] = {
+	{
+#ifdef RT_CFG80211_P2P_MULTI_CHAN_SUPPORT
+		.num_different_channels = 2,
+#else
+		.num_different_channels = 1,
+#endif /* RT_CFG80211_P2P_MULTI_CHAN_SUPPORT */
+		.max_interfaces = 3,
+		/* CFG TODO*/
+		/* .beacon_int_infra_match = true,*/
+		.limits = ra_p2p_sta_go_limits,
+		.n_limits = 1,
+	},
+};
+
+static const struct ieee80211_iface_combination
 ra_iface_combinations_p2p[] = {
 	{
 #ifdef RT_CFG80211_P2P_MULTI_CHAN_SUPPORT
@@ -3016,54 +3193,21 @@ ra_iface_combinations_p2p[] = {
 		.n_limits = ARRAY_SIZE(ra_p2p_sta_go_limits),
 	},
 };
+
+const struct ieee80211_iface_combination *p_ra_iface_combinations_ap_sta = ra_iface_combinations_ap_sta;
+const INT ra_iface_combinations_ap_sta_num = ARRAY_SIZE(ra_iface_combinations_ap_sta);
+
+const struct ieee80211_iface_combination *p_ra_iface_combinations_p2p = ra_iface_combinations_p2p;
+const INT ra_iface_combinations_p2p_num = ARRAY_SIZE(ra_iface_combinations_p2p);
+
 #endif /* LINUX_VERSION_CODE: 3.8.0 */
-#endif
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,0,0))
-static const struct ieee80211_iface_limit ra_p2p_sta_go_limits[] = 
-{
-        {
-                .max = 3,
-                .types = BIT(NL80211_IFTYPE_STATION)| BIT(NL80211_IFTYPE_AP),
-        },
-        {
-		.max = 1,
-		.types = BIT(NL80211_IFTYPE_P2P_GO) | BIT(NL80211_IFTYPE_P2P_CLIENT),
-	},
-};
 
-static const struct ieee80211_iface_combination 
-ra_iface_combinations_p2p[] = {
-	{
-		.num_different_channels = 1,
-		.max_interfaces = 3,
-		//.beacon_int_infra_match = true,
-		.limits = ra_p2p_sta_go_limits,
-		.n_limits = 1,//ARRAY_SIZE(ra_p2p_sta_go_limits),
-	},
-};
-
-static const struct ieee80211_iface_combination 
-ra_iface_combinations_p2p_GO[] = {
-	{
-		.num_different_channels = 1,
-		.max_interfaces = 3,
-		//.beacon_int_infra_match = true,
-		.limits = ra_p2p_sta_go_limits,
-		.n_limits = ARRAY_SIZE(ra_p2p_sta_go_limits),
-	},
-};
-
-const struct ieee80211_iface_combination *p_ra_iface_combinations_ap_sta = ra_iface_combinations_p2p;
-const INT ra_iface_combinations_ap_sta_num = ARRAY_SIZE(ra_iface_combinations_p2p);
-
-const struct ieee80211_iface_combination *p_ra_iface_combinations_p2p = ra_iface_combinations_p2p_GO;
-const INT ra_iface_combinations_p2p_num = ARRAY_SIZE(ra_iface_combinations_p2p_GO);
-#endif
 struct cfg80211_ops CFG80211_Ops = {
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0))
 	.suspend = CFG80211_OpsSuspend,
 	.set_wakeup = CFG80211_OpsSetWakeup,
 	.resume = CFG80211_OpsResume,
+	.set_rekey_data	= CFG80211_OpsSetRekeyData,
 #endif
 #ifdef CFG_TDLS_SUPPORT
 #if (LINUX_VERSION_CODE > KERNEL_VERSION(3,4,0))
@@ -3305,7 +3449,7 @@ static struct wireless_dev *CFG80211_WdevAlloc(
 	set_wiphy_dev(pWdev->wiphy, pDev);
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,30))
-	pWdev->wiphy->max_scan_ssids = pBandInfo->MaxBssTable;
+	pWdev->wiphy->max_scan_ssids = (u8)pBandInfo->MaxBssTable;
 #endif /* KERNEL_VERSION */
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0))
@@ -3351,6 +3495,10 @@ static struct wireless_dev *CFG80211_WdevAlloc(
 	/* init channel information */
 	CFG80211_SupBandInit(pCfg80211_CB, pBandInfo, pWdev->wiphy, NULL, NULL);
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
+	pWdev->wiphy->regulatory_flags |= (REGULATORY_DISABLE_BEACON_HINTS|REGULATORY_CUSTOM_REG);
+#endif /* endif */
+
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,30))
 	/* CFG80211_SIGNAL_TYPE_MBM: signal strength in mBm (100*dBm) */
 	pWdev->wiphy->signal_type = CFG80211_SIGNAL_TYPE_MBM;
@@ -3377,7 +3525,7 @@ static struct wireless_dev *CFG80211_WdevAlloc(
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,4,0))
 #ifdef CONFIG_PM
 #ifdef MT_WOW_SUPPORT
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,14,0))
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 11, 0))
 	pWdev->wiphy->wowlan = &mtk_wowlan_support;
 #else
 	pWdev->wiphy->wowlan.flags = WIPHY_WOWLAN_MAGIC_PKT;
@@ -3415,8 +3563,9 @@ static struct wireless_dev *CFG80211_WdevAlloc(
 	//pWdev->wiphy->flags |= WIPHY_FLAG_IBSS_RSN;
 
 #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3,8,0))
-	pWdev->wiphy->iface_combinations = ra_iface_combinations_p2p;
-	pWdev->wiphy->n_iface_combinations = ARRAY_SIZE(ra_iface_combinations_p2p);
+	DBGPRINT(RT_DEBUG_TRACE, ("[%s] Change to AP/STA combination mode!!\n", __func__));
+	pWdev->wiphy->iface_combinations = p_ra_iface_combinations_ap_sta;
+	pWdev->wiphy->n_iface_combinations = ARRAY_SIZE(ra_iface_combinations_ap_sta);
 #endif /* LINUX_VERSION_CODE: 3.8.0 */
 
 	if (wiphy_register(pWdev->wiphy) < 0)
@@ -3501,7 +3650,7 @@ BOOLEAN CFG80211_Register(
 #if 0
 	CFG_TODO
 	struct ieee80211_channel *ch;
-	ch = pCfg80211_CB->pCfg80211_Wdev->wiphy->bands[IEEE80211_BAND_2GHZ]->channels;
+	ch = pCfg80211_CB->pCfg80211_Wdev->wiphy->bands[KAL_BAND_2GHZ]->channels;
 	cfg80211_chandef_create(&pCfg80211_CB->pCfg80211_Wdev->preset_chandef, ch, NL80211_CHAN_NO_HT);
 #endif 
 	
@@ -3585,7 +3734,7 @@ static INT32 CFG80211_RegNotifier(
 					is not permitted.
 	*/
 #ifdef RELEASE_EXCLUDE
-	if (pWiphy->bands[IEEE80211_BAND_5GHZ])
+	if (pWiphy->bands[KAL_BAND_5GHZ])
 	{
 		struct ieee80211_supported_band *pBand;
 		struct ieee80211_channel *pChannel;
@@ -3615,7 +3764,7 @@ static INT32 CFG80211_RegNotifier(
 										IEEE80211_CHAN_NO_IBSS |
 										IEEE80211_CHAN_PASSIVE_SCAN;
 		 */
-		pBand = pWiphy->bands[IEEE80211_BAND_5GHZ];
+		pBand = pWiphy->bands[KAL_BAND_5GHZ];
 	
 		for(IdChan=0; IdChan<pBand->n_channels; IdChan++)
 		{
@@ -3734,7 +3883,7 @@ static INT32 CFG80211_RegNotifier(
 					is not permitted.
 	*/
 #ifdef RELEASE_EXCLUDE
-	if (pWiphy->bands[IEEE80211_BAND_5GHZ])
+	if (pWiphy->bands[KAL_BAND_5GHZ])
 	{
 		struct ieee80211_supported_band *pBand;
 		struct ieee80211_channel *pChannel;
@@ -3764,7 +3913,7 @@ static INT32 CFG80211_RegNotifier(
 										IEEE80211_CHAN_NO_IBSS |
 										IEEE80211_CHAN_PASSIVE_SCAN;
 		 */
-		pBand = pWiphy->bands[IEEE80211_BAND_5GHZ];
+		pBand = pWiphy->bands[KAL_BAND_5GHZ];
 	
 		for(IdChan=0; IdChan<pBand->n_channels; IdChan++)
 		{

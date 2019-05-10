@@ -318,10 +318,13 @@ VOID set_sta_ra_cap(RTMP_ADAPTER *pAd, MAC_TABLE_ENTRY *ent, ULONG ra_ie)
 		pEntry - pointer to the MAC entry; NULL is not found
 	==========================================================================
 */
-MAC_TABLE_ENTRY *MacTableLookup(RTMP_ADAPTER *pAd, UCHAR *pAddr)
+MAC_TABLE_ENTRY *MacTableLookup(RTMP_ADAPTER *pAd, const UCHAR *pAddr)
 {
 	ULONG HashIdx;
 	MAC_TABLE_ENTRY *pEntry = NULL;
+
+	if (pAd == NULL || pAddr == NULL)
+		return NULL;
 	
 	HashIdx = MAC_ADDR_HASH_INDEX(pAddr);
 	pEntry = pAd->MacTab.Hash[HashIdx];
@@ -438,10 +441,14 @@ BOOLEAN StaUpdateMacTableEntry(
 #endif /* TXBF_SUPPORT */
 
 		/* find max fixed rate */
-		pEntry->MaxHTPhyMode.field.MCS = get_ht_max_mcs(pAd, &wdev->DesiredHtPhyInfo.MCSSet[0], &ht_cap->MCSSet[0]);
+		pEntry->MaxHTPhyMode.field.MCS =
+			(USHORT)get_ht_max_mcs(pAd, &wdev->DesiredHtPhyInfo.MCSSet[0],
+			&ht_cap->MCSSet[0]);
 
 		if (wdev->DesiredTransmitSetting.field.MCS != MCS_AUTO)
-			set_ht_fixed_mcs(pAd, pEntry, wdev->DesiredTransmitSetting.field.MCS, wdev->HTPhyMode.field.MCS);
+			set_ht_fixed_mcs(pAd, pEntry,
+			(UCHAR)wdev->DesiredTransmitSetting.field.MCS,
+			(UCHAR)wdev->HTPhyMode.field.MCS);
 
 		pEntry->MaxHTPhyMode.field.STBC = (ht_cap->HtCapInfo.RxSTBC & (pAd->CommonCfg.DesiredHtPhy.TxSTBC));
 		pEntry->MpduDensity = ht_cap->HtCapParm.MpduDensity;
@@ -691,7 +698,7 @@ MAC_TABLE_ENTRY *MacTableInsertEntry(
 			
 			/* ENTRY PREEMPTION: initialize the entry */
 			pEntry->wdev = wdev;
-			pEntry->wcid = i;
+			pEntry->wcid = (UCHAR)i;
 			pEntry->func_tb_idx = wdev->func_idx;
 			pEntry->bIAmBadAtheros = FALSE;
 			pEntry->pAd = pAd;
@@ -878,7 +885,7 @@ MAC_TABLE_ENTRY *MacTableInsertEntry(
 #endif /* CONFIG_STA_SUPPORT */
 			} while (FALSE);
 
-			tr_tb_set_entry(pAd, i, pEntry);
+			tr_tb_set_entry(pAd, (UCHAR)i, pEntry);
 			
 			RTMPInitTimer(pAd, &pEntry->EnqueueStartForPSKTimer, GET_TIMER_FUNCTION(EnqueueStartForPSKExec), pEntry, FALSE);
 
@@ -1289,7 +1296,7 @@ BOOLEAN MacTableDeleteEntry(RTMP_ADAPTER *pAd, USHORT wcid, UCHAR *pAddr)
 			APCleanupPsQueue(pAd, &tr_entry->ps_queue); /* return all NDIS packet in PSQ*/
 #endif /* CONFIG_AP_SUPPORT */
 
-			tr_tb_reset_entry(pAd, wcid);
+			tr_tb_reset_entry(pAd, (UCHAR)wcid);
 
 			/*RTMP_REMOVE_PAIRWISE_KEY_ENTRY(pAd, wcid);*/
 
@@ -1536,7 +1543,7 @@ VOID MacTableReset(RTMP_ADAPTER *pAd, INT startWcid)
 		}
 
 		/* Delete a entry via WCID */
-		MacTableDeleteEntry(pAd, i, pMacEntry->Addr);
+		MacTableDeleteEntry(pAd, (USHORT)i, pMacEntry->Addr);
 	}
 
 #ifdef CONFIG_AP_SUPPORT
@@ -1564,9 +1571,8 @@ VOID MacTableReset(RTMP_ADAPTER *pAd, INT startWcid)
 
 		/* ENTRY PREEMPTION: Zero Mac Table but entry's content */
 /*		NdisZeroMemory(&pAd->MacTab, sizeof(MAC_TABLE));*/
-		NdisZeroMemory(&pAd->MacTab.Size,
-							sizeof(MAC_TABLE)-
-							Offsetof(MAC_TABLE, Size));
+		NdisZeroMemory((((CHAR *)(&(pAd->MacTab))) + Offsetof(MAC_TABLE, Size)),
+				sizeof(MAC_TABLE) - Offsetof(MAC_TABLE, Size));
 
 		InitializeQueueHeader(&pAd->MacTab.McastPsQueue);
 		/*NdisReleaseSpinLock(&pAd->MacTabLock);*/

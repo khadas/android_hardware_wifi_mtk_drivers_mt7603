@@ -504,9 +504,10 @@ VOID WpaEAPOLKeyAction(
 						/* Get a specific WCID to record this MBSS key attribute */
 						GET_GroupKey_WCID(pAd, Wcid, apidx);
 
-						WPAInstallSharedKey(pAd, wdev->GroupKeyWepStatus,
-										apidx, wdev->DefaultKeyId, Wcid,
-										TRUE, mbss->GTK, LEN_TKIP_GTK);
+						WPAInstallSharedKey(pAd,
+							(UINT8)wdev->GroupKeyWepStatus,
+							apidx, wdev->DefaultKeyId, Wcid,
+							TRUE, mbss->GTK, LEN_TKIP_GTK);
 					}
 					else
 					{
@@ -620,13 +621,14 @@ VOID RTMPToWirelessSta(
 
 	RTMP_SET_PACKET_WCID(pPacket, (UCHAR)pEntry->wcid);
 	// TODO: shiang-usw, fix this!
-	RTMP_SET_PACKET_WDEV(pPacket, pEntry->wdev->wdev_idx);
 	RTMP_SET_PACKET_MOREDATA(pPacket, FALSE);
 
 	/* send out the packet */
 	wdev = pEntry->wdev;
-	if (wdev && wdev->tx_pkt_handle)
+	if (wdev && wdev->tx_pkt_handle) {
+		RTMP_SET_PACKET_WDEV(pPacket, pEntry->wdev->wdev_idx);
 		wdev->tx_pkt_handle(pAd, pPacket);
+	}
 	else {
 		DBGPRINT(RT_DEBUG_ERROR, ("%s():Invalid wdev(%p) or tx_pkt_handle(%p)!\n",
 					__FUNCTION__, wdev, (wdev ? wdev->tx_pkt_handle : NULL)));
@@ -766,10 +768,10 @@ BOOLEAN PeerWpaMessageSanity(
 			{
 				unsigned char *tmp = (unsigned char *)pEntry->PTK;
 				int k=0;
-				printk("PTK=>");
+				DBGPRINT(RT_DEBUG_OFF, ("PTK=>"));
 				for(k=0;k<32;k++)
-					printk("%02x", *(tmp+k));
-				printk("\n");
+					DBGPRINT(RT_DEBUG_OFF, ("%02x", *(tmp+k)));
+				DBGPRINT(RT_DEBUG_OFF, ("\n"));
 			}
         }
 #if 0
@@ -949,7 +951,7 @@ VOID WPAStart4WayHS(
 
 		/* pointer to the corresponding position*/
 		pBssid = pMbss->wdev.bssid;
-		group_cipher = pMbss->wdev.GroupKeyWepStatus;
+		group_cipher = (UCHAR)pMbss->wdev.GroupKeyWepStatus;
 	}
 #endif /* CONFIG_AP_SUPPORT */
 
@@ -1148,7 +1150,7 @@ VOID PeerPairMsg1Action(
 #endif /* MAC_REPEATER_SUPPORT */
 			pCurrentAddr = pAd->ApCfg.ApCliTab[IfIndex].wdev.if_addr;
 			pmk_ptr = pAd->ApCfg.ApCliTab[IfIndex].PMK;
-			group_cipher = pAd->ApCfg.ApCliTab[IfIndex].GroupCipher;
+			group_cipher = (UCHAR)pAd->ApCfg.ApCliTab[IfIndex].GroupCipher;
 			rsnie_ptr = pAd->ApCfg.ApCliTab[IfIndex].RSN_IE;
 			rsnie_len = pAd->ApCfg.ApCliTab[IfIndex].RSNIE_Len;
 		}
@@ -1178,7 +1180,7 @@ VOID PeerPairMsg1Action(
 		{
 		pCurrentAddr = pAd->CurrentAddress;
 		pmk_ptr = pAd->StaCfg.PMK;
-		group_cipher = pAd->StaCfg.GroupCipher;
+		group_cipher = (UCHAR)pAd->StaCfg.GroupCipher;
 		rsnie_ptr = pAd->StaCfg.RSN_IE;
 		rsnie_len = pAd->StaCfg.RSNIE_Len;
 	}
@@ -1385,7 +1387,7 @@ VOID PeerPairMsg2Action(
 		pBssid = wdev->bssid;
 		pmk_ptr = pAd->ApCfg.MBSSID[apidx].PMK;
 		gtk_ptr = pAd->ApCfg.MBSSID[apidx].GTK;
-		group_cipher = wdev->GroupKeyWepStatus;
+		group_cipher = (UCHAR)wdev->GroupKeyWepStatus;
 		default_key = wdev->DefaultKeyId;
 
 		/* Get Group TxTsc form Asic*/
@@ -1409,7 +1411,7 @@ VOID PeerPairMsg2Action(
 #ifdef CONFIG_HOTSPOT_R2            	
             	if (pAd->ApCfg.MBSSID[apidx].HotSpotCtrl.bASANEnable == 1)
             	{
-            		printk("choose OSEN\n");
+			DBGPRINT(RT_DEBUG_OFF, ("choose OSEN\n"));
 					rsnie_len = OSEN_IELEN;
 					rsnie_ptr = OSEN_IE;            		
             	}
@@ -1500,7 +1502,7 @@ VOID PeerPairMsg2Action(
 #ifdef CONFIG_HOTSPOT_R2
 	if (CLIENT_STATUS_TEST_FLAG(pEntry, fCLIENT_STATUS_OSEN_CAPABLE))
 	{
-		printk("got msg2 derivePTK\n");
+		DBGPRINT(RT_DEBUG_OFF, ("got msg2 derivePTK\n"));
 		PMF_DerivePTK(pAd,
                      (UCHAR *)pmk_ptr,
                      pEntry->ANonce,
@@ -1663,7 +1665,7 @@ VOID WPAPairMsg3Retry(
 		pBssid = wdev->bssid;
 		//pmk_ptr = pAd->ApCfg.MBSSID[apidx].PMK;
 		gtk_ptr = pAd->ApCfg.MBSSID[apidx].GTK;
-		group_cipher = wdev->GroupKeyWepStatus;
+		group_cipher = (UCHAR)wdev->GroupKeyWepStatus;
 		default_key = wdev->DefaultKeyId;
 
 		/* Get Group TxTsc form Asic*/
@@ -1724,7 +1726,8 @@ VOID WPAPairMsg3Retry(
 	}
 #endif 
 	/* Construct EAPoL message - Pairwise Msg 3*/
-	ConstructEapolMsg(pEntry,
+	if (gtk_ptr)
+		ConstructEapolMsg(pEntry,
 					  group_cipher,
 					  EAPOL_PAIR_MSG_3,
 					  default_key,
@@ -1736,7 +1739,8 @@ VOID WPAPairMsg3Retry(
 					  pEapolFrame);
 	
 	/* Make outgoing frame*/
-	MAKE_802_3_HEADER(Header802_3, pEntry->Addr, pBssid, EAPOL);			
+	if (pBssid)
+		MAKE_802_3_HEADER(Header802_3, pEntry->Addr, pBssid, EAPOL);
 	tr_entry = &pAd->MacTab.tr_entry[pEntry->wcid];
 	RTMPToWirelessSta(pAd, pEntry, Header802_3, LENGTH_802_3,
 				  (PUCHAR)pEapolFrame,
@@ -1819,7 +1823,7 @@ VOID PeerPairMsg3Action(
 			else
 #endif /* MAC_REPEATER_SUPPORT */
 			pCurrentAddr = pAd->ApCfg.ApCliTab[IfIndex].wdev.if_addr;
-			group_cipher = pAd->ApCfg.ApCliTab[IfIndex].GroupCipher;
+			group_cipher = (UCHAR)pAd->ApCfg.ApCliTab[IfIndex].GroupCipher;
 
 		}
 #endif /* APCLI_SUPPORT */
@@ -1845,7 +1849,7 @@ VOID PeerPairMsg3Action(
 #endif /* P2P_SUPPORT */
 		{
 		pCurrentAddr = pAd->CurrentAddress;
-		group_cipher = pAd->StaCfg.GroupCipher;
+		group_cipher = (UCHAR)pAd->StaCfg.GroupCipher;
 
 	}
 	}
@@ -2003,9 +2007,9 @@ VOID PeerPairMsg3Action(
 		STA_PORT_SECURED(pAd);
 #endif /* CONFIG_STA_SUPPORT */
 		DBGPRINT(RT_DEBUG_TRACE, ("PeerPairMsg3Action: AuthMode(%s) PairwiseCipher(%s) GroupCipher(%s) \n",
-									GetAuthMode(pEntry->AuthMode),
-									GetEncryptType(pEntry->WepStatus),
-									GetEncryptType(group_cipher)));
+					GetAuthMode((CHAR)pEntry->AuthMode),
+					GetEncryptType((CHAR)pEntry->WepStatus),
+					GetEncryptType((CHAR)group_cipher)));
 	}
 	else
 	{
@@ -2093,7 +2097,7 @@ VOID PeerPairMsg4Action(
 		    else
 				apidx = pEntry->func_tb_idx;
 
-			group_cipher = pAd->ApCfg.MBSSID[apidx].wdev.GroupKeyWepStatus;
+			group_cipher = (UCHAR)pAd->ApCfg.MBSSID[apidx].wdev.GroupKeyWepStatus;
 		}
 #endif /* CONFIG_AP_SUPPORT */
 
@@ -2272,7 +2276,7 @@ VOID PeerPairMsg4Action(
 
 			pEntry->IsWNMReqValid = FALSE;
 			os_free_mem(NULL, req_data); 
-			printk("!!!!msg 4 send wnm req\n");
+			DBGPRINT(RT_DEBUG_OFF, ("!!!!msg 4 send wnm req\n"));
 		}
 		if (pEntry->IsBTMReqValid == TRUE)
 		{
@@ -2284,7 +2288,7 @@ VOID PeerPairMsg4Action(
 
 			pEntry->IsBTMReqValid = FALSE;
 			os_free_mem(NULL, req_data); 
-			printk("!!!!msg 4 send btm req\n");
+			DBGPRINT(RT_DEBUG_OFF, ("!!!!msg 4 send btm req\n"));
 		}
 #endif
 
@@ -2298,10 +2302,10 @@ VOID PeerPairMsg4Action(
 #endif /* WIDI_SUPPORT */
 
 	        DBGPRINT(RT_DEBUG_OFF, ("AP SETKEYS DONE - WPA2, AuthMode(%d)=%s, WepStatus(%d)=%s, GroupWepStatus(%d)=%s\n\n",
-									pEntry->AuthMode, GetAuthMode(pEntry->AuthMode),
-									pEntry->WepStatus, GetEncryptType(pEntry->WepStatus),
-									group_cipher,
-									GetEncryptType(group_cipher)));
+				pEntry->AuthMode, GetAuthMode((CHAR)pEntry->AuthMode),
+				pEntry->WepStatus, GetEncryptType((CHAR)pEntry->WepStatus),
+				group_cipher,
+				GetEncryptType((CHAR)group_cipher)));
 		}
 		else
 		{
@@ -2346,8 +2350,8 @@ VOID WPAStart2WayGroupHS(
     if ((!pEntry) || !IS_ENTRY_CLIENT(pEntry))
         return;
 
-	/* delete retry timer*/
-	RTMPCancelTimer(&pEntry->RetryTimer, &Cancelled);
+    /* delete retry timer*/
+    RTMPCancelTimer(&pEntry->RetryTimer, &Cancelled);
 	
 #ifdef CONFIG_AP_SUPPORT
 #ifdef P2P_SUPPORT
@@ -2363,7 +2367,7 @@ VOID WPAStart2WayGroupHS(
 	    else
 			apidx = pEntry->func_tb_idx;
 
-		group_cipher = pAd->ApCfg.MBSSID[apidx].wdev.GroupKeyWepStatus;
+		group_cipher = (UCHAR)pAd->ApCfg.MBSSID[apidx].wdev.GroupKeyWepStatus;
 		default_key = pAd->ApCfg.MBSSID[apidx].wdev.DefaultKeyId;
 		gnonce_ptr = pAd->ApCfg.MBSSID[apidx].GNonce;
 		gtk_ptr = pAd->ApCfg.MBSSID[apidx].GTK;
@@ -2389,7 +2393,8 @@ VOID WPAStart2WayGroupHS(
 	ADD_ONE_To_64BIT_VAR(pEntry->R_Counter);
 
 	/* Construct EAPoL message - Group Msg 1*/
-	ConstructEapolMsg(pEntry,
+	if (gnonce_ptr && gtk_ptr)
+		ConstructEapolMsg(pEntry,
 					  group_cipher,
 					  EAPOL_GROUP_MSG_1,
 					  default_key,
@@ -2404,6 +2409,7 @@ VOID WPAStart2WayGroupHS(
 	if (pBssid == NULL)
 	{
 		DBGPRINT(RT_DEBUG_ERROR, ("%s: pBssid == NULL!\n", __FUNCTION__));
+		os_free_mem(NULL, mpool);
 		return;
 	}
 
@@ -2488,7 +2494,7 @@ VOID	PeerGroupMsg1Action(
 			else
 #endif /* MAC_REPEATER_SUPPORT */
 			pCurrentAddr = pAd->ApCfg.ApCliTab[IfIndex].wdev.if_addr;
-			group_cipher = pAd->ApCfg.ApCliTab[IfIndex].GroupCipher;
+			group_cipher = (UCHAR)pAd->ApCfg.ApCliTab[IfIndex].GroupCipher;
 			default_key = pAd->ApCfg.ApCliTab[IfIndex].wdev.DefaultKeyId;
 
 		}
@@ -2499,7 +2505,7 @@ VOID	PeerGroupMsg1Action(
 	IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 	{
 		pCurrentAddr = pAd->CurrentAddress;
-		group_cipher = pAd->StaCfg.GroupCipher;
+		group_cipher = (UCHAR)pAd->StaCfg.GroupCipher;
 		default_key = pAd->StaCfg.wdev.DefaultKeyId;
 	}
 #endif /* CONFIG_STA_SUPPORT */
@@ -2601,9 +2607,9 @@ VOID	PeerGroupMsg1Action(
 #endif /* CONFIG_STA_SUPPORT */
 
 	DBGPRINT(RT_DEBUG_TRACE, ("PeerGroupMsg1Action: AuthMode(%s) PairwiseCipher(%s) GroupCipher(%s) \n",
-									GetAuthMode(pEntry->AuthMode),
-									GetEncryptType(pEntry->WepStatus),
-									GetEncryptType(group_cipher)));
+			GetAuthMode((CHAR)pEntry->AuthMode),
+			GetEncryptType((CHAR)pEntry->WepStatus),
+			GetEncryptType((CHAR)group_cipher)));
 
 	/* init header and Fill Packet and send Msg 2 to authenticator	*/
 	MAKE_802_3_HEADER(Header802_3, pEntry->Addr, pCurrentAddr, EAPOL);
@@ -2811,7 +2817,7 @@ VOID PeerGroupMsg2Action(
 		    else
 				apidx = pEntry->func_tb_idx;
 
-			group_cipher = pAd->ApCfg.MBSSID[apidx].wdev.GroupKeyWepStatus;
+			group_cipher = (UCHAR)pAd->ApCfg.MBSSID[apidx].wdev.GroupKeyWepStatus;
 		}
 #endif /* CONFIG_AP_SUPPORT */
 
@@ -2834,9 +2840,9 @@ VOID PeerGroupMsg2Action(
 				RTMPSendWirelessEvent(pAd, IW_SET_KEY_DONE_WPA2_EVENT_FLAG, pEntry->Addr, pEntry->wdev->wdev_idx, 0);
 
 			DBGPRINT(RT_DEBUG_OFF, ("AP SETKEYS DONE - WPA2, AuthMode(%d)=%s, WepStatus(%d)=%s, GroupWepStatus(%d)=%s\n\n",
-										pEntry->AuthMode, GetAuthMode(pEntry->AuthMode),
-										pEntry->WepStatus, GetEncryptType(pEntry->WepStatus),
-										group_cipher, GetEncryptType(group_cipher)));
+				pEntry->AuthMode, GetAuthMode((CHAR)pEntry->AuthMode),
+				pEntry->WepStatus, GetEncryptType((CHAR)pEntry->WepStatus),
+				group_cipher, GetEncryptType((CHAR)group_cipher)));
 		}
 		else
 		{
@@ -2844,9 +2850,9 @@ VOID PeerGroupMsg2Action(
 				RTMPSendWirelessEvent(pAd, IW_SET_KEY_DONE_WPA1_EVENT_FLAG, pEntry->Addr, pEntry->wdev->wdev_idx, 0);
 
         	DBGPRINT(RT_DEBUG_OFF, ("AP SETKEYS DONE - WPA1, AuthMode(%d)=%s, WepStatus(%d)=%s, GroupWepStatus(%d)=%s\n\n",
-										pEntry->AuthMode, GetAuthMode(pEntry->AuthMode),
-										pEntry->WepStatus, GetEncryptType(pEntry->WepStatus),
-										group_cipher, GetEncryptType(group_cipher)));
+				pEntry->AuthMode, GetAuthMode((CHAR)pEntry->AuthMode),
+				pEntry->WepStatus, GetEncryptType((CHAR)pEntry->WepStatus),
+				group_cipher, GetEncryptType((CHAR)group_cipher)));
 		}
     }while(FALSE);
 }
@@ -3169,7 +3175,7 @@ VOID	KDF(
 
 	/* concatenate the length in bits (16-bit unsigned integer)*/
 	input[total_len] = (len_in_bits & 0xFF);
-	input[total_len + 1] = (len_in_bits & 0xFF00) >> 8;
+	input[total_len + 1] = (UCHAR)((len_in_bits & 0xFF00) >> 8);
 	total_len += 2;
 
 	for	(i = 1;	i <= ((len_in_bits + 255) / 256); i++)
@@ -3453,7 +3459,7 @@ static VOID RTMPMakeRsnIeCipher(
 	IN	UINT			WepStatus,
 	IN	UCHAR			apidx,
 	IN	BOOLEAN			bMixCipher,
-	IN	UCHAR			FlexibleCipher,
+	IN	WPA_MIX_PAIR_CIPHER	FlexibleCipher,
 	OUT	PUCHAR			pRsnIe,
 	OUT	UCHAR			*rsn_len)
 {
@@ -4935,7 +4941,7 @@ BOOLEAN RTMPParseEapolKeyData(
             pApcli_entry = &pAd->ApCfg.ApCliTab[IfIdx];
 
             WPAInstallSharedKey(pAd,
-                pApcli_entry->GroupCipher,
+		(UINT8)pApcli_entry->GroupCipher,
                 BSS0,
                 DefaultIdx,
                 APCLI_MCAST_WCID,
@@ -4970,7 +4976,7 @@ BOOLEAN RTMPParseEapolKeyData(
     		pAd->StaCfg.wdev.DefaultKeyId = DefaultIdx;
 
     		WPAInstallSharedKey(pAd,
-    							pAd->StaCfg.GroupCipher,
+							(UINT8)pAd->StaCfg.GroupCipher,
     							BSS0,
     							pAd->StaCfg.wdev.DefaultKeyId,
     							MCAST_WCID,
@@ -5140,7 +5146,7 @@ VOID	ConstructEapolMsg(
 #ifdef CONFIG_HOTSPOT_R2
 	if (CLIENT_STATUS_TEST_FLAG(pEntry, fCLIENT_STATUS_OSEN_CAPABLE))
 	{
-		printk ("OSEN use sha256\n");
+		DBGPRINT(RT_DEBUG_OFF, ("OSEN use sha256\n"));
 		//KeyDescVer = KEY_DESC_EXT;		
 		KeyDescVer = KEY_DESC_OSEN; 
 	}
@@ -5729,14 +5735,14 @@ CIPHER_KEY *RTMPSwCipherKeySelection(
 
 	if (pRxBlk->pRxInfo->U2M)
 	{
-		CipherAlg = pEntry->WepStatus;
+		CipherAlg = (UINT8)pEntry->WepStatus;
 	}
 	else
 	{
 #ifdef CONFIG_STA_SUPPORT
 		IF_DEV_CONFIG_OPMODE_ON_STA(pAd)
 		{
-			CipherAlg = pAd->StaCfg.GroupCipher;
+			CipherAlg = (UINT8)pAd->StaCfg.GroupCipher;
 		}
 #endif /* CONFIG_STA_SUPPORT */
 	}
@@ -6031,7 +6037,7 @@ PUINT8	WPA_ExtractSuiteFromRSNIE(
 		{
 			DBGPRINT(RT_DEBUG_TRACE, ("%s : The count of pairwise cipher is %d\n",
 												__FUNCTION__, u_cnt));
-						*count = u_cnt;
+						*count = (UINT8)u_cnt;
 			return pRsnie->ucast[0].oui;
 		}
 			}
@@ -6072,7 +6078,7 @@ PUINT8	WPA_ExtractSuiteFromRSNIE(
 		{
 			DBGPRINT(RT_DEBUG_TRACE, ("%s : The count of pairwise cipher is %d\n",
 										__FUNCTION__, u_cnt));
-					*count = u_cnt;
+					*count = (UINT8)u_cnt;
 					return pRsnie2->ucast[0].oui;
 				}
 			}
@@ -6117,7 +6123,7 @@ PUINT8	WPA_ExtractSuiteFromRSNIE(
 	{
 		DBGPRINT(RT_DEBUG_TRACE, ("%s : The count of AKM is %d\n",
 											__FUNCTION__, a_cnt));
-				*count = a_cnt;
+				*count = (UINT8)a_cnt;
 		return pAkm->auth[0].oui;
 	}
 		}
@@ -6203,7 +6209,7 @@ PUINT8	WPA_ExtractSuiteFromRSNIE(
 		/* Extract PMKID list and its count */
 		if (type == PMKID_LIST)
 		{
-			*count = p_count;
+			*count = (UINT8)p_count;
 			return pPmkidList;
 		}
 

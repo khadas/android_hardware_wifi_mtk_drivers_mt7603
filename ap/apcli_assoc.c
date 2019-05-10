@@ -377,6 +377,9 @@ static VOID ApCliMlmeAssocReqAction(
 
 			NdisZeroMemory(&HtCapabilityTmp, sizeof(HT_CAPABILITY_IE));
 			NdisMoveMemory(&HtCapabilityTmp, &apcli_entry->MlmeAux.HtCapability, apcli_entry->MlmeAux.HtCapabilityLen);
+			/* WFD 6.1.21E: the peer devices will use BW based on HT Support Channel width in HT Capability IE */
+			if (pAd->CommonCfg.RegTransmitSetting.field.BW == HT_BW_20)
+				HtCapabilityTmp.HtCapInfo.ChannelWidth = BW_20;
 #ifdef DOT11N_SS3_SUPPORT
 			HtCapabilityTmp.MCSSet[2] = (apcli_entry->MlmeAux.HtCapability.MCSSet[2] & apcli_entry->RxMcsSet[2]);
 #endif /* DOT11N_SS3_SUPPORT */
@@ -704,8 +707,8 @@ static VOID ApCliMlmeDisassocReqAction(
 		RTMPSendWirelessEvent(pAd, IW_DISASSOC_EVENT_FLAG, NULL, BSS0, 0); 
 #endif /* WPA_SUPPLICANT_SUPPORT */
 
-#if defined(RT_CFG80211_P2P_CONCURRENT_DEVICE) || defined(CFG80211_MULTI_STA)	
-	RT_CFG80211_LOST_GO_INFORM(pAd);
+#if defined(RT_CFG80211_P2P_CONCURRENT_DEVICE) || defined(CFG80211_MULTI_STA)
+		RT_CFG80211_LOST_GO_INFORM(pAd, pDisassocReq->Reason);
 #endif /* RT_CFG80211_P2P_CONCURRENT_DEVICE || CFG80211_MULTI_STA */
 
 	return;
@@ -791,7 +794,8 @@ static VOID ApCliPeerAssocRspAction(
             pAd->ApCfg.ApCliTab[ifIndex].ResVarIELen = 0;
 
             pFrame = (PFRAME_802_11) (Elem->Msg);
-            pAd->ApCfg.ApCliTab[ifIndex].ResVarIELen = Elem->MsgLen - 6 - sizeof (HEADER_802_11);
+			pAd->ApCfg.ApCliTab[ifIndex].ResVarIELen =
+			(USHORT)(Elem->MsgLen - 6 - sizeof(HEADER_802_11));
             NdisCopyMemory(pAd->ApCfg.ApCliTab[ifIndex].ResVarIEs, &pFrame->Octet[6], pAd->ApCfg.ApCliTab[ifIndex].ResVarIELen);
 #endif /* RT_CFG80211_P2P_CONCURRENT_DEVICE || CFG80211_MULTI_STA */
 

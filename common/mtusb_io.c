@@ -92,8 +92,8 @@ static NTSTATUS mtusb_multiwrite(RTMP_ADAPTER *pAd,
 			USBD_TRANSFER_DIRECTION_OUT,
 			DEVICE_VENDOR_REQUEST_OUT,
 			0x66,
-			(index & 0xffff0000) >> 16,
-			(index & 0x0000ffff),
+			(USHORT)((index & 0xffff0000) >> 16),
+			(USHORT)(index & 0x0000ffff),
 			pSrc,
 			actLen);
 
@@ -118,8 +118,10 @@ static NTSTATUS mtusb_multiread(RTMP_ADAPTER *pAd, UINT32 addr, UCHAR *buf, UINT
 	Status =  RTUSB_VendorRequest(pAd, (USBD_TRANSFER_DIRECTION_IN |
 										USBD_SHORT_TRANSFER_OK),
 										DEVICE_VENDOR_REQUEST_IN,
-										0x63, (addr & 0xffff0000) >> 16, 
-										(addr & 0x0000ffff), buf, len);
+										0x63,
+										(USHORT)((addr & 0xffff0000) >> 16),
+										(USHORT)(addr & 0x0000ffff),
+										buf, len);
 
 	return Status;
 }
@@ -342,7 +344,7 @@ static NTSTATUS SetClientMACEntryHdlr(IN PRTMP_ADAPTER pAd, IN PCmdQElmt CMDQelm
 	PRT_SET_ASIC_WCID pInfo;
 
 	pInfo = (PRT_SET_ASIC_WCID)CMDQelmt->buffer;
-	AsicUpdateRxWCIDTable(pAd, pInfo->WCID, pInfo->Addr);
+	AsicUpdateRxWCIDTable(pAd, (USHORT)(pInfo->WCID), pInfo->Addr);
 	return NDIS_STATUS_SUCCESS;
 }
 

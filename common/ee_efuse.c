@@ -370,7 +370,7 @@ VOID eFuseReadPhysical(
 	
 	for(i = 0; i < Length; i+=2)
 	{
-		EfusePhysicalReadRegisters(pAd, Offset + i, 2, &pOutBuf[i/2]);
+		EfusePhysicalReadRegisters(pAd, (UINT16)(Offset + i), 2, &pOutBuf[i/2]);
 	}
 }
 
@@ -399,7 +399,7 @@ NTSTATUS eFuseRead(
 	
 	for(i = 0; i < Length; i+=2)
 	{
-		eFuseReadRegisters(pAd, Offset+i, 2, &pData[i/2]);
+		eFuseReadRegisters(pAd, (UINT16)(Offset+i), 2, &pData[i/2]);
 	} 
 	return Status;
 }
@@ -915,7 +915,7 @@ static VOID eFuseWritePhysical(
 		/* Therefore, we only need swap data when read the data.*/
 		for (i=0; i<Length; i+=2)
 		{
-			eFusePhysicalWriteRegisters(pAd, Offset+i, 2, &pValueX[i/2]);
+			eFusePhysicalWriteRegisters(pAd, (USHORT)(Offset+i), 2, &pValueX[i/2]);
 		}
 
 #ifdef MT76x2
@@ -982,7 +982,7 @@ NTSTATUS eFuseWrite(
 	
 	for(i=0; i<length; i+=2)
 	{
-		eFuseWriteRegisters(pAd, Offset+i, 2, &pValueX[i/2]);	
+		eFuseWriteRegisters(pAd, (USHORT)(Offset+i), 2, &pValueX[i/2]);
 	}
 	os_free_mem(NULL, OddWriteByteBuf);
 	return TRUE;
@@ -1025,7 +1025,7 @@ INT set_eFusedump_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
 	
 	for (i = 0; i < pAd->chipCap.EFUSE_USAGE_MAP_END/2; i++)
 	{
-		InBuf[0] = 2*i;
+		InBuf[0] = (USHORT)(2*i);
 		InBuf[1] = 2;
 		InBuf[2] = 0x0;	
 		
@@ -1935,7 +1935,7 @@ INT efuse_probe(RTMP_ADAPTER *pAd)
 
 	EFUSE_IO_READ32(pAd, ctrl_reg, &eFuseCtrl);
 
-	printk("%s: efuse = %x\n", __FUNCTION__, eFuseCtrl);
+	DBGPRINT(RT_DEBUG_OFF, ("%s: efuse = %x\n", __func__, eFuseCtrl));
 
 	if (pAd->chipCap.hif_type == HIF_MT)
 	{
@@ -1969,7 +1969,7 @@ VOID  rtmp_ee_load_from_efuse(RTMP_ADAPTER *pAd)
 	NdisZeroMemory(pAd->EEPROMImage, MAX_EEPROM_BIN_FILE_SIZE);
 	for(i=0; i<MAX_EEPROM_BIN_FILE_SIZE; i+=2)
 	{
-			eFuseRead(pAd, i,&efuse_val, 2);
+			eFuseRead(pAd, (USHORT)i, &efuse_val, 2);
 			efuse_val = cpu2le16 (efuse_val);
 			NdisMoveMemory(&pAd->EEPROMImage[i],&efuse_val,2);
 	}		
@@ -1983,8 +1983,8 @@ VOID  rtmp_ee_load_from_efuse(RTMP_ADAPTER *pAd)
 INT Set_LoadEepromBufferFromEfuse_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
 {
 	/*long bEnable = simple_strtol(arg, 0, 10);*/
-	long *res = NULL;
-	int bEnable = kstrtol(arg, 10, res);
+	LONG res;
+	int bEnable = kstrtol(arg, 10, &res);
 	if (bEnable < 0)
 		return FALSE;
 	else
@@ -1998,9 +1998,9 @@ INT Set_LoadEepromBufferFromEfuse_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
 INT set_eFuseBufferModeWriteBack_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
 {
 	int bEnable;
-	long *res = NULL;
+	LONG res;
 
-	bEnable = kstrtol(arg, 10, res);
+	bEnable = kstrtol(arg, 10, &res);
 
 	if (bEnable < 0)
 		return FALSE;
@@ -2015,8 +2015,8 @@ INT set_eFuseBufferModeWriteBack_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
 
 INT set_BinModeWriteBack_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg)
 {
-	long *res = NULL;
-	int bEnable = kstrtol(arg, 10, res);
+	LONG res;
+	int bEnable = kstrtol(arg, 10, &res);
 
 	if (bEnable < 0)
 		return FALSE;

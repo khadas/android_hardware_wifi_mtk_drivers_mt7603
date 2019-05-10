@@ -93,7 +93,8 @@ UINT32 gUAPSD_TimingSumTxqueue2Air;
 #ifdef LINUX
 #define UAPSD_SEM_LOCK(__UAPSDEOSPLock, __flags2) \
 { \
-	if (irqs_disabled()) \
+	int i = irqs_disabled(); \
+	if (i) \
 	{ \
 		RTMP_INT_LOCK((__UAPSDEOSPLock), __flags2); \
 	} \
@@ -105,7 +106,8 @@ UINT32 gUAPSD_TimingSumTxqueue2Air;
 
 #define UAPSD_SEM_UNLOCK(__UAPSDEOSPLock, __flags2) \
 { \
-	if (irqs_disabled()) \
+	int i = irqs_disabled(); \
+	if (i) \
 	{ \
 		RTMP_INT_UNLOCK((__UAPSDEOSPLock), __flags2); \
 	} \
@@ -440,7 +442,8 @@ VOID UAPSD_AllPacketDeliver(RTMP_ADAPTER *pAd, MAC_TABLE_ENTRY *pEntry)
 			QueId = QID_AC_BE;
 		}
 
-		if (rtmp_enq_req(pAd, QUEUE_ENTRY_TO_PACKET(pEntry->pUAPSDEOSPFrame), QueId, tr_entry, FALSE, NULL) == FALSE)
+		if (rtmp_enq_req(pAd, QUEUE_ENTRY_TO_PACKET(pEntry->pUAPSDEOSPFrame),
+				(UCHAR)QueId, tr_entry, FALSE, NULL) == FALSE)
 			RELEASE_NDIS_PACKET(pAd, QUEUE_ENTRY_TO_PACKET(pEntry->pUAPSDEOSPFrame), NDIS_STATUS_FAILURE);
 
 		pEntry->pUAPSDEOSPFrame = NULL;
@@ -457,7 +460,8 @@ VOID UAPSD_AllPacketDeliver(RTMP_ADAPTER *pAd, MAC_TABLE_ENTRY *pEntry)
 		{
 			pQueEntry = RemoveHeadQueue(pQueApsd);
 
-			if (rtmp_enq_req(pAd, QUEUE_ENTRY_TO_PACKET(pQueEntry), QueId, tr_entry, FALSE, NULL) == FALSE)
+			if (rtmp_enq_req(pAd, QUEUE_ENTRY_TO_PACKET(pQueEntry),
+					(UCHAR)QueId, tr_entry, FALSE, NULL) == FALSE)
 				RELEASE_NDIS_PACKET(pAd, QUEUE_ENTRY_TO_PACKET(pQueEntry), NDIS_STATUS_FAILURE);
 		}
 	}
@@ -2021,7 +2025,7 @@ BOOLEAN UAPSD_PsPollHandle(RTMP_ADAPTER *pAd, MAC_TABLE_ENTRY *pEntry)
 				RTMP_SET_PACKET_TXTYPE(pQuedPkt, TX_LEGACY_FRAME);
 
 				/* set U-APSD flag & its software queue ID */
-				RTMP_SET_PACKET_UAPSD(pQuedPkt, TRUE, QueId);
+				RTMP_SET_PACKET_UAPSD(pQuedPkt, TRUE, (CHAR)QueId);
 			}
 		}
 
@@ -2044,7 +2048,7 @@ BOOLEAN UAPSD_PsPollHandle(RTMP_ADAPTER *pAd, MAC_TABLE_ENTRY *pEntry)
 			RTMP_SET_PACKET_MOREDATA(pQuedPkt, FALSE);
 		}
 
-		if (rtmp_enq_req(pAd, pQuedPkt, QueId, tr_entry, TRUE, NULL) == FALSE)
+		if (rtmp_enq_req(pAd, pQuedPkt, (UCHAR)QueId, tr_entry, TRUE, NULL) == FALSE)
 			RELEASE_NDIS_PACKET(pAd, pQuedPkt, NDIS_STATUS_FAILURE);
 
 	}
@@ -2433,7 +2437,8 @@ VOID UAPSD_TriggerFrameHandle(RTMP_ADAPTER *pAd, MAC_TABLE_ENTRY *pEntry, UCHAR 
 #if 0
 				InsertTailQueueAc(pAd, pEntry, pLastAcSwQue, pQuedPkt);
 #else
-				if (rtmp_enq_req(pAd, pQuedPkt, QueId, tr_entry, TRUE, NULL) == FALSE)
+				if (rtmp_enq_req(pAd, pQuedPkt,
+					(UCHAR)QueId, tr_entry, TRUE, NULL) == FALSE)
 				{
 					RELEASE_NDIS_PACKET(pAd, pQuedPkt, NDIS_STATUS_FAILURE);
 					TxPktNum --;
@@ -2460,7 +2465,7 @@ VOID UAPSD_TriggerFrameHandle(RTMP_ADAPTER *pAd, MAC_TABLE_ENTRY *pEntry, UCHAR 
 				RTMP_SET_PACKET_TXTYPE(pQuedPkt, TX_LEGACY_FRAME);
 
 				/* set U-APSD flag & its software queue ID */
-				RTMP_SET_PACKET_UAPSD(pQuedPkt, TRUE, QueId);
+				RTMP_SET_PACKET_UAPSD(pQuedPkt, TRUE, (CHAR)QueId);
 			}
 #if 0
 			/* backup its software queue pointer */
@@ -2572,7 +2577,8 @@ VOID UAPSD_TriggerFrameHandle(RTMP_ADAPTER *pAd, MAC_TABLE_ENTRY *pEntry, UCHAR 
 
 			//AcQueId = WMM_UP2AC_MAP[UpOfFrame];
 			AcQueId = RTMP_GET_PACKET_UAPSD_QUE_ID(pQuedPkt);
-			if (rtmp_enq_req(pAd, pQuedPkt, AcQueId, tr_entry, FALSE, NULL) == FALSE)
+			if (rtmp_enq_req(pAd, pQuedPkt,
+				(UCHAR)AcQueId, tr_entry, FALSE, NULL) == FALSE)
 			{
 				RELEASE_NDIS_PACKET(pAd, pQuedPkt, NDIS_STATUS_FAILURE);
 				pEntry->bAPSDFlagEOSPOK = 0;
@@ -2611,7 +2617,7 @@ VOID UAPSD_TriggerFrameHandle(RTMP_ADAPTER *pAd, MAC_TABLE_ENTRY *pEntry, UCHAR 
 		RTMP_SET_PACKET_TXTYPE(pQuedPkt, TX_LEGACY_FRAME);
 
 		pEntry->pUAPSDEOSPFrame = (PQUEUE_ENTRY)pQuedPkt;
-		pEntry->UAPSDTxNum = TxPktNum-1; /* skip the EOSP frame */
+		pEntry->UAPSDTxNum = (USHORT)(TxPktNum-1); /* skip the EOSP frame */
 	}
 
 #ifdef UAPSD_DEBUG
@@ -2697,7 +2703,8 @@ VOID UAPSD_TriggerFrameHandle(RTMP_ADAPTER *pAd, MAC_TABLE_ENTRY *pEntry, UCHAR 
 			us_of_frame is not used.
 		*/
 		RtmpEnqueueNullFrame(pAd, pEntry->Addr, pEntry->CurrTxRate,
-							Aid, pEntry->func_tb_idx, TRUE, TRUE, UpOfFrame);
+							(UCHAR)Aid, pEntry->func_tb_idx,
+							TRUE, TRUE, UpOfFrame);
 
 #ifdef UAPSD_DEBUG
 		DBGPRINT(RT_DEBUG_TRACE, ("uapsd> end a SP by a QoS Null frame!\n"));
@@ -2771,6 +2778,9 @@ VOID UAPSD_TagFrame(
 	{
 		/* mark the latest USB tx buffer offset for the priority */
 		AcQueId = RTMP_GET_PACKET_UAPSD_QUE_ID(pPkt);
+		if (AcQueId >= ARRAY_SIZE(pEntry->UAPSDTagOffset))
+			DBGPRINT(RT_DEBUG_TRACE, ("AcQueID exceed WMM_NUM_OF_AC\n"));
+		else
 		pEntry->UAPSDTagOffset[AcQueId] = PktOffset;
 
 #ifdef UAPSD_DEBUG
@@ -2806,11 +2816,9 @@ VOID UAPSD_UnTagFrame(
 {
 	MAC_TABLE_ENTRY *pEntry;
 	UINT32 IdEntry;
-#if 0
 	UINT32 TxPktTagOffset;
-#endif
 	UINT16 QueId;
-	INT		FirstWcid = 1;
+	INT FirstWcid = 1;
 	STA_TR_ENTRY *tr_entry = NULL;
 	ULONG flags = 0;
 
@@ -2824,8 +2832,7 @@ VOID UAPSD_UnTagFrame(
 	{
 		pEntry = &pAd->MacTab.Content[IdEntry];
 		tr_entry = &pAd->MacTab.tr_entry[IdEntry];
-				
-#if 0				
+
 		if ((IS_ENTRY_CLIENT(pEntry)
 #if defined(DOT11Z_TDLS_SUPPORT) || defined(CFG_TDLS_SUPPORT)
 			|| IS_ENTRY_TDLS(pEntry)
@@ -2838,93 +2845,86 @@ VOID UAPSD_UnTagFrame(
 #ifdef UAPSD_DEBUG
 			DBGPRINT(RT_DEBUG_ERROR, ("uapsd> bulkStartPos = %d\n", bulkStartPos));
 			DBGPRINT(RT_DEBUG_ERROR, ("uapsd> bulkEnPos = %d\n", bulkEnPos));
-			DBGPRINT(RT_DEBUG_ERROR, ("uapsd> record offset = %d\n", pEntry->UAPSDTagOffset[AcQueId]));
+			DBGPRINT(RT_DEBUG_ERROR,
+				 ("uapsd> record offset = %d\n", pEntry->UAPSDTagOffset[AcQueId]));
 #endif /* UAPSD_DEBUG */
 
-
 			/*
-				1. tx tag is in [bulkStartPos, bulkEnPos];
-				2. when bulkEnPos < bulkStartPos
-			*/
+			   1. tx tag is in [bulkStartPos, bulkEnPos];
+			   2. when bulkEnPos < bulkStartPos
+			 */
 			TxPktTagOffset = pEntry->UAPSDTagOffset[AcQueId];
 
 			if (((TxPktTagOffset >= bulkStartPos) &&
-					(TxPktTagOffset <= bulkEnPos)) ||
-				((bulkEnPos < bulkStartPos) &&
-					(TxPktTagOffset >= bulkStartPos)) ||
-				((bulkEnPos < bulkStartPos) &&
-					(TxPktTagOffset <= bulkEnPos)))
-			{
+			     (TxPktTagOffset <= bulkEnPos)) ||
+			    ((bulkEnPos < bulkStartPos) &&
+			     (TxPktTagOffset >= bulkStartPos)) ||
+			    ((bulkEnPos < bulkStartPos) && (TxPktTagOffset <= bulkEnPos))) {
 				/* ok, some UAPSD frames of the AC are transmitted */
 				pEntry->UAPSDTagOffset[AcQueId] = 0;
 
-				if (pEntry->UAPSDTxNum == 0)
-				{
+				if (pEntry->UAPSDTxNum == 0) {
 					/* ok, all UAPSD frames are transmitted */
-					//pEntry->bAPSDFlagSPStart = 0;
+					/* pEntry->bAPSDFlagSPStart = 0; */
 					pEntry->bAPSDFlagEOSPOK = 0;
 					UAPSD_SP_END(pAd, pEntry);
 
-					if (pEntry->pUAPSDEOSPFrame != NULL)
-		            {
+					if (pEntry->pUAPSDEOSPFrame != NULL) {
 						/* should not be here */
 						RELEASE_NDIS_PACKET(pAd,
-								QUEUE_ENTRY_TO_PACKET(pEntry->pUAPSDEOSPFrame),
-		                                    NDIS_STATUS_FAILURE);
+								    QUEUE_ENTRY_TO_PACKET
+								    (pEntry->pUAPSDEOSPFrame),
+								    NDIS_STATUS_FAILURE);
 						pEntry->pUAPSDEOSPFrame = NULL;
-		            }
-
+					}
 #ifdef UAPSD_DEBUG
-					DBGPRINT(RT_DEBUG_ERROR, ("uapsd> [1] close SP (%d)!\n", AcQueId));
+					DBGPRINT(RT_DEBUG_ERROR,
+						 ("uapsd> [1] close SP (%d)!\n", AcQueId));
 #endif /* UAPSD_DEBUG */
-					continue; /* check next station */
+					continue;	/* check next station */
 				}
 
 				if ((pEntry->UAPSDTagOffset[QID_AC_BE] == 0) &&
-					(pEntry->UAPSDTagOffset[QID_AC_BK] == 0) &&
-					(pEntry->UAPSDTagOffset[QID_AC_VI] == 0) &&
-					(pEntry->UAPSDTagOffset[QID_AC_VO] == 0))
-				{
+				   (pEntry->UAPSDTagOffset[QID_AC_BK] == 0) &&
+				   (pEntry->UAPSDTagOffset[QID_AC_VI] == 0) &&
+				   (pEntry->UAPSDTagOffset[QID_AC_VO] == 0)) {
+
 					/*
 						OK, UAPSD frames of all AC for the entry are transmitted
 						except the EOSP frame.
 					*/
-
-					if (pEntry->pUAPSDEOSPFrame != NULL)
-	                {
-	                    /* transmit the EOSP frame */
+					if (pEntry->pUAPSDEOSPFrame != NULL) {
+						/* transmit the EOSP frame */
 						PNDIS_PACKET pPkt;
 
 						pPkt = QUEUE_ENTRY_TO_PACKET(pEntry->pUAPSDEOSPFrame);
 						QueId = RTMP_GET_PACKET_UAPSD_QUE_ID(pPkt);
 
-						if (QueId > QID_AC_VO)
-	                    {
-	                        /* should not be here, only for sanity */
+						if (QueId > QID_AC_VO) {
+							/* should not be here, only for sanity */
 							QueId = QID_AC_BE;
-	                    }
+						}
 
 #ifdef UAPSD_DEBUG
-				DBGPRINT(RT_DEBUG_ERROR, ("uapsd> enqueue the EOSP frame...\n"));
+						DBGPRINT(RT_DEBUG_ERROR, ("uapsd> enqueue the EOSP frame...\n"));
 #endif /* UAPSD_DEBUG */
 
 #if 0
 						InsertTailQueueAc(pAd, pEntry,
 										&pAd->TxSwQueue[QueId],
-										pEntry->pUAPSDEOSPFrame);
+										pEntry->pUAPSDEOSPFrame);													pEntry->pUAPSDEOSPFrame);
 #else
-						if (rtmp_enq_req(pAd, pPkt, QueId, tr_entry, TRUE, NULL) == FALSE)
-						{
+
+			if (rtmp_enq_req(pAd, pPkt, (UCHAR)QueId, tr_entry, TRUE, NULL) == FALSE) {
 							/* Release the pakcet and close service period */
 							RELEASE_NDIS_PACKET(pAd, pPkt, NDIS_STATUS_FAILURE);
 							pEntry->pUAPSDEOSPFrame = NULL;
 							pEntry->bAPSDFlagEOSPOK = 0;
 							UAPSD_SP_END(pAd, pEntry);
-								UAPSD_SEM_UNLOCK(&pAd->UAPSDEOSPLock, flags);
+							UAPSD_SEM_UNLOCK(&pAd->UAPSDEOSPLock, flags);
 							return;
-						}
+			}
 #endif
-
 
 						pEntry->pUAPSDEOSPFrame = NULL;
 
@@ -2935,12 +2935,10 @@ VOID UAPSD_UnTagFrame(
 						*/
 
 						/* de-queue packet here to speed up EOSP frame response */
-						printk("%s:: ----> call dequeue packet\n", __FUNCTION__);
-						RTMPDeQueuePacket(pAd, FALSE, QueId, tr_entry->wcid, 1);
+						DBGPRINT(RT_DEBUG_TRACE, ("%s:: ----> call dequeue packet\n", __FUNCTION__));
+						RTMPDeQueuePacket(pAd, FALSE, (UCHAR)QueId, tr_entry->wcid, 1);
 						//RTMPDeQueuePacket(pAd, FALSE, NUM_OF_TX_RING, WCID_ALL, MAX_TX_PROCESS);
-					}
-					else
-					{
+					} else {
 						/* only when 1 data frame with EOSP = 1 is transmitted */
 						//pEntry->bAPSDFlagSPStart = 0;
 						pEntry->bAPSDFlagEOSPOK = 0;
@@ -2950,70 +2948,11 @@ VOID UAPSD_UnTagFrame(
 						DBGPRINT(RT_DEBUG_ERROR, ("uapsd> [2] close SP (%d)!\n", AcQueId));
 #endif /* UAPSD_DEBUG */
 					}
-
 					/* no any EOSP frames are queued and prepare to close the SP */
 					pEntry->UAPSDTxNum = 0;
 				}
 			}
 		}
-#else
-		
-			if(pEntry->UAPSDTxNum == 0)
-			{
-				if (pEntry->pUAPSDEOSPFrame != NULL)
-	                {
-	                    /* transmit the EOSP frame */
-						PNDIS_PACKET pPkt;
-
-						pPkt = QUEUE_ENTRY_TO_PACKET(pEntry->pUAPSDEOSPFrame);
-						QueId = RTMP_GET_PACKET_UAPSD_QUE_ID(pPkt);
-
-						if (QueId > QID_AC_VO)
-	                    {
-	                        /* should not be here, only for sanity */
-							QueId = QID_AC_BE;
-	                    }
-
-#ifdef UAPSD_DEBUG
-				DBGPRINT(RT_DEBUG_ERROR, ("uapsd> enqueue the EOSP frame...\n"));
-#endif /* UAPSD_DEBUG */
-
-#if 0
-						InsertTailQueueAc(pAd, pEntry,
-										&pAd->TxSwQueue[QueId],
-										pEntry->pUAPSDEOSPFrame);
-#else
-						rtmp_enq_req(pAd, pPkt, QueId, tr_entry, TRUE, NULL);
-#endif
-
-
-						pEntry->pUAPSDEOSPFrame = NULL;
-
-						/*
-							The EOSP frame will be put into ASIC to tx
-							in RTMPHandleTxRingDmaDoneInterrupt(),
-							not the function.
-						*/
-
-						/* de-queue packet here to speed up EOSP frame response */
-						printk("%s:: ----> call dequeue packet\n", __FUNCTION__);
-						RTMPDeQueuePacket(pAd, FALSE, QueId, tr_entry->wcid, 1);
-						//RTMPDeQueuePacket(pAd, FALSE, NUM_OF_TX_RING, WCID_ALL, MAX_TX_PROCESS);
-					}
-					else
-					{
-						/* only when 1 data frame with EOSP = 1 is transmitted */
-						//pEntry->bAPSDFlagSPStart = 0;
-						pEntry->bAPSDFlagEOSPOK = 0;
-						UAPSD_SP_END(pAd, pEntry);
-
-#ifdef UAPSD_DEBUG
-						DBGPRINT(RT_DEBUG_WARN, ("uapsd> [2] close SP (%d)!\n", AcQueId));
-#endif /* UAPSD_DEBUG */
-					}
-			}
-		
-#endif
 	}
 
 	UAPSD_SEM_UNLOCK(&pAd->UAPSDEOSPLock, flags);

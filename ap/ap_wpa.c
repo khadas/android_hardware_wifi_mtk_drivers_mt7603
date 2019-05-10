@@ -883,14 +883,14 @@ VOID GREKEYPeriodicExec(
 			USHORT	Wcid;
 
 			/* Get a specific WCID to record this MBSS key attribute */
-			GET_GroupKey_WCID(pAd, Wcid, apidx);
+			GET_GroupKey_WCID(pAd, Wcid, (USHORT)apidx);
 
 			/* Install shared key table */
 			WPAInstallSharedKey(pAd, 
-								wdev->GroupKeyWepStatus, 
-								apidx, 
+								(UINT8)wdev->GroupKeyWepStatus,
+								(UINT8)apidx,
 								wdev->DefaultKeyId, 
-								Wcid, 
+								(UINT8)Wcid,
 								TRUE, 
 								pMbss->GTK,
 								LEN_TKIP_GTK);

@@ -53,7 +53,9 @@ BOOLEAN ApCliWaitProbRsp(PRTMP_ADAPTER pAd, USHORT ifIndex)
         if (ifIndex >= MAX_APCLI_NUM)
                 return FALSE;
 
-	printk("%s()[%d]: %lu\n", __FUNCTION__, ifIndex, pAd->ApCfg.ApCliTab[ifIndex].SyncCurrState);
+	DBGPRINT(RT_DEBUG_OFF, ("%s()[%d]: %lu\n", __func__, ifIndex,
+			pAd->ApCfg.ApCliTab[ifIndex].SyncCurrState));
+
         return (pAd->ApCfg.ApCliTab[ifIndex].SyncCurrState == APCLI_JOIN_WAIT_PROBE_RSP) ?
                 TRUE : FALSE;
 }
@@ -265,7 +267,7 @@ BOOLEAN ApCliCheckHt(
 
 	if (RTMP_CFG80211_VIF_P2P_CLI_ON(pAd))
 	{
-		pApCliEntry->wdev.bw = aux_ht_cap->HtCapInfo.ChannelWidth;
+		pApCliEntry->wdev.bw = (UCHAR)aux_ht_cap->HtCapInfo.ChannelWidth;
 		if (pApCliEntry->wdev.bw == HT_BW_20)
 		{
 			pApCliEntry->wdev.channel = pAddHtInfo->ControlChan;
@@ -300,10 +302,13 @@ BOOLEAN ApCliCheckHt(
 	/* Send Assoc Req with my HT capability. */
 	aux_ht_cap->HtCapInfo.AMsduSize =  rt_ht_cap->AmsduSize;
 	aux_ht_cap->HtCapInfo.MimoPs = pHtCapability->HtCapInfo.MimoPs;
-	aux_ht_cap->HtCapInfo.ShortGIfor20 =  (rt_ht_cap->ShortGIfor20) & (pHtCapability->HtCapInfo.ShortGIfor20);
-	aux_ht_cap->HtCapInfo.ShortGIfor40 =  (rt_ht_cap->ShortGIfor40) & (pHtCapability->HtCapInfo.ShortGIfor40);
-	aux_ht_cap->HtCapInfo.TxSTBC =  (rt_ht_cap->TxSTBC)&(pHtCapability->HtCapInfo.RxSTBC);
-	aux_ht_cap->HtCapInfo.RxSTBC =  (rt_ht_cap->RxSTBC)&(pHtCapability->HtCapInfo.TxSTBC);
+	/* The HT Capabilities element are used to advertise optional HT capabilities of an HT STA.
+	 * We shouldn't care about the AP's Capabilities in here
+	 */
+	aux_ht_cap->HtCapInfo.ShortGIfor20 = rt_ht_cap->ShortGIfor20;
+	aux_ht_cap->HtCapInfo.ShortGIfor40 = rt_ht_cap->ShortGIfor40;
+	aux_ht_cap->HtCapInfo.TxSTBC = rt_ht_cap->TxSTBC;
+	aux_ht_cap->HtCapInfo.RxSTBC = rt_ht_cap->RxSTBC;
 	aux_ht_cap->HtCapParm.MaxRAmpduFactor = rt_ht_cap->MaxRAmpduFactor;
 	aux_ht_cap->HtCapParm.MpduDensity = pHtCapability->HtCapParm.MpduDensity;
 	aux_ht_cap->ExtHtCapInfo.PlusHTC = pHtCapability->ExtHtCapInfo.PlusHTC;
@@ -568,11 +573,11 @@ BOOLEAN ApCliLinkUp(RTMP_ADAPTER *pAd, UCHAR ifIndex)
 			if ((pMacEntry->AuthMode >= Ndis802_11AuthModeWPA) && (pApCliEntry->MlmeAux.VarIELen != 0))
 			{
 				PUCHAR pVIE;
-				UCHAR len;
+				USHORT len;
 				PEID_STRUCT pEid;
 
 				pVIE = pApCliEntry->MlmeAux.VarIEs;
-				len	 = pApCliEntry->MlmeAux.VarIELen;
+				len = pApCliEntry->MlmeAux.VarIELen;
 
 				while (len > 0)
 				{
@@ -626,7 +631,7 @@ BOOLEAN ApCliLinkUp(RTMP_ADAPTER *pAd, UCHAR ifIndex)
 			)
 			{
 				CIPHER_KEY *pKey;
-				INT idx, BssIdx;
+				UCHAR idx, BssIdx;
 
 				BssIdx = pAd->ApCfg.BssidNum + MAX_MESH_NUM + ifIndex;
 #ifdef MAC_APCLI_SUPPORT
@@ -693,15 +698,19 @@ BOOLEAN ApCliLinkUp(RTMP_ADAPTER *pAd, UCHAR ifIndex)
 				ht_mode_adjust(pAd, pMacEntry, pHtCapability, &pAd->CommonCfg.DesiredHtPhy);
 
 				/* find max fixed rate */
-				pMacEntry->MaxHTPhyMode.field.MCS = get_ht_max_mcs(pAd, &wdev->DesiredHtPhyInfo.MCSSet[0],
-																	&pHtCapability->MCSSet[0]);
+				pMacEntry->MaxHTPhyMode.field.MCS =
+				(USHORT)get_ht_max_mcs(pAd
+				, &wdev->DesiredHtPhyInfo.MCSSet[0]
+				, &pHtCapability->MCSSet[0]);
 
 				if (wdev->DesiredTransmitSetting.field.MCS != MCS_AUTO)
 				{
 					DBGPRINT(RT_DEBUG_TRACE, ("IF-apcli%d : Desired MCS = %d\n",
 								ifIndex, wdev->DesiredTransmitSetting.field.MCS));
 
-					set_ht_fixed_mcs(pAd, pMacEntry, wdev->DesiredTransmitSetting.field.MCS, wdev->HTPhyMode.field.MCS);
+					set_ht_fixed_mcs(pAd, pMacEntry
+					, (UCHAR)wdev->DesiredTransmitSetting.field.MCS
+					, (UCHAR)wdev->HTPhyMode.field.MCS);
 				}
 
 				pMacEntry->MaxHTPhyMode.field.STBC = (pHtCapability->HtCapInfo.RxSTBC & (pAd->CommonCfg.DesiredHtPhy.TxSTBC));
@@ -905,6 +914,7 @@ BOOLEAN ApCliLinkUp(RTMP_ADAPTER *pAd, UCHAR ifIndex)
 VOID ApCliLinkDown(RTMP_ADAPTER *pAd, UCHAR ifIndex)
 {
 	APCLI_STRUCT *pApCliEntry = NULL;
+	UINT16 Reason = REASON_DEAUTH_STA_LEAVING;
 #ifdef MAC_REPEATER_SUPPORT
 	UCHAR CliIdx = 0xFF;
 #endif /* MAC_REPEATER_SUPPORT */
@@ -940,6 +950,7 @@ VOID ApCliLinkDown(RTMP_ADAPTER *pAd, UCHAR ifIndex)
 #endif /* MAC_REPEATER_SUPPORT */
 		)
 		return;
+	Reason = pApCliEntry->LastDeauthReason;
 
 #ifdef MAC_REPEATER_SUPPORT
 	if (CliIdx == 0xFF)
@@ -966,6 +977,7 @@ VOID ApCliLinkDown(RTMP_ADAPTER *pAd, UCHAR ifIndex)
 	else
 #endif /* MAC_REPEATER_SUPPORT */
 	{
+		pApCliEntry->LastDeauthReason = REASON_DEAUTH_STA_LEAVING;
 		pApCliEntry->Valid = FALSE;	/* This link doesn't associated with any remote-AP */
 		pApCliEntry->wdev.allow_data_tx = FALSE;
 		pApCliEntry->wdev.PortSecured = WPA_802_1X_PORT_NOT_SECURED;
@@ -980,7 +992,7 @@ VOID ApCliLinkDown(RTMP_ADAPTER *pAd, UCHAR ifIndex)
 #endif /* WPA_SUPPLICANT_SUPPORT */
 
 #if defined(RT_CFG80211_P2P_CONCURRENT_DEVICE) || defined(CFG80211_MULTI_STA)
-	RT_CFG80211_LOST_GO_INFORM(pAd);
+	RT_CFG80211_LOST_GO_INFORM(pAd, Reason);
 	
 	//NoA Stop
 	CmdP2pNoaOffloadCtrl(pAd, P2P_NOA_DISABLED);
@@ -1734,7 +1746,7 @@ BOOLEAN ApCliValidateRSNIE(
 	IN USHORT idx)
 {
 	PUCHAR pVIE, pTmp;
-	UCHAR len;
+	USHORT len;
 	PEID_STRUCT         pEid;
 	CIPHER_SUITE		WPA;			/* AP announced WPA cipher suite */
 	CIPHER_SUITE		WPA2;			/* AP announced WPA2 cipher suite */
@@ -1751,7 +1763,7 @@ BOOLEAN ApCliValidateRSNIE(
 	struct wifi_dev *wdev;
 
 	pVIE = (PUCHAR) pEid_ptr;
-	len	 = eid_len;
+	len = eid_len;
 
 	/*if (len >= MAX_LEN_OF_RSNIE || len <= MIN_LEN_OF_RSNIE) */
 	/*	return FALSE; */
@@ -2212,7 +2224,8 @@ BOOLEAN ApCliValidateRSNIE(
 	}
 
 	/* re-build RSNIE */
-	RTMPMakeRSNIE(pAd, wdev->AuthMode, wdev->WepStatus, (idx + MIN_NET_DEVICE_FOR_APCLI));
+	RTMPMakeRSNIE(pAd, wdev->AuthMode
+				, wdev->WepStatus, (UCHAR)(idx + MIN_NET_DEVICE_FOR_APCLI));
 
 	return TRUE;
 }
@@ -2560,6 +2573,13 @@ VOID APCli_Init(RTMP_ADAPTER *pAd, RTMP_OS_NETDEV_OP_HOOK *pNetDevOps)
 #endif /* HOSTAPD_SUPPORT */
 
 		dev_name = get_dev_name_prefix(pAd, INT_APCLI);
+		if (!dev_name) {
+			DBGPRINT(RT_DEBUG_ERROR,
+				 ("%s(): Get dev name prefix fail!\n",
+				  __func__));
+			break;
+		}
+
 		new_dev_p = RtmpOSNetDevCreate(MC_RowID, &IoctlIF, INT_APCLI, idx,
 									sizeof(struct mt_dev_priv), dev_name);
 		if (!new_dev_p) {
@@ -2575,7 +2595,7 @@ VOID APCli_Init(RTMP_ADAPTER *pAd, RTMP_OS_NETDEV_OP_HOOK *pNetDevOps)
 		wdev = &pApCliEntry->wdev;
 		wdev->wdev_type = WDEV_TYPE_STA;
 		wdev->func_dev = pApCliEntry;
-		wdev->func_idx = idx;
+		wdev->func_idx = (CHAR)idx;
 		wdev->sys_handle = (void *)pAd;
 		wdev->if_dev = new_dev_p;
 		wdev->tx_pkt_allowed = ApCliAllowToSendPacket;
@@ -2657,7 +2677,7 @@ VOID APCli_Init(RTMP_ADAPTER *pAd, RTMP_OS_NETDEV_OP_HOOK *pNetDevOps)
 		}
 		else {
 			UINT32 Value;
-			UCHAR MacByte = 0;
+			UINT32 MacByte = 0;
 
 			//TODO: shall we make choosing which byte to be selectable???
 			Value = 0x00000000L;

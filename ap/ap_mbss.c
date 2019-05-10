@@ -84,6 +84,9 @@ VOID MBSS_Init(RTMP_ADAPTER *pAd, RTMP_OS_NETDEV_OP_HOOK *pNetDevOps)
 	if (MaxNumBss > MAX_MBSSID_NUM(pAd))
 		MaxNumBss = MAX_MBSSID_NUM(pAd);
 
+	if (MaxNumBss > ARRAY_SIZE(pAd->ApCfg.MBSSID))
+		MaxNumBss = ARRAY_SIZE(pAd->ApCfg.MBSSID);
+
 	/* first IdBss must not be 0 (BSS0), must be 1 (BSS1) */
 	for(IdBss=FIRST_MBSSID; IdBss<MAX_MBSSID_NUM(pAd); IdBss++)
 		pAd->ApCfg.MBSSID[IdBss].wdev.if_dev = NULL;
@@ -103,13 +106,20 @@ VOID MBSS_Init(RTMP_ADAPTER *pAd, RTMP_OS_NETDEV_OP_HOOK *pNetDevOps)
         BSS_STRUCT *pMbss;
 
 		dev_name = get_dev_name_prefix(pAd, INT_MBSSID);
+		if (!dev_name) {
+			DBGPRINT(RT_DEBUG_ERROR,
+				 ("%s(): Get dev name prefix fail!\n",
+				  __func__));
+			break;
+		}
+
 		pDevNew = RtmpOSNetDevCreate(MC_RowID, &IoctlIF, INT_MBSSID, IdBss, sizeof(struct mt_dev_priv), dev_name);
 #ifdef HOSTAPD_SUPPORT
 		pAd->IoctlIF = IoctlIF;
 #endif /* HOSTAPD_SUPPORT */
 		if (pDevNew == NULL)
 		{
-			pAd->ApCfg.BssidNum = IdBss; /* re-assign new MBSS number */
+			pAd->ApCfg.BssidNum = (UCHAR)IdBss; /* re-assign new MBSS number */
 			break;
 		}
 		else
@@ -121,7 +131,7 @@ VOID MBSS_Init(RTMP_ADAPTER *pAd, RTMP_OS_NETDEV_OP_HOOK *pNetDevOps)
 		wdev = &pAd->ApCfg.MBSSID[IdBss].wdev;
 		wdev->wdev_type = WDEV_TYPE_AP;
 		wdev->func_dev = &pAd->ApCfg.MBSSID[IdBss];
-		wdev->func_idx = IdBss;
+		wdev->func_idx = (CHAR)IdBss;
 		wdev->sys_handle = (void *)pAd;
 		wdev->if_dev = pDevNew;
 		if (rtmp_wdev_idx_reg(pAd, wdev) < 0) {
@@ -262,7 +272,7 @@ INT32 mbss_cr_enable(PNET_DEV pDev)
 
 	pAd = RTMP_OS_NETDEV_GET_PRIV(pDev);
 	BssId = RT28xx_MBSS_IdxGet(pAd, pDev);
-    printk("##### %s, BssId = %d\n", __func__, BssId);
+	DBGPRINT(RT_DEBUG_OFF, ("##### %s, BssId = %d\n", __func__, BssId));
 	if (BssId < 0)
 		return -1;
 
@@ -317,6 +327,10 @@ INT mbss_cr_disable(PNET_DEV pDev)
     for (loop = 1; loop < pAd->ApCfg.BssidNum; loop++) {
         if (loop == BssId)
             continue;//skip itself.
+
+		if (loop >= ARRAY_SIZE(pAd->ApCfg.MBSSID))
+			break;
+
         if (pAd->ApCfg.MBSSID[loop].bcn_buf.bBcnSntReq == TRUE)
             any_mbss_enable = TRUE;
     }

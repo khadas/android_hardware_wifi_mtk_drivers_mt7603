@@ -37,12 +37,12 @@ extern char *gBuffer;
 		swq = softq_statistic.swQueueTotal[i] ? softq_statistic.swQueueTotal[i]/softq_statistic.swQueueCounter[i]:0;
 		ring = softq_statistic.swQueueTotal[i] ? softq_statistic.txRingTotal[i]/softq_statistic.txRingCounter[i]:0;
 		
-		 printk("\tAC%d Drop=%d, SW_Q=%d, Ring=%d, APSendPacket=%d, DequeuePacket=%d\n", i, 
+		 DBGPRINT(RT_DEBUG_OFF, ("\tAC%d Drop=%d, SW_Q=%d, Ring=%d, APSendPacket=%d, DequeuePacket=%d\n", i,
 		 softq_statistic.swDropPacket[i],
 		swq,
 		ring,
 		 softq_statistic.apSendPacket[i],
-		 softq_statistic.apDequeuePacket[i]);
+		 softq_statistic.apDequeuePacket[i]));
 	}
 	return 0;
  }
@@ -122,31 +122,31 @@ static int softq_state_proc_write( struct file *filp, const char *buff,unsigned 
 		case SOFTQ_STATE_REPORT:
 		{
 			softq_state_show();			
-			printk("\nshow don...\n");
+			DBGPRINT(RT_DEBUG_OFF, ("\nshow don...\n"));
 		}
 		break;
 		case SOFTQ_STATE_CLEAN:
 		{
 			softq_state_clean();
-			printk("\nclean don...\n");
+			DBGPRINT(RT_DEBUG_OFF, ("\nclean don...\n"));
 		}
 		break;
 		case  SOFTQ_STATE_NOP:			
-			printk("\nchange to no operation...\n");
+			DBGPRINT(RT_DEBUG_OFF, ("\nchange to no operation...\n"));
 		break;
 		case SOFTQ_STATE_REPORT_INTR_PERIOD:			
-			printk("\nchange to report periodic...\n");
+			DBGPRINT(RT_DEBUG_OFF, ("\nchange to report periodic...\n"));
 		break;
 		case SOFTQ_STATE_REPORT_INTR_EACHTIME:			
-			printk("\nchange to report each time...\n");
+			DBGPRINT(RT_DEBUG_OFF, ("\nchange to report each time...\n"));
 		break;
 		default:
-			printk("\nplease echo: [ clean: %d  | report: %d  | report-period: %d  | report-each: %d  | nop: %d]\n",
+			DBGPRINT(RT_DEBUG_OFF, ("\nplease echo: [ clean: %d  | report: %d  | report-period: %d  | report-each: %d  | nop: %d]\n",
 			SOFTQ_STATE_CLEAN,
 			SOFTQ_STATE_REPORT,
 			SOFTQ_STATE_REPORT_INTR_PERIOD,
 			SOFTQ_STATE_REPORT_INTR_EACHTIME,
-			SOFTQ_STATE_NOP);
+			SOFTQ_STATE_NOP));
 		break;
 		}
 	
@@ -182,7 +182,7 @@ static int softq_times_proc_write( struct file *filp, const char *buff,unsigned 
 	if (buff && !copy_from_user(value, buff, len1)) {
 
 		 softq_statistic.times = simple_strtoul(value, &end, 10);
-		 printk("change periodic time to %d\n",softq_statistic.times);
+		 DBGPRINT(RT_DEBUG_OFF, ("change periodic time to %d\n", softq_statistic.times));
 		 
 	}		 
 	return len1;
@@ -216,7 +216,7 @@ static int softq_staId_proc_write( struct file *filp, const char *buff,unsigned 
 	if (buff && !copy_from_user(value, buff, len1)) {
 
 		 softq_statistic.staId = simple_strtoul(value, &end, 10);
-		 printk("change  staId to %d\n",softq_statistic.staId);
+		 DBGPRINT(RT_DEBUG_OFF, ("change  staId to %d\n", softq_statistic.staId));
 		 
 	}		 
 	return len1;
@@ -251,7 +251,7 @@ static int softq_file_proc_write( struct file *filp, const char *buff,unsigned l
 	
 	if (buff && !copy_from_user(value, buff, len1)) {
 		 softq_statistic.fstate = simple_strtoul(value, &end, 10);
-		 printk("change file stat  to %d\n",softq_statistic.fstate);
+		 DBGPRINT(RT_DEBUG_OFF, ("change file stat  to %d\n", softq_statistic.fstate));
 		 softq_file_state_run(softq_statistic.fstate);
 	}		 
 	return len1;
@@ -264,7 +264,7 @@ int softq_stat_proc_init(void)
 
 	if (!softq_proc) 
 	{
-		printk(KERN_INFO "Create softq_stat dir failed!!!\n");
+		DBGPRINT(RT_DEBUG_ERROR, (KERN_INFO "Create softq_stat dir failed!!!\n"));
 		return -1;
 	}
 
@@ -272,7 +272,7 @@ int softq_stat_proc_init(void)
 
 	if (!state_entry) 
 	{
-		printk(KERN_INFO "Create state  entry  failed!!!\n");		
+		DBGPRINT(RT_DEBUG_ERROR, (KERN_INFO "Create state  entry  failed!!!\n"));
 		remove_proc_entry("softq_stat", NULL);
 		return -1;
 	}
@@ -285,7 +285,7 @@ int softq_stat_proc_init(void)
 
 	if (!times_entry) 
 	{
-		printk(KERN_INFO "Create times_entry  failed!!!\n");		
+		DBGPRINT(RT_DEBUG_ERROR, (KERN_INFO "Create times_entry  failed!!!\n"));
 		remove_proc_entry("stat", softq_proc);		
 		remove_proc_entry("softq_stat", NULL);
 		return -1;
@@ -298,7 +298,7 @@ int softq_stat_proc_init(void)
 
 	if (!staId_entry) 
 	{
-		printk(KERN_INFO "Create staId_entry  failed!!!\n");		
+		DBGPRINT(RT_DEBUG_ERROR, (KERN_INFO "Create staId_entry  failed!!!\n"));
 		remove_proc_entry("stat", softq_proc);		
 		remove_proc_entry("times", softq_proc);
 		remove_proc_entry("softq_stat", NULL);
@@ -312,7 +312,7 @@ int softq_stat_proc_init(void)
 
 	if (!staId_entry) 
 	{
-		printk(KERN_INFO "Create staId_entry  failed!!!\n");		
+		DBGPRINT(RT_DEBUG_ERROR, (KERN_INFO "Create staId_entry  failed!!!\n"));
 		remove_proc_entry("stat", softq_proc);		
 		remove_proc_entry("times", softq_proc);
 		remove_proc_entry("softq_stat", NULL);
@@ -324,7 +324,7 @@ int softq_stat_proc_init(void)
 
 	if (!file_entry) 
 	{
-		printk(KERN_INFO "Create file_entry  failed!!!\n");		
+		DBGPRINT(RT_DEBUG_ERROR, (KERN_INFO "Create file_entry  failed!!!\n"));
 		remove_proc_entry("stat", softq_proc);		
 		remove_proc_entry("times", softq_proc);		
 		remove_proc_entry("staId", softq_proc);
@@ -332,7 +332,7 @@ int softq_stat_proc_init(void)
 		return -1;
 	}
 
-	printk(KERN_INFO "Create softq_stat ok!!!\n");
+	DBGPRINT(RT_DEBUG_OFF, (KERN_INFO "Create softq_stat ok!!!\n"));
 
 	return 0;
 }

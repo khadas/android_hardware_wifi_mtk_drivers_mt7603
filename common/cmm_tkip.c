@@ -1023,32 +1023,32 @@ VOID RTMPTkipMixKey(
 	/* Phase 2, Step 3 */ 
     /* Phase 2, Step 3 */
 
-	tsc0 = (unsigned int)((pnh >> 16) % 65536); /* msb */ 
-	tsc1 = (unsigned int)(pnh % 65536); 
-	tsc2 = (unsigned int)(pnl % 65536); /* lsb */ 
+	tsc0 = (unsigned int)((pnh >> 16) % 65536); /* msb */
+	tsc1 = (unsigned int)(pnh % 65536);
+	tsc2 = (unsigned int)(pnl % 65536); /* lsb */
 
-	rc4key[0] = (tsc2 >> 8) % 256; 
-	rc4key[1] = (((tsc2 >> 8) % 256) | 0x20) & 0x7f; 
-	rc4key[2] = tsc2 % 256; 
-	rc4key[3] = ((ppk5 ^ ((256*key[1]) + key[0])) >> 1) % 256; 
+	rc4key[0] = (UCHAR)((tsc2 >> 8) % 256);
+	rc4key[1] = (UCHAR)((((tsc2 >> 8) % 256) | 0x20) & 0x7f);
+	rc4key[2] = (UCHAR)(tsc2 % 256);
+	rc4key[3] = (UCHAR)(((ppk5 ^ ((256*key[1]) + key[0])) >> 1) % 256);
 
-	rc4key[4] = ppk0 % 256; 
-	rc4key[5] = (ppk0 >> 8) % 256; 
+	rc4key[4] = (UCHAR)(ppk0 % 256);
+	rc4key[5] = (UCHAR)((ppk0 >> 8) % 256);
 
-	rc4key[6] = ppk1 % 256; 
-	rc4key[7] = (ppk1 >> 8) % 256; 
+	rc4key[6] = (UCHAR)(ppk1 % 256);
+	rc4key[7] = (UCHAR)((ppk1 >> 8) % 256);
 
-	rc4key[8] = ppk2 % 256; 
-	rc4key[9] = (ppk2 >> 8) % 256; 
+	rc4key[8] = (UCHAR)(ppk2 % 256);
+	rc4key[9] = (UCHAR)((ppk2 >> 8) % 256);
 
-	rc4key[10] = ppk3 % 256; 
-	rc4key[11] = (ppk3 >> 8) % 256; 
+	rc4key[10] = (UCHAR)(ppk3 % 256);
+	rc4key[11] = (UCHAR)((ppk3 >> 8) % 256);
 
-	rc4key[12] = ppk4 % 256; 
-	rc4key[13] = (ppk4 >> 8) % 256; 
+	rc4key[12] = (UCHAR)(ppk4 % 256);
+	rc4key[13] = (UCHAR)((ppk4 >> 8) % 256);
 
-	rc4key[14] = ppk5 % 256; 
-	rc4key[15] = (ppk5 >> 8) % 256; 
+	rc4key[14] = (UCHAR)(ppk5 % 256);
+	rc4key[15] = (UCHAR)((ppk5 >> 8) % 256);
 }
 
 
@@ -1210,7 +1210,7 @@ BOOLEAN RTMPSoftDecryptTKIP(
 	}
 
 	/* Update the total data length */
-	*DataByteCnt = plaintext_len;
+	*DataByteCnt = (UINT16)plaintext_len;
 
 #ifdef RT_BIG_ENDIAN
 	RTMPFrameEndianChange(pAd, pHdr, DIR_READ, FALSE);

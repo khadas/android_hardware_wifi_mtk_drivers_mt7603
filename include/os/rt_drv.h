@@ -89,7 +89,7 @@ typedef VOID	pregs;
 #define CARD_INFO_PATH			"/etc/Wireless/RT2870AP/RT2870APCard.dat"
 #endif /* MULTIPLE_CARD_SUPPORT */
 
-#define STA_PROFILE_PATH			"/system/etc/wifi/RT2870STA_7603.dat "
+#define STA_PROFILE_PATH			"/etc/Wireless/RT2870STA/MT7603USTA.dat"
 #endif /* RTMP_MAC_USB */
 
 
@@ -106,7 +106,7 @@ typedef VOID	pregs;
 
 #ifdef CONFIG_STA_SUPPORT
 #ifdef RTMP_MAC_PCI
-#define STA_PROFILE_PATH			"/system/etc/wifi/RT2870STA_7603.dat"
+#define STA_PROFILE_PATH			"/etc/Wireless/RT2860STA/RT2860STA.dat"
 #define STA_DRIVER_VERSION			"3.0.0.0"
 #ifdef MULTIPLE_CARD_SUPPORT
 #define CARD_INFO_PATH			"/etc/Wireless/RT2860STA/RT2860STACard.dat"
@@ -116,9 +116,9 @@ typedef VOID	pregs;
 #ifdef RTMP_MAC_USB
 
 #ifdef HE_BD_CFG80211_SUPPORT 
-#define STA_PROFILE_PATH			"/system/etc/wifi/RT2870STA_7603.dat"
+#define STA_PROFILE_PATH			"/etc/Wireless/RT2870STA/RT2870STA_MT7603U.dat"
 #else
-#define STA_PROFILE_PATH			"/system/etc/wifi/RT2870STA_7603.dat"
+#define STA_PROFILE_PATH			"/etc/Wireless/RT2870STA/RT2870STA.dat"
 #endif /* HE_BD_CFG80211_SUPPORT */
 
 #define STA_DRIVER_VERSION			"3.0.0.0"

@@ -94,7 +94,7 @@ INT32 BcnTxSHandler(RTMP_ADAPTER *pAd, CHAR *Data, UINT32 Priv)
 #endif /* RT_CFG80211_P2P_SUPPORT */
 		)
 		{
-			UCHAR bss_idx = 0;
+			UINT32 bss_idx = 0;
 			BSS_STRUCT *pMbss = NULL;
 			bss_idx = Priv;
 			pMbss = &pAd->ApCfg.MBSSID[bss_idx];
@@ -397,7 +397,7 @@ INT32 ExitTxSTypeTable(RTMP_ADAPTER *pAd)
 	return 0;
 }
 
-INT32 AddTxSTypePerPkt(RTMP_ADAPTER *pAd, UINT32 PktPid, UINT8 Format,
+INT32 AddTxSTypePerPkt(RTMP_ADAPTER *pAd, UINT8 PktPid, UINT8 Format,
 						TXS_HANDLER TxSHandler)
 {
 	ULONG Flags;
@@ -500,7 +500,7 @@ INT32 TxSTypeCtlPerPkt(RTMP_ADAPTER *pAd, UINT32 PktPid, UINT8 Format, BOOLEAN T
 	}
 	RTMP_SPIN_UNLOCK_IRQRESTORE(&TxSCtl->TxSTypePerPktLock[PktPid % TOTAL_PID_HASH_NUMS], &Flags);
 
-	DBGPRINT(RT_DEBUG_INFO, ("%s: can not find TxSType(PktPID = %d, Format = %d)\n", 
+	DBGPRINT(RT_DEBUG_TRACE, ("%s: can not find TxSType(PktPID = %d, Format = %d)\n", 
 								__FUNCTION__, PktPid, Format));
 	return -1;
 }
@@ -552,8 +552,11 @@ INT32 RemoveTxSTypePerPktType(RTMP_ADAPTER *pAd, UINT8 PktType, UINT8 PktSubType
 	ULONG Flags;
 	TXS_CTL *TxSCtl = &pAd->TxSCtl;
 	TXS_TYPE *TxSType = NULL, *TmpTxSType = NULL;
+	const UINT8 st = PktSubType % TOTAL_PID_HASH_NUMS_PER_PKT_TYPE;
+	NDIS_SPIN_LOCK *lock;
 
-	RTMP_SPIN_LOCK_IRQSAVE(&TxSCtl->TxSTypePerPktTypeLock[PktType][PktSubType % TOTAL_PID_HASH_NUMS_PER_PKT_TYPE], &Flags);
+	lock = &TxSCtl->TxSTypePerPktTypeLock[PktType][st];
+	RTMP_SPIN_LOCK_IRQSAVE(lock, &Flags);
 	DlListForEachSafe(TxSType, TmpTxSType, &TxSCtl->TxSTypePerPktType[PktType][PktSubType % TOTAL_PID_HASH_NUMS_PER_PKT_TYPE], TXS_TYPE, List) 
 	{
 		if ((TxSType->PktType == PktType) && (TxSType->PktSubType == PktSubType)
@@ -561,11 +564,11 @@ INT32 RemoveTxSTypePerPktType(RTMP_ADAPTER *pAd, UINT8 PktType, UINT8 PktSubType
 		{
 			DlListDel(&TxSType->List);
 			os_free_mem(NULL, TxSType);
-			RTMP_SPIN_UNLOCK_IRQRESTORE(&TxSCtl->TxSTypePerPktTypeLock[PktType][PktSubType % TOTAL_PID_HASH_NUMS], &Flags);
+			RTMP_SPIN_UNLOCK_IRQRESTORE(lock, &Flags);
 			return 0;
 		}
 	}
-	RTMP_SPIN_UNLOCK_IRQRESTORE(&TxSCtl->TxSTypePerPktTypeLock[PktType][PktSubType % TOTAL_PID_HASH_NUMS_PER_PKT_TYPE], &Flags);
+	RTMP_SPIN_UNLOCK_IRQRESTORE(lock, &Flags);
 
 	return -1;
 }
@@ -733,7 +736,7 @@ INT32 ParseTxSPacket(RTMP_ADAPTER *pAd, UINT32 Pid, UINT8 Format, CHAR *Data)
                 TxSType = DlListFirst (&TxSCtl->TxSTypePerPktType[PktType][PktSubType % TOTAL_PID_HASH_NUMS_PER_PKT_TYPE], TXS_TYPE, List);
                 if (TxSType == NULL)
                 {
-                        printk("QQ 2\n");
+						DBGPRINT(RT_DEBUG_ERROR, ("List is empty\n"));
                         RTMP_SPIN_UNLOCK_IRQRESTORE(&TxSCtl->TxSTypePerPktTypeLock[PktType][PktSubType % TOTAL_PID_HASH_NUMS_PER_PKT_TYPE], &Flags);
                         return -1;
                 }
@@ -794,7 +797,7 @@ UINT8 AddTxSStatus(RTMP_ADAPTER *pAd, UINT8 Type, UINT8 PktPid, UINT8 PktType,
 }
 
 
-INT32 RemoveTxSStatus(RTMP_ADAPTER *pAd, UINT8 TxSPid, UINT8 *Type, UINT8 *PktPid, 
+INT32 RemoveTxSStatus(RTMP_ADAPTER *pAd, UINT32 TxSPid, UINT8 *Type, UINT8 *PktPid,
 								UINT8 *PktType, UINT8 *PktSubType, UINT16 *TxRate, UINT32 *TxSPriv)
 {
 	TXS_CTL *TxSCtl = &pAd->TxSCtl;

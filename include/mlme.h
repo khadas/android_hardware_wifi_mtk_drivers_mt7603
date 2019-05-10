@@ -523,7 +523,7 @@ typedef struct  GNU_PACKED _NEW_EXT_CHAN_IE{
 
 typedef struct GNU_PACKED _FRAME_802_11 {
     HEADER_802_11   Hdr;
-    UCHAR            Octet[1];
+	UCHAR            Octet[];
 } FRAME_802_11, *PFRAME_802_11;
 
 /* QoSNull embedding of management action. When HT Control MA field set to 1. */
@@ -1364,7 +1364,7 @@ typedef struct _MLME_DLS_REQ_STRUCT {
 typedef struct GNU_PACKED _EID_STRUCT{
     UCHAR   Eid;
     UCHAR   Len;
-    UCHAR   Octet[1];
+	UCHAR   Octet[];
 } EID_STRUCT,*PEID_STRUCT, BEACON_EID_STRUCT, *PBEACON_EID_STRUCT;
 
 

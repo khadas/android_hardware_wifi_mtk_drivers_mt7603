@@ -885,6 +885,8 @@ typedef struct _COUNTER_RALINK {
 	UINT32 OneSecStart;	/* for one sec count clear use */
 	UINT32 OneSecBeaconSentCnt;
 	UINT32 OneSecFalseCCACnt;	/* CCA error count, for debug purpose, might move to global counter */
+	UINT32 OneSecCCKFalseCCACnt;
+	UINT32 OneSecOFDMFalseCCACnt;
 	UINT32 OneSecRxFcsErrCnt;	/* CRC error */
 	UINT32 OneSecRxOkCnt;	/* RX without error */
 	UINT32 OneSecTxFailCount;
@@ -4555,6 +4557,7 @@ typedef struct _APCLI_STRUCT {
 	UCHAR LastSsidLen;               /* the actual ssid length in used */
 	CHAR LastSsid[MAX_LEN_OF_SSID]; /* NOT NULL-terminated */
 	UCHAR LastBssid[MAC_ADDR_LEN];
+	UINT16 LastDeauthReason;
 #endif /* WPA_SUPPLICANT_SUPPORT */
 
 
@@ -5182,6 +5185,7 @@ typedef struct _WOW_CFG_STRUCT {
 	BOOLEAN			bWoWRunning;	/* WOW function is working */
 	UINT8			nWakeupInterface; /* PCI:0 USB:1 GPIO:2 */ 
 	UINT8			bGPIOHighLow;	/* 0: low to high, 1: high to low */
+	UINT8			nKeepAlivePeriod; /* 0:NOT configured, 1~15:wow keep alive */
 #ifdef RT_CFG80211_SUPPORT
 		UCHAR			PTK[LEN_PTK];		/* Store the PTK for rekey */
 		UCHAR			ReplayCounter[LEN_KEY_DESC_REPLAY]; /* Store the replay counter for rekey */
@@ -5261,7 +5265,7 @@ typedef struct _NEW_WOW_PARAM_STRUCT {
 	UINT32 	Parameter;
 	UINT32 	Value;
 } NEW_WOW_PARAM_STRUCT, *PNEW_WOW_PARAM_STRUCT;
-#endif /* (defined(WOW_SUPPORT) && defined(RTMP_MAC_USB)) || defined(NEW_WOW_SUPPORT)  || defined(MT_WOW_SUPPORT) */
+#endif /* (defined(WOW_SUPPORT) && defined(RTMP_MAC_USB)) || defined(MT_WOW_SUPPORT) */
 
 /*
 	Packet drop reason code
@@ -5676,6 +5680,7 @@ typedef struct _CFG80211_CONTROL
 	BOOLEAN IsNeedTxStatus;
 	BOOLEAN TxSAcked;
 	RTMP_OS_COMPLETION fw_event_done;
+	PNET_DEV TxNdev;
 	LIST_HEADER cfg80211TxPacketList;
 
 	/* P2P Releated*/
@@ -5871,6 +5876,31 @@ typedef struct _TX_CTRL_T {
 } TX_CTRL_T, *P_TX_CTRL_T;
 #endif 
 
+#ifdef SMART_CARRIER_SENSE_SUPPORT
+typedef struct _SMART_CARRIER_SENSE_CTRL{
+	BOOLEAN		SCSEnable;	/* 0:Disable, 1:Enable */
+	UINT8		SCSStatus; /* 0: Normal, 1:Low_gain */
+	CHAR		SCSMinRssi;
+	UINT32		CR_AGC_0_default;
+	UINT32		CR_AGC_3_default;
+	UINT8		EDCCA_Status;
+	UINT32			PdCount;
+	UINT32			MdrdyCount;
+	UINT32			FalseCCA;
+	CHAR			CurrSensitivity;
+	CHAR			AdjustSensitivity;
+	UINT32			RtsCount;
+	UINT32			RtsRtyCount;
+	CHAR			RSSIBoundary;
+	UINT8			SCSMinRssiTolerance;
+	UINT32			SCSTrafficThreshold;
+	UINT16			FalseCcaUpBond;
+	UINT16			FalseCcaLowBond;
+	CHAR			FixedRssiBond;
+	BOOLEAN			ForceMode; /*This mode only consider False CCA not care RTS PER.*/
+
+} SMART_CARRIER_SENSE_CTRL;
+#endif /* SMART_CARRIER_SENSE_SUPPORT */
 /*
 	The miniport adapter structure
 */
@@ -6314,8 +6344,9 @@ struct _RTMP_ADAPTER {
 #endif /* RT6352 */
 
 #ifdef THERMAL_PROTECT_SUPPORT
-	BOOLEAN force_one_tx_stream;
-    BOOLEAN fgThermalProtectToggle;
+	BOOLEAN switch_tx_stream; /* determine switch action */
+	BOOLEAN force_one_tx_stream; /* for rate adaptation */
+	BOOLEAN fgThermalProtectToggle;
 	INT32 last_thermal_pro_temp;
 	INT32 thermal_pro_high_criteria;
 	BOOLEAN thermal_pro_high_en;
@@ -6935,9 +6966,9 @@ MONITOR_STRUCT monitor_ctrl;
 
 #if (defined(WOW_SUPPORT) && defined(RTMP_MAC_USB)) || defined(MT_WOW_SUPPORT)
 	WOW_CFG_STRUCT WOW_Cfg; /* data structure for wake on wireless */
-#endif /* (defined(WOW_SUPPORT) && defined(RTMP_MAC_USB)) || defined(NEW_WOW_SUPPORT) || defined(MT_WOW_SUPPORT)  */
+#endif /* (defined(WOW_SUPPORT) && defined(RTMP_MAC_USB)) || defined(MT_WOW_SUPPORT) */
 
-	TXWI_STRUC NullTxWI;
+	TMAC_TXD_L NullTxWI;
 	USHORT NullBufOffset[2];
 
 #ifdef MULTI_MAC_ADDR_EXT_SUPPORT
@@ -7091,7 +7122,10 @@ MONITOR_STRUCT monitor_ctrl;
 #ifdef USB_IOT_WORKAROUND2
 	BOOLEAN  bUSBIOTReady;
 #endif
-
+#ifdef SMART_CARRIER_SENSE_SUPPORT
+	SMART_CARRIER_SENSE_CTRL	SCSCtrl;
+#endif /* SMART_CARRIER_SENSE_SUPPORT */
+	BOOLEAN bLink11b;
 };
 
 #if defined(RTMP_INTERNAL_TX_ALC) || defined(RTMP_TEMPERATURE_COMPENSATION)
@@ -8020,6 +8054,7 @@ INT hif_sys_exit(RTMP_ADAPTER *pAd);
 
 
 VOID NICResetFromError(RTMP_ADAPTER *pAd);
+VOID NicUpdatFalseCCACounters(RTMP_ADAPTER *pAd);
 
 
 VOID RTMPRingCleanUp(
@@ -9918,12 +9953,22 @@ BOOLEAN RTMPCheckVht(
 VOID RTMPUpdateMlmeRate(
 	IN RTMP_ADAPTER *pAd);
 
+CHAR RTMPMaxNoise(
+	IN RTMP_ADAPTER	* pAd,
+	IN CHAR		Noise0,
+	IN CHAR		Noise1,
+	IN CHAR		Noise2);
+
 CHAR RTMPMaxRssi(
 	IN RTMP_ADAPTER *pAd,
 	IN CHAR				Rssi0,
 	IN CHAR				Rssi1,
 	IN CHAR				Rssi2);
-
+CHAR RTMPMinRssi(
+	IN RTMP_ADAPTER *pAd,
+	IN CHAR Rssi0,
+	IN CHAR Rssi1,
+	IN CHAR Rssi2);
 CHAR RTMPAvgRssi(
         IN RTMP_ADAPTER *pAd,
         IN RSSI_SAMPLE		*pRssi);
@@ -11858,8 +11903,8 @@ VOID Update_Rssi_Sample(
 	IN RTMP_ADAPTER *pAd,
 	IN RSSI_SAMPLE *pRssi,
 	IN struct rx_signal_info *signal,
-	IN UCHAR phymode,
-	IN UCHAR bw);
+	IN USHORT phymode,
+	IN USHORT bw);
 
 PNDIS_PACKET GetPacketFromRxRing(
 	RTMP_ADAPTER *pAd,
@@ -12059,21 +12104,11 @@ INT Set_TSSIMaxRange_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg);
 #endif /* defined(RT3352) || defined(RT5350) */
 #endif /* RT305x */
 
-#ifdef NEW_WOW_SUPPORT
-VOID RT28xxAndesWOWEnable(RTMP_ADAPTER *pAd);
-VOID RT28xxAndesWOWDisable(RTMP_ADAPTER *pAd);
-#endif /* NEW_WOW_SUPPORT */
-
 #ifdef MT_WOW_SUPPORT
 VOID MT76xxAndesWOWEnable(RTMP_ADAPTER *pAd);
 VOID MT76xxAndesWOWDisable(RTMP_ADAPTER *pAd);
 VOID MT76xxAndesWOWInit(RTMP_ADAPTER *pAd);
 #endif
-
-#if (defined(WOW_SUPPORT) && defined(RTMP_MAC_USB)) || defined(NEW_WOW_SUPPORT)
-VOID RT28xxAsicWOWEnable(RTMP_ADAPTER *pAd);
-VOID RT28xxAsicWOWDisable(RTMP_ADAPTER *pAd);
-#endif /* (defined(WOW_SUPPORT) && defined(RTMP_MAC_USB)) || defined(NEW_WOW_SUPPORT) */
 
 /*////////////////////////////////////*/
 
@@ -12563,7 +12598,7 @@ VOID dump_tr_entry(RTMP_ADAPTER *pAd, INT tr_idx, RTMP_STRING *caller, INT line)
 VOID mgmt_tb_set_mcast_entry(RTMP_ADAPTER *pAd, UCHAR wcid);
 VOID set_entry_phy_cfg(RTMP_ADAPTER *pAd, MAC_TABLE_ENTRY *pEntry);
 VOID MacTableReset(RTMP_ADAPTER *pAd, INT startWcid);
-MAC_TABLE_ENTRY *MacTableLookup(RTMP_ADAPTER *pAd, UCHAR *pAddr);
+MAC_TABLE_ENTRY *MacTableLookup(RTMP_ADAPTER *pAd, const UCHAR *pAddr);
 BOOLEAN MacTableDeleteEntry(RTMP_ADAPTER *pAd, USHORT wcid, UCHAR *pAddr);
 MAC_TABLE_ENTRY *MacTableInsertEntry(
     IN RTMP_ADAPTER *pAd,
@@ -12766,6 +12801,12 @@ BOOLEAN Monitor_Open(RTMP_ADAPTER *pAd, PNET_DEV dev_p);
 BOOLEAN Monitor_Close(RTMP_ADAPTER *pAd, PNET_DEV dev_p);
 #endif /* CONFIG_SNIFFER_SUPPORT */
 
+#ifdef SMART_CARRIER_SENSE_SUPPORT
+INT SetSCSEnable_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg);
+INT SetSCSDbgLogEnable_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg);
+INT SetSCSCfg_Proc(RTMP_ADAPTER *pAd, RTMP_STRING *arg);
+INT32 ShowSCSInfo(RTMP_ADAPTER *pAd, RTMP_STRING *Arg);
+#endif /* SMART_CARRIER_SENSE_SUPPORT */
 
 #endif  /* __RTMP_H__ */
 

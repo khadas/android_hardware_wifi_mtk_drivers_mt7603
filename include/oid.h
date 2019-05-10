@@ -664,7 +664,7 @@ typedef struct _NDIS_APCLI_802_11_KEY
     UINT           KeyLength;         
     NDIS_802_11_MAC_ADDRESS BSSID;
     NDIS_802_11_KEY_RSC KeyRSC;
-    UCHAR           KeyMaterial[1];     
+	UCHAR           KeyMaterial[];
 } NDIS_APCLI_802_11_KEY, *PNDIS_APCLI_802_11_KEY;
 #endif/* WPA_SUPPLICANT_SUPPORT */
 #endif /* APCLI_SUPPORT */
@@ -677,7 +677,7 @@ typedef struct _NDIS_802_11_KEY {
 	UINT KeyLength;		/* length of key in bytes */
 	NDIS_802_11_MAC_ADDRESS BSSID;
 	NDIS_802_11_KEY_RSC KeyRSC;
-	UCHAR KeyMaterial[1];	/* variable length depending on above field */
+	UCHAR KeyMaterial[];	/* variable length depending on above field */
 } NDIS_802_11_KEY, *PNDIS_802_11_KEY;
 
 typedef struct _NDIS_802_11_PASSPHRASE {
@@ -770,16 +770,7 @@ typedef struct GNU_PACKED _NDIS_WLAN_BSSID_EX {
 	NDIS_802_11_NETWORK_INFRASTRUCTURE InfrastructureMode;
 	NDIS_802_11_RATES_EX SupportedRates;
 	ULONG IELength;
-	UCHAR IEs[1];
-
-#ifdef WAC_SUPPORT
-	 /* SAMSUNG DMC */
-	 CHAR										Threshold_Offset1;
-	 CHAR										Threshold_Offset2;
-	 UCHAR										Antenna_Type;
-	 UCHAR										Device_Type;
-	 UCHAR										Application_List;
-#endif /* WAC_SUPPORT */
+	UCHAR IEs[];
 } NDIS_WLAN_BSSID_EX, *PNDIS_WLAN_BSSID_EX;
 
 typedef struct GNU_PACKED _NDIS_802_11_BSSID_LIST_EX {
@@ -920,7 +911,7 @@ typedef struct _NDIS_APCLI_802_11_PMKID
 {
     UINT    Length;
     UINT    BSSIDInfoCount;
-    BSSID_INFO BSSIDInfo[1];
+	BSSID_INFO BSSIDInfo[];
 } NDIS_APCLI_802_11_PMKID, *PNDIS_APCLI_802_11_PMKID;
 #endif/*WPA_SUPPLICANT_SUPPORT*/
 #endif /* APCLI_SUPPORT */

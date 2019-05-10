@@ -12,7 +12,7 @@
 NDIS_STATUS RTUSBFreeDescriptorRelease(RTMP_ADAPTER *pAd, UCHAR BulkOutPipeId)
 {
 	HT_TX_CONTEXT *pHTTXContext;
-	unsigned long IrqFlags;
+	unsigned long IrqFlags = 0;
 
 
 	pHTTXContext = &pAd->TxContext[BulkOutPipeId];
@@ -49,7 +49,7 @@ NDIS_STATUS	RTUSBFreeDescRequest(
 	IN UINT32 req_cnt)
 {
 	NDIS_STATUS	 Status = NDIS_STATUS_FAILURE;
-	unsigned long IrqFlags;
+	unsigned long IrqFlags = 0;
 	HT_TX_CONTEXT *pHTTXContext;
 
 #ifdef MULTI_WMM_SUPPORT
@@ -144,7 +144,7 @@ BOOLEAN	RTUSBNeedQueueBackForAgg(RTMP_ADAPTER *pAd, UCHAR BulkOutPipeId)
 {
 	HT_TX_CONTEXT *pHTTXContext;
 	BOOLEAN needQueBack = FALSE;
-	unsigned long   IrqFlags;
+	unsigned long   IrqFlags = 0;
 
 
 	pHTTXContext = &pAd->TxContext[BulkOutPipeId];
@@ -579,7 +579,7 @@ USHORT	RtmpUSB_WriteFragTxResource(
 	PUCHAR			pWirelessPacket = NULL;
 	UCHAR			QueIdx;
 	NDIS_STATUS		Status;
-	unsigned long	IrqFlags;
+	unsigned long	IrqFlags = 0;
 	UINT32			USBDMApktLen = 0, DMAHdrLen, padding;
 #ifdef USB_BULK_BUF_ALIGMENT
 	BOOLEAN			bLasAlignmentsectiontRound = FALSE;
@@ -794,7 +794,7 @@ USHORT RtmpUSB_WriteSingleTxResource(
 	//TXWI_STRUC *pTxWI;
 	UCHAR *pWirelessPacket, *buf;
 	UCHAR QueIdx;
-	unsigned long	IrqFlags;
+	unsigned long	IrqFlags = 0;
 	NDIS_STATUS Status;
 	UINT32 hdr_copy_len, hdr_len, dma_len = 0, padding;
 #ifndef USB_BULK_BUF_ALIGMENT
@@ -1054,6 +1054,11 @@ USHORT RtmpUSB_WriteSingleTxResource(
 #ifdef USB_BULK_BUF_ALIGMENT
 	INT idx=0;
 #endif
+		if (QueIdx >= NUM_OF_TX_RING) {
+			DBGPRINT(RT_DEBUG_ERROR, ("%s: Invalid QueIdx (%d)\n"
+					, __func__, QueIdx));
+			return NDIS_STATUS_FAILURE;
+		}
 		RTMP_IRQ_LOCK(&pAd->TxContextQueueLock[QueIdx], IrqFlags);
 		pHTTXContext  = &pAd->TxContext[QueIdx];
 		fillOffset = pHTTXContext->CurWritePosition;
@@ -1321,7 +1326,7 @@ USHORT RtmpUSB_WriteMultiTxResource(
 	UCHAR *pWirelessPacket = NULL;
 	UCHAR QueIdx;
 	NDIS_STATUS Status;
-	unsigned long IrqFlags;
+	unsigned long IrqFlags = 0;
 #ifdef USB_BULK_BUF_ALIGMENT
 	INT idx=0;
 #endif
@@ -1486,7 +1491,7 @@ VOID RtmpUSB_FinalWriteTxResource(
 	TXWI_STRUC		*pTxWI;
 #endif
 	UINT32			USBDMApktLen, padding;
-	unsigned long	IrqFlags;
+	unsigned long	IrqFlags = 0;
 	PUCHAR			pWirelessPacket;
 #ifdef MT_MAC
     TMAC_TXD_S      *txd_s;
@@ -1713,12 +1718,12 @@ int RtmpUSBMgmtKickOut(
 {
 	TXINFO_STRUC *pTxInfo;
 	ULONG BulkOutSize;
-	UCHAR padLen;
+	ULONG padLen;
 	PUCHAR pDest;
 	ULONG SwIdx;
 	TX_CONTEXT *pMLMEContext = NULL;
     TX_CONTEXT *pBcnContext = NULL;
-	ULONG IrqFlags;
+	ULONG IrqFlags = 0;
 
 	RTMP_IRQ_LOCK(&pAd->MLMEBulkOutLock, IrqFlags);
 #if defined(MT7603)

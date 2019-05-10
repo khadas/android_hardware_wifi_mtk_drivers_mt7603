@@ -61,7 +61,7 @@ typedef	struct	_P2P_ACTION_FRAME	{
 	UCHAR					OUIType;
 	UCHAR					Subtype;
 	UCHAR					Token;
-	UCHAR					Octet[1];
+	UCHAR					Octet[];
 }	P2P_ACTION_FRAME, *PP2P_ACTION_FRAME;
 
 typedef struct _FRAME_P2P_ACTION {

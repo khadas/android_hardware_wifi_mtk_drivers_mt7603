@@ -55,7 +55,7 @@ UCHAR get_apidx_by_addr(RTMP_ADAPTER *pAd, UCHAR *addr)
 // TODO: shiang-usw, need to revise this to asic specific functions!
 INT set_wdev_if_addr(RTMP_ADAPTER *pAd, struct wifi_dev *wdev, INT opmode)
 {
-	INT idx = wdev->func_idx;
+	CHAR idx = wdev->func_idx;
 
 	if (opmode == OPMODE_AP)
 	{
@@ -111,8 +111,8 @@ INT set_wdev_if_addr(RTMP_ADAPTER *pAd, struct wifi_dev *wdev, INT opmode)
 		if (pAd->chipCap.hif_type == HIF_MT)
 		{
 			//TODO: Carter, Apcli interface and MESH interface shall use HWBSSID1 or HWBSSID2???
-			UINT32 Value;
-			UCHAR MacByte = 0, MacMask = 0;
+			UINT32 Value, MacByte = 0;
+			UCHAR MacMask = 0;
 
 			//TODO: shall we make choosing which byte to be selectable???
 			Value = 0x00000000;
@@ -386,7 +386,7 @@ static INT ap_security_init(RTMP_ADAPTER *pAd, struct wifi_dev *wdev, INT idx)
 		wdev->WpaMixPairCipher = MIX_CIPHER_NOTUSE;
 
 	/* Generate the corresponding RSNIE */
-	RTMPMakeRSNIE(pAd, wdev->AuthMode, wdev->WepStatus, idx);
+	RTMPMakeRSNIE(pAd, wdev->AuthMode, wdev->WepStatus, (UCHAR)idx);
 
 		return TRUE;
 }
@@ -396,8 +396,8 @@ static INT ap_key_tb_init(RTMP_ADAPTER *pAd)
 {
 	BSS_STRUCT *pMbss;
 	struct wifi_dev *wdev;
-	USHORT Wcid;
-	INT idx, i;
+	UCHAR Wcid, idx;
+	INT i;
 
 	/*
 		Initialize security variable per entry,
@@ -471,7 +471,7 @@ static INT ap_key_tb_init(RTMP_ADAPTER *pAd)
 
 			/* Install Shared key */
 			WPAInstallSharedKey(pAd,
-								wdev->GroupKeyWepStatus,
+								(UINT8)wdev->GroupKeyWepStatus,
 								idx,
 								wdev->DefaultKeyId,
 								Wcid,
@@ -1370,6 +1370,9 @@ VOID MacTableMaintenance(RTMP_ADAPTER *pAd)
 	/* Skip the Infra Side */
 	startWcid = 2;
 #endif /* RT_CFG80211_P2P_CONCURRENT_DEVICE */
+#ifdef SMART_CARRIER_SENSE_SUPPORT
+		pAd->SCSCtrl.SCSMinRssi = 0; /* (Reset)The minimum RSSI of STA */
+#endif /* SMART_CARRIER_SENSE_SUPPORT */
 
 	for (i = startWcid; i < MAX_LEN_OF_MAC_TABLE; i++)
 	{
@@ -1596,8 +1599,9 @@ VOID MacTableMaintenance(RTMP_ADAPTER *pAd)
 						if (CLIENT_STATUS_TEST_FLAG(pEntry, fCLIENT_STATUS_WMM_CAPABLE))
 							bQosNull = TRUE;
 
-						RtmpEnqueueNullFrame(pAd, pEntry->Addr, pEntry->CurrTxRate,
-	    	                           						pEntry->Aid, pEntry->func_tb_idx, bQosNull, TRUE, 0);
+						RtmpEnqueueNullFrame(pAd, pEntry->Addr
+						, pEntry->CurrTxRate, (UCHAR)pEntry->Aid
+						, pEntry->func_tb_idx, bQosNull, TRUE, 0);
 					}
 #ifdef P2P_SUPPORT
 				}
@@ -1654,6 +1658,15 @@ VOID MacTableMaintenance(RTMP_ADAPTER *pAd)
 					avgRssi));
 
 		}
+#ifdef SMART_CARRIER_SENSE_SUPPORT
+		if (pAd->SCSCtrl.SCSEnable == SCS_ENABLE) {
+			CHAR tmpRssi = RTMPMinRssi(pAd, pEntry->RssiSample.AvgRssi[0],
+				pEntry->RssiSample.AvgRssi[1], pEntry->RssiSample.AvgRssi[2]);
+
+			if (tmpRssi < pAd->SCSCtrl.SCSMinRssi)
+				pAd->SCSCtrl.SCSMinRssi = tmpRssi;
+			}
+#endif /* SMART_CARRIER_SENSE_SUPPORT */
 
 		if (bDisconnectSta)
 		{
@@ -3029,9 +3042,11 @@ BOOLEAN DOT1X_EapTriggerAction(RTMP_ADAPTER *pAd, MAC_TABLE_ENTRY *pEntry)
 				memcpy(&FrameBuf[offset+sizeof(eapol_start_1x_hdr)], HS2_Header, 4);
 				memcpy(&FrameBuf[offset+sizeof(eapol_start_1x_hdr)+4], &pEntry->hs_info, sizeof(struct _sta_hs_info));
 				frame_len += 4+sizeof(struct _sta_hs_info);
-				printk("event eapol start, %x:%x:%x:%x\n", 
-						FrameBuf[offset+sizeof(eapol_start_1x_hdr)+4],FrameBuf[offset+sizeof(eapol_start_1x_hdr)+5], 
-						FrameBuf[offset+sizeof(eapol_start_1x_hdr)+6],FrameBuf[offset+sizeof(eapol_start_1x_hdr)+7]);
+				DBGPRINT(RT_DEBUG_OFF, ("event eapol start, %x:%x:%x:%x\n",
+						FrameBuf[offset+sizeof(eapol_start_1x_hdr)+4],
+						FrameBuf[offset+sizeof(eapol_start_1x_hdr)+5],
+						FrameBuf[offset+sizeof(eapol_start_1x_hdr)+6],
+						FrameBuf[offset+sizeof(eapol_start_1x_hdr)+7]));
             		}
 		}
 #endif	

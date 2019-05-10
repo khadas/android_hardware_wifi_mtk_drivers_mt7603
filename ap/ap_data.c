@@ -45,6 +45,13 @@ INT ApAllowToSendPacket(
 	ASSERT(wdev->func_idx < pAd->ApCfg.BssidNum);
 	ASSERT (wdev->wdev_type == WDEV_TYPE_AP);
 
+	if ((wdev->func_idx < 0) || (wdev->func_idx > pAd->ApCfg.BssidNum) ||
+	    (wdev->func_idx >= ARRAY_SIZE(pAd->ApCfg.MBSSID))) {
+		DBGPRINT(RT_DEBUG_ERROR, ("%s(): wrong func_idx=%d\n",
+				__func__, wdev->func_idx));
+		return FALSE;
+	}
+
 	if (wdev != &pAd->ApCfg.MBSSID[wdev->func_idx].wdev) {
 		DBGPRINT(RT_DEBUG_ERROR, ("%s(): wdev(0x%p) not equal MBSS(0x%p), func_idx=%d\n",
 				__FUNCTION__, wdev, &pAd->ApCfg.MBSSID[wdev->func_idx].wdev, wdev->func_idx));
@@ -287,7 +294,7 @@ INT APSendPacket(RTMP_ADAPTER *pAd, PNDIS_PACKET pPacket)
 	if (pkt_len < frag_sz)
 		NumberOfFrag = 1;
 	else
-		NumberOfFrag = (pkt_len / frag_sz) + 1;
+		NumberOfFrag = (UCHAR)((pkt_len / frag_sz) + 1);
 
 	/* Save fragment number to Ndis packet reserved field */
 	RTMP_SET_PACKET_FRAGMENTS(pPacket, NumberOfFrag);
@@ -700,6 +707,13 @@ static inline VOID APFindCipherAlgorithm(RTMP_ADAPTER *pAd, TX_BLK *pTxBlk)
 	ASSERT(pTxBlk->wdev_idx < WDEV_NUM_MAX);
 	wdev = pAd->wdev_list[pTxBlk->wdev_idx];
 	ASSERT(wdev->func_idx < pAd->ApCfg.BssidNum);
+	if ((wdev->func_idx < 0) || (wdev->func_idx >= pAd->ApCfg.BssidNum)) {
+		DBGPRINT(RT_DEBUG_ERROR, ("%s wrong wdev->func_idx %d BssidNum %u\n",
+					  __func__, wdev->func_idx,
+					  pAd->ApCfg.BssidNum));
+		return;
+	}
+
 #ifdef WAPI_SUPPORT
 	pMbss = &pAd->ApCfg.MBSSID[wdev->func_idx];
 #endif /* WAPI_SUPPORT */
@@ -1213,7 +1227,7 @@ static inline VOID APBuildCommon802_11Header(RTMP_ADAPTER *pAd, TX_BLK *pTxBlk)
 
 static inline PUCHAR AP_Build_ARalink_Frame_Header(RTMP_ADAPTER *pAd, TX_BLK *pTxBlk)
 {
-	UCHAR *pHeaderBufPtr;
+	UCHAR *pHeaderBufPtr, *pTmpHeaderBufPtr;
 	HEADER_802_11 *wifi_hdr;
 	PNDIS_PACKET pNextPacket;
 	UINT32 nextBufLen;
@@ -1258,9 +1272,9 @@ static inline PUCHAR AP_Build_ARalink_Frame_Header(RTMP_ADAPTER *pAd, TX_BLK *pT
 	}
 
 	/* padding at front of LLC header. LLC header should at 4-bytes aligment. */
-	pTxBlk->HdrPadLen = (ULONG)pHeaderBufPtr;
+	pTmpHeaderBufPtr = pHeaderBufPtr;
 	pHeaderBufPtr = (UCHAR *)ROUND_UP(pHeaderBufPtr, 4);
-	pTxBlk->HdrPadLen = (ULONG)(pHeaderBufPtr - pTxBlk->HdrPadLen);
+	pTxBlk->HdrPadLen = (UCHAR)(pHeaderBufPtr - pTmpHeaderBufPtr);
 
 	
 	/*
@@ -1383,7 +1397,7 @@ static inline BOOLEAN BuildHtcField(
 
 static inline PUCHAR AP_Build_AMSDU_Frame_Header(RTMP_ADAPTER *pAd, TX_BLK *pTxBlk)
 {
-	UCHAR *buf_ptr;
+	UCHAR *buf_ptr, *tmp_buf_ptr;
 	HEADER_802_11 *wifi_hdr;
 
 	APFindCipherAlgorithm(pAd, pTxBlk);
@@ -1524,9 +1538,9 @@ static inline PUCHAR AP_Build_AMSDU_Frame_Header(RTMP_ADAPTER *pAd, TX_BLK *pTxB
 		LLC header should locate at 4-octets aligment
 		@@@ MpduHeaderLen excluding padding @@@
 	*/
-	pTxBlk->HdrPadLen = (ULONG)buf_ptr;
+	tmp_buf_ptr = buf_ptr;
 	buf_ptr = (UCHAR *)(ROUND_UP(buf_ptr, 4));
-	pTxBlk->HdrPadLen = (ULONG)(buf_ptr - pTxBlk->HdrPadLen);
+	pTxBlk->HdrPadLen = (UCHAR)(buf_ptr - tmp_buf_ptr);
 		
 	return buf_ptr;
 
@@ -1536,7 +1550,7 @@ static inline PUCHAR AP_Build_AMSDU_Frame_Header(RTMP_ADAPTER *pAd, TX_BLK *pTxB
 VOID AP_AMPDU_Frame_Tx(RTMP_ADAPTER *pAd, TX_BLK *pTxBlk)
 {
 	HEADER_802_11 *wifi_hdr;
-	UCHAR *pHeaderBufPtr, *src_ptr;
+	UCHAR *pHeaderBufPtr, *src_ptr, *pTmpHeaderBufPtr;
 	USHORT freeCnt = 1;
 	BOOLEAN bVLANPkt;
 	MAC_TABLE_ENTRY *pMacEntry;
@@ -1841,9 +1855,9 @@ hex_dump("AMPDU HeaderBufPtr", pHeaderBufPtr, pTxBlk->wifi_hdr_len);
 
 		   @@@ MpduHeaderLen excluding padding @@@
 		*/
-		pTxBlk->HdrPadLen = (ULONG)pHeaderBufPtr;
+		pTmpHeaderBufPtr = pHeaderBufPtr;
 		pHeaderBufPtr = (UCHAR *)ROUND_UP(pHeaderBufPtr, 4);
-		pTxBlk->HdrPadLen = (ULONG)(pHeaderBufPtr - pTxBlk->HdrPadLen);
+		pTxBlk->HdrPadLen = (UCHAR)(pHeaderBufPtr - pTmpHeaderBufPtr);
 
 #ifdef VENDOR_FEATURE1_SUPPORT
 		tr_entry->HdrPadLen = pTxBlk->HdrPadLen;
@@ -2316,7 +2330,8 @@ dump_tmac_info(pAd, &pTxBlk->HeaderBuf[pTxBlk->hw_rsv_len]);
 			// TODO: shiang-usw, check this, original code is use pTxBlk->HeaderBuf[0]
 			pHeaderBufPtr = &pTxBlk->HeaderBuf[TXINFO_SIZE];
 #endif /* defined(MT7603) || defined(MT7628) */
-			padding = ROUND_UP(AMSDU_SUBHEAD_LEN + subFramePayloadLen, 4) - (AMSDU_SUBHEAD_LEN + subFramePayloadLen);
+			padding = (UCHAR)(ROUND_UP(AMSDU_SUBHEAD_LEN + subFramePayloadLen, 4)
+						- (AMSDU_SUBHEAD_LEN + subFramePayloadLen));
 			NdisZeroMemory(pHeaderBufPtr, padding + AMSDU_SUBHEAD_LEN);
 			pHeaderBufPtr += padding;
 			pTxBlk->MpduHeaderLen = padding;
@@ -2327,7 +2342,7 @@ dump_tmac_info(pAd, &pTxBlk->HeaderBuf[pTxBlk->hw_rsv_len]);
 				DA(6)+SA(6)+Length(2) + LLC/SNAP Encap
 		*/
 		subFrameHeader = pHeaderBufPtr;
-		subFramePayloadLen = pTxBlk->SrcBufLen;
+		subFramePayloadLen = (USHORT)pTxBlk->SrcBufLen;
 
 		NdisMoveMemory(subFrameHeader, pTxBlk->pSrcBufHeader, 12);
 
@@ -2373,7 +2388,7 @@ dump_tmac_info(pAd, &pTxBlk->HeaderBuf[pTxBlk->hw_rsv_len]);
 		/* Insert LLC-SNAP encapsulation - 8 octets */
 		EXTRA_LLCSNAP_ENCAP_FROM_PKT_OFFSET(pTxBlk->pSrcBufData - 2, pTxBlk->pExtraLlcSnapEncap);
 
-		subFramePayloadLen = pTxBlk->SrcBufLen;
+		subFramePayloadLen = (USHORT)pTxBlk->SrcBufLen;
 
 		if (pTxBlk->pExtraLlcSnapEncap) {
 			NdisMoveMemory(pHeaderBufPtr, pTxBlk->pExtraLlcSnapEncap, 6);
@@ -2386,7 +2401,7 @@ dump_tmac_info(pAd, &pTxBlk->HeaderBuf[pTxBlk->hw_rsv_len]);
 		}
 
 		/* update subFrame Length field */
-		subFrameHeader[12] = (subFramePayloadLen & 0xFF00) >> 8;
+		subFrameHeader[12] = (UCHAR)((subFramePayloadLen & 0xFF00) >> 8);
 		subFrameHeader[13] = subFramePayloadLen & 0xFF;
 
 #if defined(MT7603) || defined(MT7628)
@@ -2399,9 +2414,10 @@ dump_tmac_info(pAd, &pTxBlk->HeaderBuf[pTxBlk->hw_rsv_len]);
 #endif /* MT7603 */
 
 		if (frameNum == 0)
-			FirstTx = HAL_WriteMultiTxResource(pAd, pTxBlk, frameNum, &freeCnt);
+			FirstTx = HAL_WriteMultiTxResource(pAd, pTxBlk, (UCHAR)frameNum, &freeCnt);
 		else
-			/*LastTxIdx = */HAL_WriteMultiTxResource(pAd, pTxBlk, frameNum, &freeCnt);
+			/*LastTxIdx = */HAL_WriteMultiTxResource(pAd, pTxBlk
+			, (UCHAR)frameNum, &freeCnt);
 
 #ifdef DBG_CTRL_SUPPORT
 #ifdef INCLUDE_DEBUG_QUEUE
@@ -2486,7 +2502,7 @@ dump_tmac_info(pAd, &pTxBlk->HeaderBuf[pTxBlk->hw_rsv_len]);
 VOID AP_Legacy_Frame_Tx(RTMP_ADAPTER *pAd, TX_BLK *pTxBlk)
 {
 	HEADER_802_11 *wifi_hdr;
-	UCHAR *pHeaderBufPtr;
+	UCHAR *pHeaderBufPtr, *pTmpHeaderBufPtr;
 	USHORT freeCnt = 1;
 	BOOLEAN bVLANPkt;
 	QUEUE_ENTRY *pQEntry;
@@ -2703,9 +2719,9 @@ DBGPRINT(RT_DEBUG_TRACE, ("<--%s(%d): ##########Fail#########\n", __FUNCTION__, 
 	}
 
 	/* The remaining content of MPDU header should locate at 4-octets aligment */
-	pTxBlk->HdrPadLen = (ULONG)pHeaderBufPtr;
+	pTmpHeaderBufPtr = pHeaderBufPtr;
 	pHeaderBufPtr = (UCHAR *)ROUND_UP(pHeaderBufPtr, 4);
-	pTxBlk->HdrPadLen = (ULONG)(pHeaderBufPtr - pTxBlk->HdrPadLen);
+	pTxBlk->HdrPadLen = (UCHAR)(pHeaderBufPtr - pTmpHeaderBufPtr);
 	pTxBlk->MpduHeaderLen = pTxBlk->wifi_hdr_len;
 
 #ifdef SOFT_ENCRYPT
@@ -3021,7 +3037,7 @@ VOID AP_Legacy_Frame_Tx_Hdr_Trns(
 VOID AP_Fragment_Frame_Tx(RTMP_ADAPTER *pAd, TX_BLK *pTxBlk)
 {
 	HEADER_802_11 *wifi_hdr;
-	UCHAR *pHeaderBufPtr;
+	UCHAR *pHeaderBufPtr, *pTmpHeaderBufPtr;
 	USHORT freeCnt = 1;
 	BOOLEAN bVLANPkt;
 	QUEUE_ENTRY *pQEntry;
@@ -3125,9 +3141,9 @@ DBGPRINT(RT_DEBUG_TRACE, ("%s(): Before Frag, pTxBlk->MpduHeaderLen=%d, wifi_hdr
 	}
 
 	/* The remaining content of MPDU header should locate at 4-octets aligment */
-	pTxBlk->HdrPadLen = (ULONG)pHeaderBufPtr;
+	pTmpHeaderBufPtr = pHeaderBufPtr;
 	pHeaderBufPtr = (UCHAR *)ROUND_UP(pHeaderBufPtr, 4);
-	pTxBlk->HdrPadLen = (ULONG)(pHeaderBufPtr - pTxBlk->HdrPadLen);
+	pTxBlk->HdrPadLen = (UCHAR)(pHeaderBufPtr - pTmpHeaderBufPtr);
 	pTxBlk->MpduHeaderLen = pTxBlk->wifi_hdr_len;
 
 #ifdef SOFT_ENCRYPT
@@ -3278,9 +3294,9 @@ DBGPRINT(RT_DEBUG_TRACE, ("%s(): Before Frag, pTxBlk->MpduHeaderLen=%d, wifi_hdr
 	pTransmit = pTxBlk->pTransmit;
 	/* Decide the TX rate */
 	if (pTransmit->field.MODE == MODE_CCK)
-		pTxBlk->TxRate = pTransmit->field.MCS;
+		pTxBlk->TxRate = (UCHAR)pTransmit->field.MCS;
 	else if (pTransmit->field.MODE == MODE_OFDM)
-		pTxBlk->TxRate = pTransmit->field.MCS + RATE_FIRST_OFDM_RATE;
+		pTxBlk->TxRate = (UCHAR)(pTransmit->field.MCS + RATE_FIRST_OFDM_RATE);
 	else
 		pTxBlk->TxRate = RATE_6_5;
 
@@ -3572,9 +3588,10 @@ dump_tmac_info(pAd, &pTxBlk->HeaderBuf[pTxBlk->hw_rsv_len]);
 #endif /* defined(MT7603) || defined(MT7628) */
 
 		if (frameNum == 0)
-			FirstTx = HAL_WriteMultiTxResource(pAd, pTxBlk, frameNum, &freeCnt);
+			FirstTx = HAL_WriteMultiTxResource(pAd, pTxBlk, (UCHAR)frameNum, &freeCnt);
 		else
-			LastTxIdx = HAL_WriteMultiTxResource(pAd, pTxBlk, frameNum, &freeCnt);
+			LastTxIdx = HAL_WriteMultiTxResource(pAd, pTxBlk
+						, (UCHAR)frameNum, &freeCnt);
 
 #ifdef SMART_ANTENNA
 		if (pTxBlk->pMacEntry)
@@ -3776,7 +3793,8 @@ NDIS_STATUS APHardTransmit(RTMP_ADAPTER *pAd, TX_BLK *pTxBlk)
 		&& (!RTMP_CFG80211_VIF_P2P_GO_ON(pAd)) && (!RTMP_CFG80211_VIF_P2P_CLI_ON(pAd)))
 	{
 		DBGPRINT(RT_DEBUG_TRACE, ("%s(%d) device is not in AP MODE,and the p2p GO interface is down, release the packet!\n", __FUNCTION__, __LINE__));
-		RELEASE_NDIS_PACKET(pAd, pPacket, NDIS_STATUS_FAILURE);
+		if (pPacket)
+			RELEASE_NDIS_PACKET(pAd, pPacket, NDIS_STATUS_FAILURE);
 		return NDIS_STATUS_FAILURE;
 	}
 	
@@ -4369,7 +4387,7 @@ INT ap_rx_ps_handle(RTMP_ADAPTER *pAd, RX_BLK *pRxBlk)
 #endif /* UAPSD_SUPPORT */
    	/* 1: PWR_SAVE, 0: PWR_ACTIVE */
 
-   	OldPwrMgmt = RtmpPsIndicate(pAd, pHeader->Addr2, pEntry->wcid, pHeader->FC.PwrMgmt);
+	OldPwrMgmt = RtmpPsIndicate(pAd, pHeader->Addr2, pEntry->wcid, (UCHAR)pHeader->FC.PwrMgmt);
 
 	if(OldPwrMgmt > 2)
 		DBGPRINT(RT_DEBUG_TRACE, ("OldPwrMgmt is %d\n", OldPwrMgmt));
@@ -4430,9 +4448,8 @@ INT ap_rx_foward_handle(RTMP_ADAPTER *pAd, struct wifi_dev *wdev, PNDIS_PACKET p
 	BSS_STRUCT *pMbss;
 	struct wifi_dev *dst_wdev = NULL;
 
-	if ((wdev->func_idx >= MAX_MBSSID_NUM(pAd)) ||
-		(wdev->func_idx >= HW_BEACON_MAX_NUM))
-	{
+	if ((wdev->func_idx < 0) || (wdev->func_idx >= MAX_MBSSID_NUM(pAd)) ||
+	    (wdev->func_idx >= HW_BEACON_MAX_NUM)) {
 		DBGPRINT(RT_DEBUG_ERROR, ("%s():Invalid func_idx(%d), type(%d)!\n",
 					__FUNCTION__, wdev->func_idx, wdev->wdev_type));
 		return FALSE;

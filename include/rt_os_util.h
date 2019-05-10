@@ -266,6 +266,7 @@ void RtmpOSNetDeviceRefPut(PNET_DEV pNetDev);
 
 INT RtmpOSNetDevDestory(VOID *pReserved, PNET_DEV pNetDev);
 void RtmpOSNetDevDetach(PNET_DEV pNetDev);
+void RtmpOSNetDevDetach_WithoutLock(PNET_DEV pNetDev);
 int RtmpOSNetDevAttach(
 	IN	UCHAR					OpMode,
 	IN	PNET_DEV				pNetDev, 
@@ -451,7 +452,7 @@ VOID RtmpOsAtomicDec(RTMP_OS_ATOMIC *pAtomic);
 VOID RtmpOsAtomicInterlockedExchange(RTMP_OS_ATOMIC *pAtomicSrc, LONG Value);
 
 /* OS Utility */
-void hex_dump(char *str, unsigned char *pSrcBufVA, unsigned int SrcBufLen);
+void hex_dump(char *str, const unsigned char *pSrcBufVA, unsigned int SrcBufLen);
 
 typedef VOID (*RTMP_OS_SEND_WLAN_EVENT)(
 	IN	VOID					*pAdSrc,
@@ -865,7 +866,7 @@ VOID CFG80211OS_InformBSS(
 	IN UINT16 beacon_interval,
 	IN UCHAR *pBeacon,
 	IN UINT32 BeaconLen);
-#if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18 ,0))
+#if (KERNEL_VERSION(3, 15, 0) <= LINUX_VERSION_CODE)
 VOID CFG80211OS_JoinIBSS(IN PNET_DEV pNetDev, IN const PUCHAR pBssid, IN struct ieee80211_channel *channel);
 #else
 VOID CFG80211OS_JoinIBSS(IN PNET_DEV pNetDev, IN const PUCHAR pBssid);

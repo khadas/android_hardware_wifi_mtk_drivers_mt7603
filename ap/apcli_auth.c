@@ -359,7 +359,8 @@ static VOID ApCliPeerAuthRspAtSeq2Action(RTMP_ADAPTER *pAd, MLME_QUEUE_ELEM * El
 					INC_TX_TSC(pKey->TxTsc, LEN_WEP_TSC);
 
 					/* Construct the 4-bytes WEP IV header */
-					RTMPConstructWEPIVHdr(default_key, pKey->TxTsc, iv_hdr);
+					RTMPConstructWEPIVHdr((UINT8)default_key
+							, pKey->TxTsc, iv_hdr);
 									 
 					Alg = cpu2le16(*(USHORT *)&Alg);
 					Seq = cpu2le16(*(USHORT *)&Seq);
@@ -575,6 +576,7 @@ static VOID ApCliPeerDeauthAction(RTMP_ADAPTER *pAd, MLME_QUEUE_ELEM *Elem)
 
 		DBGPRINT(RT_DEBUG_OFF, ("APCLI AUTH_RSP - receive DE-AUTH from our AP\n"));
 		*pCurrState = APCLI_AUTH_REQ_IDLE;
+		pAd->ApCfg.ApCliTab[ifIndex].LastDeauthReason = Reason;
 
 #ifdef WPA_SUPPLICANT_SUPPORT
 			tr_entry = &pAd->MacTab.tr_entry[pAd->ApCfg.ApCliTab[ifIndex].MacTabWCID];

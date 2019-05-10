@@ -433,8 +433,9 @@ BOOLEAN GetTimBit(
 	if ((Aid < (N1 << 3)) || (Aid >= ((N2 + 1) << 3)))
 		*MessageToMe = FALSE;
 	else {
-		MyByte = (Aid >> 3) - N1;	/* my byte position in the bitmap byte-stream */
-		MyBit = Aid % 16 - ((MyByte & 0x01) ? 8 : 0);
+		/* my byte position in the bitmap byte-stream */
+		MyByte = (UCHAR)((Aid >> 3) - N1);
+		MyBit = (UCHAR)(Aid % 16 - ((MyByte & 0x01) ? 8 : 0));
 
 		IdxPtr += (MyByte + 1);
 

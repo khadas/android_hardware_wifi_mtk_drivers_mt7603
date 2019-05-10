@@ -176,7 +176,7 @@ static void calib_result_show(RTMP_ADAPTER *pAd,unsigned int calibId)
 
 	if(pCalibInfo==NULL)
 	{
-		printk("[Calib] can't find calib information by calibId %d\n",calibId);
+		DBGPRINT(RT_DEBUG_ERROR, ("[Calib] can't find calib information by calibId %d\n", calibId));
 		return ;
 	}
 
@@ -244,7 +244,7 @@ static void calib_robust_routine(struct work_struct *ws)
 static int calib_robust_callback(unsigned short hook, struct sk_buff *skb, unsigned char status,void *priv)
 {
 	RTMP_ADAPTER *pAd = (RTMP_ADAPTER*)priv;
-	printk("[calib] Calibration ID: %d,State: %d\n",gCalib.curCalibId,status);
+	DBGPRINT(RT_DEBUG_OFF, ("[calib] Calibration ID: %d,State: %d\n", gCalib.curCalibId, status));
 	if(pAd == pGAd){
 		switch(gCalib.stat){
 		case CALIB_STATE_NOP:
@@ -259,11 +259,12 @@ static int calib_robust_callback(unsigned short hook, struct sk_buff *skb, unsig
 		{		
 			if(status!=NDIS_STATUS_SUCCESS)
 			{				
-				printk("[calib] rcv response in calib cma failed, retry!\n");
+				DBGPRINT(RT_DEBUG_ERROR, ("[calib] rcv response in calib cma failed, retry!\n"));
 				
 			}else
 			{			
-				printk("[calib] rcv response in calib cmd ok, calibId %d!\n",gCalib.curCalibId);
+				DBGPRINT(RT_DEBUG_OFF, ("[calib] rcv response in calib cmd ok, calibId %d!\n",
+						gCalib.curCalibId));
 				/*do save result*/
 				schedule_work(gCalib.resultWork);
 				spin_unlock(&gCalib.lock);
@@ -348,7 +349,8 @@ static struct mt_wlanTxRxHookOps  calib_ops __read_mostly = {
  
 static int __init calib_test_module_init(void)
 {
-	printk("[calib]  %s(): module init and register callback for roubst test\n",__FUNCTION__);
+	DBGPRINT(RT_DEBUG_OFF, ("[calib]  %s(): module init and register callback for roubst test\n",
+			__func__));
 	/*initial global struct*/
 	calib_test_init();
 	/*register proc file*/
@@ -364,7 +366,7 @@ static int __init calib_test_module_init(void)
 
 static void __exit calib_test_module_exit(void)
 {
-	printk("[calib]  %s(): module exist\n",__FUNCTION__);
+	DBGPRINT(RT_DEBUG_OFF, ("[calib]  %s(): module exist\n", __func__));
 	RtmpOsTxRxHookUnRegister(&calib_ops);
 	calib_test_exit();
 	calib_file_exit();

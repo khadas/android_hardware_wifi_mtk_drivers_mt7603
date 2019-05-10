@@ -303,10 +303,8 @@ VOID ParseRxVPacket(RTMP_ADAPTER *pAd, UINT32 Type, RX_BLK *RxBlk, UCHAR *Data)
 	RX_VECTOR1_3TH_CYCLE *RXV1_3TH_CYCLE = NULL;
 #endif  /* CONFIG_QA */
 	RX_VECTOR1_4TH_CYCLE *RXV1_4TH_CYCLE = NULL;
-#ifdef CONFIG_QA
 	RX_VECTOR1_5TH_CYCLE *RXV1_5TH_CYCLE = NULL;
-#endif  /* CONFIG_QA */
-	//RX_VECTOR1_6TH_CYCLE *RXV1_6TH_CYCLE = NULL;
+	RX_VECTOR1_6TH_CYCLE *RXV1_6TH_CYCLE = NULL;
 	RX_VECTOR2_1ST_CYCLE *RXV2_1ST_CYCLE = NULL;
 	RX_VECTOR2_2ND_CYCLE *RXV2_2ND_CYCLE = NULL;
 	RX_VECTOR2_3TH_CYCLE *RXV2_3TH_CYCLE = NULL;
@@ -319,10 +317,9 @@ VOID ParseRxVPacket(RTMP_ADAPTER *pAd, UINT32 Type, RX_BLK *RxBlk, UCHAR *Data)
 		RXV1_3TH_CYCLE = (RX_VECTOR1_3TH_CYCLE *)(Data + 8);
 #endif  /* CONFIG_QA */
 		RXV1_4TH_CYCLE = (RX_VECTOR1_4TH_CYCLE *)(Data + 12);
-#ifdef CONFIG_QA
 		RXV1_5TH_CYCLE = (RX_VECTOR1_5TH_CYCLE *)(Data + 16);
-#endif  /* CONFIG_QA */
-		//RXV1_6TH_CYCLE = (RX_VECTOR1_6TH_CYCLE *)(Data + 20);
+		RXV1_6TH_CYCLE = (RX_VECTOR1_6TH_CYCLE *)(Data + 20);
+		RXV2_2ND_CYCLE = (RX_VECTOR2_2ND_CYCLE *)(Data + 28);
 	}
 	else if (Type == RMAC_RX_PKT_TYPE_RX_TXRXV)
 	{
@@ -334,10 +331,9 @@ VOID ParseRxVPacket(RTMP_ADAPTER *pAd, UINT32 Type, RX_BLK *RxBlk, UCHAR *Data)
 		RXV1_3TH_CYCLE = (RX_VECTOR1_3TH_CYCLE *)(Data + 16);
 #endif  /* CONFIG_QA */
 		RXV1_4TH_CYCLE = (RX_VECTOR1_4TH_CYCLE *)(Data + 20);
-#ifdef CONFIG_QA
 		RXV1_5TH_CYCLE = (RX_VECTOR1_5TH_CYCLE *)(Data + 24);
-#endif  /* CONFIG_QA */
-		//RXV1_6TH_CYCLE = (RX_VECTOR1_6TH_CYCLE *)(Data + 28);
+
+		RXV1_6TH_CYCLE = (RX_VECTOR1_6TH_CYCLE *)(Data + 28);
 		RXV2_1ST_CYCLE = (RX_VECTOR2_1ST_CYCLE *)(Data + 32);
 		RXV2_2ND_CYCLE = (RX_VECTOR2_2ND_CYCLE *)(Data + 36);
 		RXV2_3TH_CYCLE = (RX_VECTOR2_3TH_CYCLE *)(Data + 40);
@@ -349,9 +345,12 @@ VOID ParseRxVPacket(RTMP_ADAPTER *pAd, UINT32 Type, RX_BLK *RxBlk, UCHAR *Data)
 #ifdef CONFIG_QA
         pAd->ATECtrl.RCPI0 = RXV1_3TH_CYCLE->Rcpi0;
         pAd->ATECtrl.RCPI1 = RXV1_3TH_CYCLE->Rcpi1;
-        pAd->ATECtrl.FreqOffsetFromRx = RXV1_5TH_CYCLE->FoE;
-        pAd->ATECtrl.SNR0 = RXV1_5TH_CYCLE->LTF_SNR0;
-        pAd->ATECtrl.SNR1 = RXV2_2ND_CYCLE->OfdmLtfSNR1;
+		if (RXV1_5TH_CYCLE) {
+			pAd->ATECtrl.FreqOffsetFromRx = RXV1_5TH_CYCLE->FoE;
+			pAd->ATECtrl.SNR0 = RXV1_5TH_CYCLE->LTF_SNR0;
+		}
+		if (RXV2_2ND_CYCLE)
+			pAd->ATECtrl.SNR1 = RXV2_2ND_CYCLE->OfdmLtfSNR1;
 	pAd->ATECtrl.RSSI0 = RXV1_3TH_CYCLE->Rcpi0/2 - 110;
 	pAd->ATECtrl.RSSI1 = RXV1_3TH_CYCLE->Rcpi1/2 - 110;
 #endif /* CONFIG_QA */
@@ -373,17 +372,32 @@ VOID ParseRxVPacket(RTMP_ADAPTER *pAd, UINT32 Type, RX_BLK *RxBlk, UCHAR *Data)
     //RxBlk->rx_signal.raw_rssi[1] = (RXV1_3TH_CYCLE->Rcpi1 - 220) / 2;
     RxBlk->rx_signal.raw_rssi[0] = (CHAR)RXV1_4TH_CYCLE->IBRssi0;
     RxBlk->rx_signal.raw_rssi[1] = (CHAR)RXV1_4TH_CYCLE->IBRssi1;
+	if (RXV1_5TH_CYCLE)
+		RxBlk->rx_signal.raw_snr[0] = RXV1_5TH_CYCLE->LTF_SNR0;
+	if (RXV2_2ND_CYCLE)
+		RxBlk->rx_signal.raw_snr[1] = RXV2_2ND_CYCLE->OfdmLtfSNR1;
+
+	if (RXV1_6TH_CYCLE) {
+#ifdef CONFIG_AP_SUPPORT
+		pAd->ApCfg.RssiSample.LastNoiseLevel[0] = ((RXV1_6TH_CYCLE->Nf0 - 254)/2);
+		pAd->ApCfg.RssiSample.LastNoiseLevel[1] = ((RXV1_6TH_CYCLE->Nf1 - 254)/2);
+#endif
+#ifdef CONFIG_STA_SUPPORT
+		pAd->StaCfg.RssiSample.LastNoiseLevel[0] = ((RXV1_6TH_CYCLE->Nf0 - 254)/2);
+		pAd->StaCfg.RssiSample.LastNoiseLevel[1] = ((RXV1_6TH_CYCLE->Nf1 - 254)/2);
+#endif
+	}
 
     //RxBlk->rx_signal.raw_snr[0] = rxwi_n->bbp_rxinfo[0];
     //RxBlk->rx_signal.raw_snr[1] = rxwi_n->bbp_rxinfo[1];
     //RxBlk->rx_signal.freq_offset = rxwi_n->bbp_rxinfo[4];
 
-	RxBlk->rx_rate.field.MODE = RXV1_1ST_CYCLE->TxMode;
-	RxBlk->rx_rate.field.MCS = RXV1_1ST_CYCLE->TxRate;
-    RxBlk->rx_rate.field.ldpc = RXV1_1ST_CYCLE->HtAdCode;
-    RxBlk->rx_rate.field.BW = RXV1_1ST_CYCLE->FrMode;
-    RxBlk->rx_rate.field.STBC = RXV1_1ST_CYCLE->HtStbc;
-    RxBlk->rx_rate.field.ShortGI = RXV1_1ST_CYCLE->HtShortGi;
+	RxBlk->rx_rate.field.MODE = (USHORT)RXV1_1ST_CYCLE->TxMode;
+	RxBlk->rx_rate.field.MCS = (USHORT)RXV1_1ST_CYCLE->TxRate;
+	RxBlk->rx_rate.field.ldpc = (USHORT)RXV1_1ST_CYCLE->HtAdCode;
+	RxBlk->rx_rate.field.BW = (USHORT)RXV1_1ST_CYCLE->FrMode;
+	RxBlk->rx_rate.field.STBC = (USHORT)RXV1_1ST_CYCLE->HtStbc;
+	RxBlk->rx_rate.field.ShortGI = (USHORT)RXV1_1ST_CYCLE->HtShortGi;
 }
 
 
@@ -450,7 +464,7 @@ static inline INT32 mt_rx_info_2_blk(
 
     //dump_rmac_info(pAd, RMACInfo);
 
-    pRxBlk->MPDUtotalByteCnt = rx_base->rxd_0.rx_byte_cnt - RMACInfoLen;
+	pRxBlk->MPDUtotalByteCnt = (USHORT)(rx_base->rxd_0.rx_byte_cnt - RMACInfoLen);
 
 	if (rx_base->rxd_1.hdr_offset == 1) {
         pRxBlk->MPDUtotalByteCnt -= 2;
@@ -458,10 +472,10 @@ static inline INT32 mt_rx_info_2_blk(
     }
 
     pRxBlk->DataSize = pRxBlk->MPDUtotalByteCnt;
-    pRxBlk->wcid = rx_base->rxd_2.wlan_idx;
-    pRxBlk->bss_idx = rx_base->rxd_1.bssid;
-    pRxBlk->key_idx = rx_base->rxd_1.key_id;
-    pRxBlk->TID = rx_base->rxd_2.tid;
+	pRxBlk->wcid = (UCHAR)rx_base->rxd_2.wlan_idx;
+	pRxBlk->bss_idx = (UCHAR)rx_base->rxd_1.bssid;
+	pRxBlk->key_idx = (UCHAR)rx_base->rxd_1.key_id;
+	pRxBlk->TID = (UCHAR)rx_base->rxd_2.tid;
     pRxBlk->TimeStamp = RxdGrp2->timestamp;
 
     pRxBlk->pRxInfo->U2M = rx_base->rxd_1.u2m;
@@ -608,7 +622,7 @@ UINT32 parse_rx_packet_type(RTMP_ADAPTER *ad, RX_BLK *rx_blk, VOID *rx_packet)
 						*(((UINT32 *)txs_d3)) = SWAP32(*(((UINT32 *)txs_d3)));
 						*(((UINT32 *)txs_d4)) = SWAP32(*(((UINT32 *)txs_d4)));
 #endif
-			ParseTxSPacket(ad, txs_d4->pid, txs_d0->txsfm, ptr);
+			ParseTxSPacket(ad, txs_d4->pid, (UINT8)txs_d0->txsfm, ptr);
 
                         ptr += 20;
                     }
@@ -1525,6 +1539,11 @@ NDIS_STATUS MlmeHardTransmitMgmtRing(RTMP_ADAPTER *pAd, UCHAR QueIdx, PNDIS_PACK
 	UCHAR TxPwrAdj = 0;
 #endif /* SPECIFIC_TX_POWER_SUPPORT */
 #endif /* CONFIG_AP_SUPPORT */
+#ifdef RT_CFG80211_P2P_SUPPORT
+	struct ieee80211_mgmt *mgmt;
+	BOOLEAN is_P2P_action_frame = FALSE;
+#endif /* RT_CFG80211_P2P_SUPPORT */
+
 	UCHAR prot = 0;
 	UCHAR apidx = 0;
 	ULONG Flags = 0;
@@ -1663,15 +1682,22 @@ NDIS_STATUS MlmeHardTransmitMgmtRing(RTMP_ADAPTER *pAd, UCHAR QueIdx, PNDIS_PACK
 #endif /* P2P_SUPPORT */
 
 #ifdef RT_CFG80211_P2P_SUPPORT
-//	INT wdev_idx = rtmp_wdev_idx_find_by_p2p_ifaddr(pAd, pHeader_802_11->Addr2);
+	/* make sure that p2p does not use cck rate */
+	mgmt = (struct ieee80211_mgmt *)pHeader_802_11;
+	if (ieee80211_is_action(mgmt->frame_control)) {
+		PP2P_PUBLIC_FRAME pP2PFrame = (PP2P_PUBLIC_FRAME) pHeader_802_11;
 
-//	if (wdev_idx > 0)
-	{
-		if (pAd->CommonCfg.MlmeTransmit.field.MODE == MODE_CCK)
-		{	
-			pAd->CommonCfg.MlmeTransmit.field.MODE = MODE_OFDM;
-        	pAd->CommonCfg.MlmeTransmit.field.MCS = MCS_RATE_6;
-		}	
+		if ((pP2PFrame->p80211Header.FC.SubType == SUBTYPE_ACTION) &&
+			(pP2PFrame->Category == CATEGORY_PUBLIC) &&
+			(pP2PFrame->Action == ACTION_WIFI_DIRECT))
+			is_P2P_action_frame = TRUE;
+	}
+
+	if ((pAd->CommonCfg.MlmeTransmit.field.MODE == MODE_CCK) &&
+		(pAd->ScanCtrl.ScanType == SCAN_P2P ||
+		(is_P2P_action_frame))) {
+		pAd->CommonCfg.MlmeTransmit.field.MODE = MODE_OFDM;
+		pAd->CommonCfg.MlmeTransmit.field.MCS = MCS_RATE_6;
 	}
 #endif /* RT_CFG80211_SUPPORT */
 
@@ -1879,7 +1905,7 @@ NDIS_STATUS MlmeHardTransmitMgmtRing(RTMP_ADAPTER *pAd, UCHAR QueIdx, PNDIS_PACK
 				pEntry = MacTableLookup(pAd, pHeader_802_11->Addr1);
 
 				if (pEntry)
-					wcid = pEntry->Aid;
+					wcid = (UCHAR)pEntry->Aid;
 			}
 #endif
 		}
@@ -1995,7 +2021,7 @@ NDIS_STATUS MlmeHardTransmitMgmtRing(RTMP_ADAPTER *pAd, UCHAR QueIdx, PNDIS_PACK
                 PID = PID_CTL_BAR;
                 mac_info.hdr_len = 16;
                 mac_info.SpeEn = 0; 
-                mac_info.TID = pBar->BarControl.TID; 
+		mac_info.TID = (UCHAR)pBar->BarControl.TID;
                 if (pAd->CommonCfg.Channel > 14)
                 { /* 2.4G */
                     TransmitSetting.field.MODE = MODE_OFDM;
@@ -2058,19 +2084,19 @@ NDIS_STATUS MlmeHardTransmitMgmtRing(RTMP_ADAPTER *pAd, UCHAR QueIdx, PNDIS_PACK
 			
 			if ((!RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_BSS_SCAN_IN_PROGRESS)) && RTMPEnterPsmNullBitStatus(&pAd->StaCfg.PwrMgmt))
 			{
-				DBGPRINT(RT_DEBUG_INFO, ("%s(line=%d)\n", __FUNCTION__, __LINE__));
+				DBGPRINT(RT_DEBUG_TRACE, ("%s(line=%d)\n", __FUNCTION__, __LINE__));
 				RTMPClearEnterPsmNullBit(&pAd->StaCfg.PwrMgmt);
 				TxSTypeCtlPerPkt(pAd, mac_info.PID, TXS_FORMAT0, FALSE, TRUE, FALSE, TXS_DUMP_REPEAT); 
 			}
 			else
 			{
-				DBGPRINT(RT_DEBUG_INFO, ("%s(line=%d)\n", __FUNCTION__, __LINE__));
+				DBGPRINT(RT_DEBUG_TRACE, ("%s(line=%d)\n", __FUNCTION__, __LINE__));
 				TxSTypeCtlPerPkt(pAd, mac_info.PID, TXS_FORMAT0, FALSE, FALSE, FALSE, TXS_DUMP_REPEAT); 
 			}
 		}
 #endif /* MT_MAC */
 #endif /* CONFIG_STA_SUPPORT */
-	DBGPRINT(RT_DEBUG_INFO, ("%s(line=%d), mac_info.PsmBySw(%d)\n", __FUNCTION__, __LINE__, mac_info.PsmBySw));
+	DBGPRINT(RT_DEBUG_TRACE, ("%s(line=%d), mac_info.PsmBySw(%d)\n", __FUNCTION__, __LINE__, mac_info.PsmBySw));
 	if(pCfg80211_ctrl->TxStatusInUsed && pCfg80211_ctrl->IsNeedTxStatus)
 	{
 		DBGPRINT(RT_DEBUG_TRACE, ("%s %d, PID (%d)\n", __FUNCTION__, __LINE__, mac_info.PID));
@@ -2835,7 +2861,7 @@ VOID rtmp_tx_swq_dump(RTMP_ADAPTER *pAd, INT qidx)
 
 VOID rtmp_ps_init(RTMP_ADAPTER *pAd)
 {
-	UINT32  i= 0;
+	UCHAR i = 0;
 	/*initial PS Token Queue*/	
 	DlListInit(&pAd->psTokenQueue);
 
@@ -2890,7 +2916,7 @@ INT rtmp_psDeq_req(RTMP_ADAPTER *pAd)
 	struct WCID_TABLE *psEntry = NULL;
 	struct tx_swq_fifo *fifo_swq;
 	
-	UCHAR cnt=0,i=0;
+	INT32 cnt = 0, i = 0;
 	INT32 capCount=0;
 	/*remove first psToken now, should check WCID requeue when report*/
 	do {
@@ -3176,10 +3202,10 @@ INT rtmp_deq_req(RTMP_ADAPTER *pAd, INT cnt, struct dequeue_info *info)
 			info->full_qid[2] = FALSE;
 			info->full_qid[3] = FALSE;
 		} else {
-			info->q_max_cnt[0] = cnt;
-			info->q_max_cnt[1] = cnt;
-			info->q_max_cnt[2] = cnt;
-			info->q_max_cnt[3] = cnt;
+			info->q_max_cnt[0] = (UCHAR)cnt;
+			info->q_max_cnt[1] = (UCHAR)cnt;
+			info->q_max_cnt[2] = (UCHAR)cnt;
+			info->q_max_cnt[3] = (UCHAR)cnt;
 		}
 		info->inited = 1;
 	}
@@ -3751,7 +3777,7 @@ VOID RTMPDeQueuePacket(
 
 	//NdisZeroMemory((UCHAR *)&deq_info, sizeof(deq_info));
 
-	deq_info.target_wcid = ((wcid == WCID_ALL) ? MAX_LEN_OF_TR_TABLE : wcid);
+	deq_info.target_wcid = (UCHAR)((wcid == WCID_ALL) ? MAX_LEN_OF_TR_TABLE : wcid);
 	deq_info.target_que = QIdx;
 
 	do

@@ -93,7 +93,7 @@ INT get_ht_max_mcs(RTMP_ADAPTER *pAd, UCHAR *desire_mcs, UCHAR *cap_mcs)
 	for (i=23; i>=0; i--)
 	{	
 		j = i/8;	
-		bitmask = (1<<(i-(j*8)));
+		bitmask = (UCHAR)(1<<(i-(j*8)));
 		if ((desire_mcs[j] & bitmask) && (cap_mcs[j] & bitmask))
 		{
 			/*pEntry->MaxHTPhyMode.field.MCS = i; */
@@ -389,7 +389,7 @@ VOID RTMPSetHT(
 		bbp_set_bw(pAd, pAd->StaCfg.wdev.bw);
 	else
 #endif /* defined(RT_CFG80211_SUPPORT) && defined(RT_CFG80211_P2P_CONCURRENT_DEVICE) */
-	bbp_set_bw(pAd, bw);
+	bbp_set_bw(pAd, (UINT8)bw);
 
 #ifdef RT305x
 	RTMP_CHIP_SPECIFIC(pAd, RT305x_HT_MODE_CHANGE, NULL, pHTPhyMode->BW);
@@ -488,14 +488,14 @@ VOID RTMPSetHT(
 	IF_DEV_CONFIG_OPMODE_ON_AP(pAd)
 	{
 		for (apidx = 0; apidx < pAd->ApCfg.BssidNum; apidx++)
-			RTMPSetIndividualHT(pAd, apidx);
+			RTMPSetIndividualHT(pAd, (UCHAR)apidx);
 #ifdef WDS_SUPPORT
 		for (apidx = 0; apidx < MAX_WDS_ENTRY; apidx++)
 			RTMPSetIndividualHT(pAd, apidx + MIN_NET_DEVICE_FOR_WDS);
 #endif /* WDS_SUPPORT */
 #ifdef APCLI_SUPPORT
 		for (apidx = 0; apidx < MAX_APCLI_NUM; apidx++)
-			RTMPSetIndividualHT(pAd, apidx + MIN_NET_DEVICE_FOR_APCLI);
+			RTMPSetIndividualHT(pAd, (UCHAR)(apidx + MIN_NET_DEVICE_FOR_APCLI));
 #endif /* APCLI_SUPPORT */
 	}
 #endif /* CONFIG_AP_SUPPORT */
@@ -513,7 +513,8 @@ VOID RTMPSetHT(
 
 #ifdef RT_CFG80211_P2P_SUPPORT
 		for (apidx = 0; apidx < pAd->ApCfg.BssidNum; apidx++)
-			RTMPSetIndividualHT(pAd, apidx + MIN_NET_DEVICE_FOR_CFG80211_VIF_P2P_GO);
+			RTMPSetIndividualHT(pAd,
+				(UCHAR)(apidx + MIN_NET_DEVICE_FOR_CFG80211_VIF_P2P_GO));
 #endif /* RT_CFG80211_P2P_SUPPORT */
 
 		RTMPSetIndividualHT(pAd, 0);
@@ -554,8 +555,9 @@ VOID RTMPSetIndividualHT(RTMP_ADAPTER *pAd, UCHAR apidx)
             UCHAR idx = apidx - MIN_NET_DEVICE_FOR_CFG80211_VIF_P2P_GO;
 
             pDesired_ht_phy = &pAd->ApCfg.MBSSID[idx].wdev.DesiredHtPhyInfo;
-            DesiredMcs = pAd->ApCfg.MBSSID[idx].wdev.DesiredTransmitSetting.field.MCS;                      
-            encrypt_mode = pAd->ApCfg.MBSSID[idx].wdev.WepStatus;
+			DesiredMcs =
+				(UCHAR)pAd->ApCfg.MBSSID[idx].wdev.DesiredTransmitSetting.field.MCS;
+			encrypt_mode = (UCHAR)pAd->ApCfg.MBSSID[idx].wdev.WepStatus;
             pAd->ApCfg.MBSSID[idx].wdev.bWmmCapable = TRUE; 
             pAd->ApCfg.MBSSID[idx].wdev.bAutoTxRateSwitch = (DesiredMcs == MCS_AUTO) ? TRUE : FALSE;
             break;
@@ -595,9 +597,13 @@ VOID RTMPSetIndividualHT(RTMP_ADAPTER *pAd, UCHAR apidx)
 				if (idx < MAX_APCLI_NUM)
 				{
 					pDesired_ht_phy = &pAd->ApCfg.ApCliTab[idx].wdev.DesiredHtPhyInfo;
-					DesiredMcs = pAd->ApCfg.ApCliTab[idx].wdev.DesiredTransmitSetting.field.MCS;
-					encrypt_mode = pAd->ApCfg.ApCliTab[idx].wdev.WepStatus;
-					pAd->ApCfg.ApCliTab[idx].wdev.bAutoTxRateSwitch = (DesiredMcs == MCS_AUTO) ? TRUE : FALSE;
+					DesiredMcs =
+						(UCHAR)pAd->ApCfg.ApCliTab[idx].
+						wdev.DesiredTransmitSetting.field.MCS;
+					encrypt_mode =
+						(UCHAR)pAd->ApCfg.ApCliTab[idx].wdev.WepStatus;
+					pAd->ApCfg.ApCliTab[idx].wdev.bAutoTxRateSwitch =
+						(DesiredMcs == MCS_AUTO) ? TRUE : FALSE;
 					break;
 				}
 				else
@@ -635,7 +641,7 @@ VOID RTMPSetIndividualHT(RTMP_ADAPTER *pAd, UCHAR apidx)
 				wdev = &pAd->ApCfg.MBSSID[apidx].wdev;
 
 				pDesired_ht_phy = &wdev->DesiredHtPhyInfo;
-				DesiredMcs = wdev->DesiredTransmitSetting.field.MCS;
+				DesiredMcs = (UCHAR)wdev->DesiredTransmitSetting.field.MCS;
 #ifdef WFA_VHT_PF
 				// TODO: Sigma, this code segment used to work around for Sigma Automation!
 				if (WMODE_CAP_AC(pAd->CommonCfg.PhyMode) && (DesiredMcs != MCS_AUTO)) {
@@ -646,7 +652,7 @@ VOID RTMPSetIndividualHT(RTMP_ADAPTER *pAd, UCHAR apidx)
 					RT_CfgSetAutoFallBack(pAd, "1");
 				}
 #endif /* WFA_VHT_PF */
-				encrypt_mode = wdev->WepStatus;
+				encrypt_mode = (UCHAR)wdev->WepStatus;
 				pAd->ApCfg.MBSSID[apidx].wdev.bWmmCapable = TRUE;
 				wdev->bAutoTxRateSwitch = (DesiredMcs == MCS_AUTO) ? TRUE : FALSE;
 				break;
@@ -663,8 +669,8 @@ VOID RTMPSetIndividualHT(RTMP_ADAPTER *pAd, UCHAR apidx)
 			wdev = &pAd->StaCfg.wdev;
 			
 			pDesired_ht_phy = &wdev->DesiredHtPhyInfo;					
-			DesiredMcs = wdev->DesiredTransmitSetting.field.MCS;
-			encrypt_mode = wdev->WepStatus;
+			DesiredMcs = (UCHAR)wdev->DesiredTransmitSetting.field.MCS;
+			encrypt_mode = (UCHAR)wdev->WepStatus;
 			break;
 		}	
 #endif /* CONFIG_STA_SUPPORT */
@@ -743,7 +749,8 @@ VOID RTMPSetIndividualHT(RTMP_ADAPTER *pAd, UCHAR apidx)
 				
 				mode = DesiredMcs / 8;
 				if (mode < 2)
-					pDesired_ht_phy->MCSSet[mode] = (1 << (DesiredMcs - mode * 8));
+					pDesired_ht_phy->MCSSet[mode] =
+						(UCHAR)(1 << (DesiredMcs - mode * 8));
 			}			
 			break;
 
@@ -761,7 +768,8 @@ VOID RTMPSetIndividualHT(RTMP_ADAPTER *pAd, UCHAR apidx)
 
 				mode = DesiredMcs / 8;
 				if (mode < 3)
-					pDesired_ht_phy->MCSSet[mode] = (1 << (DesiredMcs - mode * 8));
+					pDesired_ht_phy->MCSSet[mode] =
+						(UCHAR)(1 << (DesiredMcs - mode * 8));
 			}
 			break;
 	}							

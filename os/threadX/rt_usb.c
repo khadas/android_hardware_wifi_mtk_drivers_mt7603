@@ -314,6 +314,7 @@ INT32 usb_control_msg(DC_USB_DEVICE *pUSBDev, UINT32 endpointaddress, UINT8 bReq
 	NDIS_STATUS Result = NDIS_STATUS_FAILURE;
 	void *pDMAAddr = NULL;
 	void *pSetupDMAAddr = NULL;
+
 	/* To store the setup packet */
 	pUSBHST_SETUP_PACKET pSetup = NULL;
 

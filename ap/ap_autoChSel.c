@@ -330,7 +330,8 @@ static inline UCHAR SelectClearChannelCCA(
 	{
 		pBss = &(pBssInfoTab->BssEntry[BssTab_idx]);
 		channel_idx = GetChIdx(pAd, pBss->Channel);
-		if (channel_idx < 0 )
+		if ((channel_idx < 0) ||
+		    (channel_idx >= ARRAY_SIZE(pChannelInfo->dirtyness)))
 			continue;
 
 
@@ -378,7 +379,7 @@ static inline UCHAR SelectClearChannelCCA(
 			/* check neighbor channel */
 			for (loop = (channel_idx+1); loop <= (channel_idx+AboveBound); loop++)
 			{
-				if (loop >= MAX_NUM_OF_CHANNELS)
+				if (loop >= ARRAY_SIZE(pAd->ChannelList))
 					break;
 
 				if (pAd->ChannelList[loop].Channel - pAd->ChannelList[loop-1].Channel > 4)
@@ -389,6 +390,9 @@ static inline UCHAR SelectClearChannelCCA(
             /* check neighbor channel */
 			for (loop=(channel_idx-1); loop >= (channel_idx-BelowBound); loop--)
 			{
+				if ((loop + 1) >= ARRAY_SIZE(pAd->ChannelList))
+					continue;
+
 				if (loop < 0)
 					break;
 
@@ -585,12 +589,12 @@ static inline UCHAR SelectClearChannelCCA(
 	{
 		ch = pAd->ChannelList[(base + channel_idx) % pAd->ChannelListNum].Channel;
 	
-		if (AutoChannelSkipListCheck(pAd, ch))
+		if (AutoChannelSkipListCheck(pAd, (UCHAR)ch))
 			continue;
 		
 		if ((pAd->ApCfg.bAvoidDfsChannel == TRUE)
 			&& (pChannelInfo->IsABand == TRUE)
-			&& RadarChannelCheck(pAd, ch))
+			&& RadarChannelCheck(pAd, (UCHAR)ch))
 			continue;
 
 		break;
@@ -604,10 +608,10 @@ static inline UCHAR SelectClearChannelBusyTime(
 	)
 {
 	PCHANNELINFO pChannelInfo = pAd->pChannelInfo;
-	INT ch = 1, channel_idx;
+	INT channel_idx;
 	UINT32 min_busytime;
 	int candidate_ch;	
-	UCHAR base;
+	UCHAR base, ch = 1;
 
 
 	if(pChannelInfo == NULL)
@@ -843,7 +847,7 @@ static inline UCHAR SelectClearChannelApCnt(
 	for (dirty = 30; dirty <= 32; dirty++)
 	{
 		BOOLEAN candidate[MAX_NUM_OF_CHANNELS+1], candidate_num=0;
-		UCHAR min_ApCnt = 255;
+		ULONG min_ApCnt = 255;
 		final_channel = 0;	
 		
 		NdisZeroMemory(candidate, MAX_NUM_OF_CHANNELS+1);
@@ -895,7 +899,9 @@ static inline UCHAR SelectClearChannelApCnt(
 			if (final_channel != 0)
 			{				
 				DBGPRINT(RT_DEBUG_TRACE,("Rule 2 APCnt : minimum APCnt with  minimum interference(dirtiness: 30~32) ==> Select Channel %d\n", final_channel));
-				DBGPRINT(RT_DEBUG_TRACE,(" Dirtiness = %d ,  Min ApCnt = %d\n", dirty, min_ApCnt));
+				DBGPRINT(RT_DEBUG_TRACE
+					, (" Dirtiness = %d ,  Min ApCnt = %lu\n"
+					, dirty, min_ApCnt));
 				return final_channel;
 			}
 		}
@@ -975,6 +981,13 @@ ULONG AutoChBssInsertEntry(
 	} 
 	else
 	{
+		if (Idx >= ARRAY_SIZE(pBssInfoTab->BssEntry)) {
+			DBGPRINT(RT_DEBUG_ERROR,
+				 ("%s: Idx %lu >= MAX_LEN_OF_BSS_TABLE\n",
+				  __func__, Idx));
+			return BSS_NOT_FOUND;
+		}
+
 		AutoChBssEntrySet(&pBssInfoTab->BssEntry[Idx], pBssid, Ssid, SsidLen,
 							ChannelNo, ExtChOffset, Rssi);
 	}

@@ -54,7 +54,7 @@ RTMP_SRC_DIR = $(RT28xx_DIR)/RT$(MODULE)
 #PLATFORM = MSTAR
 #PLATFORM = HISILICON
 #PLATFORM = HE_TV
-LINUX_SRC ?= /mnt/nfsroot/rongjun.chen/l-amlogic/out/target/product/p200/obj/KERNEL_OBJ/
+LINUX_SRC ?= /mnt/nfsroot/rongjun.chen/Alip200/out/target/product/p200/obj/KERNEL_OBJ/
 CROSS_COMPILE ?=aarch64-linux-gnu-
 ARCH ?=arm64
 #APSOC
@@ -94,6 +94,7 @@ MAKE = make
 MODULE = $(shell pwd | sed "s/.*\///" ).o
 export MODULE
 endif
+
 
 ifeq ($(PLATFORM),PC)
 PREALLOC = NO
@@ -234,7 +235,7 @@ endif
 ifeq ($(PREALLOC), YES)
 #build prealloc.ko
 	cp -f $(RT28xx_DIR)/os/linux/Makefile.6.prealloc $(RT28xx_DIR)/os/linux/Makefile
-	$(MAKE) ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- -C $(LINUX_SRC) SUBDIRS=$(RT28xx_DIR)/os/linux modules
+	$(MAKE) ARCH=$(ARCH) CROSS_COMPILE=$(CROSS_COMPILE) -C $(LINUX_SRC) SUBDIRS=$(RT28xx_DIR)/os/linux modules
 endif
 	cp -f $(RT28xx_DIR)/os/linux/Makefile.6 $(RT28xx_DIR)/os/linux/Makefile
 ifeq ($(PLATFORM),DM6446)

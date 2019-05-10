@@ -464,7 +464,7 @@ int rt_ioctl_giwrange(struct net_device *dev,
 #endif /* RT_CFG80211_SUPPORT */
 #endif /* NATIVE_WPA_SUPPLICANT_SUPPORT */
 
-	DBGPRINT(RT_DEBUG_TRACE ,("===>rt_ioctl_giwrange\n"));
+	/*DBGPRINT(RT_DEBUG_TRACE ,("===>rt_ioctl_giwrange\n"));*/
 	data->length = sizeof(struct iw_range);
 	memset(range, 0, sizeof(struct iw_range));
 
@@ -497,7 +497,7 @@ int rt_ioctl_giwrange(struct net_device *dev,
 /*	range->num_channels =  pAd->ChannelListNum; */
 	RTMP_STA_IoctlHandle(pAd, NULL, CMD_RTPRIV_IOCTL_CHAN_LIST_NUM_GET, 0,
 						&ChannelListNum, 0, RT_DEV_PRIV_FLAGS_GET(dev));
-	range->num_channels = ChannelListNum;
+	range->num_channels = (UINT16)ChannelListNum;
 
 	os_alloc_mem(NULL, (UCHAR **)&pChannel, sizeof(UCHAR)*ChannelListNum);
 	if (pChannel == NULL)
@@ -530,7 +530,7 @@ int rt_ioctl_giwrange(struct net_device *dev,
 	os_free_mem(NULL, pChannel);
 	os_free_mem(NULL, pFreq);
 
-	range->num_frequency = val;
+	range->num_frequency = (UINT8)val;
 
 	range->max_qual.qual = 100; /* what is correct max? This was not
 					* documented exactly. At least
@@ -841,6 +841,7 @@ int rt_ioctl_iwaplist(struct net_device *dev,
 	RT_CMD_STA_IOCTL_BSS_LIST BssList, *pBssList = &BssList;
 	RT_CMD_STA_IOCTL_BSS *pList;
 
+	memset(qual, 0, sizeof(qual));
 	GET_PAD_FROM_NET_DEV(pAd, dev);
 
    	/*check if the interface is down */
@@ -882,7 +883,7 @@ int rt_ioctl_iwaplist(struct net_device *dev,
 		memcpy(addr[i].sa_data, pList->Bssid, MAC_ADDR_LEN);
 		set_quality(pAd, &qual[i], pList); /*&pAd->ScanTab.BssEntry[i]); */
 	}
-	data->length = i;
+	data->length = (USHORT)i;
 	memcpy(extra, &addr, i*sizeof(addr[0]));
 	data->flags = 1;		/* signal quality present (sort of) */
 	memcpy(extra + i*sizeof(addr[0]), &qual, i*sizeof(qual[i]));
@@ -1534,12 +1535,12 @@ int rt_ioctl_giwscan(struct net_device *dev,
 #endif /* IWEVGENIE */
 	}
 
-	data->length = current_ev - extra;
+	data->length = (USHORT)(current_ev - extra);
 /*    pAd->StaCfg.bScanReqIsFromWebUI = FALSE; */
 /*	DBGPRINT(RT_DEBUG_ERROR ,("===>rt_ioctl_giwscan. %d(%d) BSS returned, data->length = %d\n",i , pAd->ScanTab.BssNr, data->length)); */
 
 	RTMP_STA_IoctlHandle(pAd, NULL, CMD_RTPRIV_IOCTL_STA_SCAN_END, 0,
-						NULL, data->length, RT_DEV_PRIV_FLAGS_GET(dev));
+						data, data->length, RT_DEV_PRIV_FLAGS_GET(dev));
 
 go_out:
 	if (pIoctlScan->pBssTable != NULL)
@@ -1606,7 +1607,7 @@ int rt_ioctl_siwessid(struct net_device *dev,
 	return 0;
 #endif /* 0 */
 
-	pIoctlEssid->FlgAnySsid = data->flags;
+	pIoctlEssid->FlgAnySsid = (UCHAR)data->flags;
 	pIoctlEssid->SsidLen = data->length;
 	pIoctlEssid->pSsid = (CHAR *)essid;
 	pIoctlEssid->Status = 0;
@@ -1680,7 +1681,7 @@ int rt_ioctl_giwessid(struct net_device *dev,
 	pIoctlEssid->Status = 0;
 	RTMP_STA_IoctlHandle(pAd, NULL, CMD_RTPRIV_IOCTL_STA_SIOCGIWESSID, 0,
 						pIoctlEssid, 0, RT_DEV_PRIV_FLAGS_GET(dev));
-	data->length = pIoctlEssid->SsidLen;
+	data->length = (USHORT)pIoctlEssid->SsidLen;
 
 	RT_CMD_STATUS_TRANSLATE(pIoctlEssid->Status);
 	return pIoctlEssid->Status;
@@ -1755,7 +1756,7 @@ int rt_ioctl_giwnickn(struct net_device *dev,
 	RTMP_STA_IoctlHandle(pAd, NULL, CMD_RTPRIV_IOCTL_STA_SIOCGIWNICKN, 0,
 							pNickName, 0, RT_DEV_PRIV_FLAGS_GET(dev));
 
-	data->length = pNickName->NameLen;
+	data->length = (USHORT)pNickName->NameLen;
 	return 0;
 }
 
@@ -1783,7 +1784,7 @@ int rt_ioctl_siwrts(struct net_device *dev,
 	else if (rts->value == 0)
 	    val = MAX_RTS_THRESHOLD;
 	else
-		val = rts->value;
+		val = (UINT16)rts->value;
 	
 /*	if (val != pAd->CommonCfg.RtsThreshold) */
 /*		pAd->CommonCfg.RtsThreshold = val; */
@@ -1854,7 +1855,7 @@ int rt_ioctl_siwfrag(struct net_device *dev,
 
 /*	pAd->CommonCfg.FragmentThreshold = val; */
 	RTMP_STA_IoctlHandle(pAd, NULL, CMD_RTPRIV_IOCTL_STA_SIOCSIWFRAG, 0,
-						NULL, val, RT_DEV_PRIV_FLAGS_GET(dev));
+						info, val, RT_DEV_PRIV_FLAGS_GET(dev));
 	return 0;
 }
 
@@ -2097,7 +2098,7 @@ rt_ioctl_giwencode(struct net_device *dev,
 						pIoctlSec, 0, RT_DEV_PRIV_FLAGS_GET(dev));
 
 	erq->length = pIoctlSec->length;
-	erq->flags = pIoctlSec->KeyIdx;
+	erq->flags = (USHORT)pIoctlSec->KeyIdx;
 	if (pIoctlSec->flags & RT_CMD_STA_IOCTL_SECURITY_DISABLED)
 		erq->flags = RT_CMD_STA_IOCTL_SECURITY_DISABLED;
 	{
@@ -2162,8 +2163,9 @@ int rt_ioctl_setparam(struct net_device *dev, struct iw_request_info *info,
 	
 	if (!*this_char)
 		return -EINVAL;
-																															
-	if ((value = rtstrchr(this_char, '=')) != NULL)
+
+	value = rtstrchr(this_char, '=');
+	if (value)
 		*value++ = 0;
 
 	/*check if the interface is down */
@@ -2201,8 +2203,11 @@ int rt_ioctl_setparam(struct net_device *dev, struct iw_request_info *info,
 			goto SET_PROC;
 
 		/* reject setting nothing besides ANY ssid(ssidLen=0) */
-		if (!*value && (strcmp(this_char, "SSID") != 0))
-			return -EINVAL; 
+		if (value) {
+			if (!*value && (strcmp(this_char, "SSID") != 0))
+				return -EINVAL;
+		}
+
 	}
 
 SET_PROC:
@@ -2808,7 +2813,7 @@ rt_private_get_statistics(struct net_device *dev, struct iw_request_info *info,
 	RTMP_STA_IoctlHandle(pAd, NULL, CMD_RTPRIV_IOCTL_STA_IW_GET_STATISTICS, 0,
 						extra, IW_PRIV_SIZE_MASK, RT_DEV_PRIV_FLAGS_GET(dev));
 
-    wrq->length = strlen(extra) + 1; /* 1: size of '\0' */
+	wrq->length = (USHORT)(strlen(extra) + 1); /* 1: size of '\0' */
     DBGPRINT(RT_DEBUG_TRACE, ("<== rt_private_get_statistics, wrq->length = %d\n", wrq->length));
 
     return Status;
@@ -2876,7 +2881,7 @@ rt_private_show(struct net_device *dev, struct iw_request_info *info,
 	INT				Status = 0;
 	VOID   			*pAd;
 /*	POS_COOKIE		pObj; */
-	UINT32             subcmd = wrq->flags;
+	USHORT             subcmd = wrq->flags;
 	RT_CMD_STA_IOCTL_SHOW IoctlShow, *pIoctlShow = &IoctlShow;
 
 	GET_PAD_FROM_NET_DEV(pAd, dev);
@@ -3198,7 +3203,7 @@ int rt_ioctl_siwmlme(struct net_device *dev,
 /*	MLME_QUEUE_ELEM				*pMsgElem = NULL; */
 /*	MLME_DISASSOC_REQ_STRUCT	DisAssocReq; */
 /*	MLME_DEAUTH_REQ_STRUCT      DeAuthReq; */
-	ULONG Subcmd = 0;
+	USHORT Subcmd = 0;
 
 	GET_PAD_FROM_NET_DEV(pAd, dev);
 
@@ -3283,7 +3288,7 @@ int rt_ioctl_siwmlme(struct net_device *dev,
 	}
 
 	RTMP_STA_IoctlHandle(pAd, NULL, CMD_RTPRIV_IOCTL_STA_SIOCSIWMLME, Subcmd,
-						NULL, pMlme->reason_code, RT_DEV_PRIV_FLAGS_GET(dev));
+		info, pMlme->reason_code, RT_DEV_PRIV_FLAGS_GET(dev));
 	return 0;
 }
 #endif /* SIOCSIWMLME */
@@ -3938,7 +3943,7 @@ rt_ioctl_giwencodeext(struct net_device *dev,
 		return pIoctlSec->Status;
 	}
 
-	encoding->flags = pIoctlSec->KeyIdx;
+	encoding->flags = (USHORT)pIoctlSec->KeyIdx;
 	ext->key_len = pIoctlSec->length;
 
 	if (pIoctlSec->Alg == RT_CMD_STA_IOCTL_SECURITY_ALG_NONE)
@@ -4086,7 +4091,7 @@ int rt_ioctl_giwgenie(struct net_device *dev,
 						RT_DEV_PRIV_FLAGS_GET(dev)) != NDIS_STATUS_SUCCESS)
 		return -E2BIG;
 
-	wrqu->data.length = pIoctlRsnIe->length;
+	wrqu->data.length = (USHORT)pIoctlRsnIe->length;
 	return 0;
 }
 
@@ -4563,7 +4568,7 @@ static const iw_handler rt_priv_handlers[] = {
 #ifndef CONFIG_AP_SUPPORT
 	(iw_handler) rt_ioctl_setparam, /* + 0x02 */
 #else
-	(iw_handler) NULL, /* + 0x02 */
+	(iw_handler) rt_ioctl_setparam, /* + 0x02 */
 #endif /* CONFIG_AP_SUPPORT */
 #ifdef DBG
 	(iw_handler) rt_private_ioctl_bbp, /* + 0x03 */	
@@ -4606,12 +4611,12 @@ const struct iw_handler_def rt28xx_iw_handler_def =
 #define	N(a)	(sizeof (a) / sizeof (a[0]))
 	.standard	= (iw_handler *) rt_handler,
 	.num_standard	= sizeof(rt_handler) / sizeof(iw_handler),
-#ifdef CONFIG_WIRELESS_EXT
+#if defined(CONFIG_WEXT_PRIV) || LINUX_VERSION_CODE <= KERNEL_VERSION(2, 6, 32)
 	.private	= (iw_handler *) rt_priv_handlers,
 	.num_private		= N(rt_priv_handlers),
 	.private_args	= (struct iw_priv_args *) privtab,
 	.num_private_args	= N(privtab),
-#endif
+#endif /* CONFIG_WEXT_PRIV || LINUX_VERSION_CODE <= 2.6.32 */
 #if IW_HANDLER_VERSION >= 7
     .get_wireless_stats = rt28xx_get_wireless_stats,
 #endif 
@@ -4766,7 +4771,8 @@ skip_check:
 			RTMP_STA_IoctlHandle(pAd, NULL, CMD_RTPRIV_IOCTL_STA_SIOCGIWNICKN, 0,
 							pNickName, 0, RT_DEV_PRIV_FLAGS_GET(net_dev));
 
-            erq->length = pNickName->NameLen; /*strlen((RTMP_STRING *) pAd->nickname); */
+			/*strlen((RTMP_STRING *) pAd->nickname); */
+			erq->length = (USHORT)pNickName->NameLen;
             Status = copy_to_user(erq->pointer, nickname, erq->length);
 			break;
 		}
@@ -4796,8 +4802,10 @@ skip_check:
 		}
         case SIOCSIWFRAG:  /*set fragmentation thr (bytes) */
         	{
-        	struct iw_param *frag=&wrqin->u.frag;
-        	rt_ioctl_siwfrag(net_dev, NULL, frag, NULL);
+			struct iw_param *frag = &wrqin->u.frag;
+			struct iw_request_info info;
+
+			rt_ioctl_siwfrag(net_dev, &info, frag, NULL);
             break;
 		}
         case SIOCGIWENCODE:  /*get encoding token & mode */

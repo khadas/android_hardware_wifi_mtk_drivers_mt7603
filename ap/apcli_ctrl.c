@@ -191,6 +191,7 @@ static VOID ApCliCtrlJoinReqAction(
 		return;
 
 	pApCliEntry = &pAd->ApCfg.ApCliTab[ifIndex];
+	pApCliEntry->LastDeauthReason = REASON_DEAUTH_STA_LEAVING;
 
 	NdisZeroMemory(&JoinReq, sizeof(APCLI_MLME_JOIN_REQ_STRUCT));
 
@@ -891,7 +892,7 @@ static VOID ApCliCtrlAssocRspAction(
 		ifIndex = (USHORT)(Elem->Priv);
 #endif /* MAC_REPEATER_SUPPORT */
 
-		if (ApCliLinkUp(pAd, ifIndex))
+		if (ApCliLinkUp(pAd, (UCHAR)ifIndex))
 		{
 			*pCurrState = APCLI_CTRL_CONNECTED;
 
@@ -1035,7 +1036,7 @@ static VOID ApCliCtrlDeAssocRspAction(
 #endif /* MAC_REPEATER_SUPPORT */
 
 	if (bValid)
-		ApCliLinkDown(pAd, ifIndex);
+		ApCliLinkDown(pAd, (UCHAR)ifIndex);
 	
 	*pCurrState = APCLI_CTRL_DISCONNECTED;
 
@@ -1188,7 +1189,7 @@ static VOID ApCliCtrlDisconnectReqAction(
 
 	DBGPRINT(RT_DEBUG_ERROR, ("(%s) 2. Before do ApCliLinkDown.\n", __FUNCTION__));
 	if (bValid)
-		ApCliLinkDown(pAd, ifIndex);
+		ApCliLinkDown(pAd, (UCHAR)ifIndex);
 
 	/* set the apcli interface be invalid. */
 #ifdef MAC_REPEATER_SUPPORT
@@ -1289,7 +1290,7 @@ static VOID ApCliCtrlPeerDeAssocReqAction(
 #endif /* MAC_REPEATER_SUPPORT */
 
 	if (bValid)
-		ApCliLinkDown(pAd, ifIndex);
+		ApCliLinkDown(pAd, (UCHAR)ifIndex);
 
 #ifdef APCLI_AUTO_CONNECT_SUPPORT
 	if ((pAd->ApCfg.ApCliAutoConnectRunning == TRUE)
@@ -1387,7 +1388,7 @@ static VOID ApCliCtrlDeAssocAction(
 		sizeof(MLME_DISASSOC_REQ_STRUCT), &DisassocReq, ifIndex);
 
 	if (bValid)
-		ApCliLinkDown(pAd, ifIndex);
+		ApCliLinkDown(pAd, (UCHAR)ifIndex);
 
 	/* set the apcli interface be invalid. */
 #ifdef MAC_REPEATER_SUPPORT
@@ -1479,7 +1480,7 @@ static VOID ApCliCtrlDeAuthAction(
 				  ifIndex);
 
 	if (bValid)
-		ApCliLinkDown(pAd, ifIndex);
+		ApCliLinkDown(pAd, (UCHAR)ifIndex);
 
 	/* set the apcli interface be invalid. */
 #ifdef MAC_REPEATER_SUPPORT

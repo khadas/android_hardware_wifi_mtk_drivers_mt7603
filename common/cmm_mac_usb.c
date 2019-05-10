@@ -2422,13 +2422,25 @@ check:
 		
 		
 		SET_OS_PKT_LEN(pkt, len);
+		/*
+		*	Correct tail pointer of tail should be set to avoid skb overflow;
+		*/
+		skb_set_tail_pointer(RTPKT_TO_OSPKT(pkt), len);
+
 #ifdef RT_BIG_ENDIAN
 		MTMacInfoEndianChange(pAd, buf, TYPE_TMACINFO, sizeof(TMAC_TXD_L));
 #endif /* RT_BIG_ENDIAN */
 		/* Now do hardware-depened kick out.*/
 		RTMP_SEM_LOCK(&pAd->BcnRingLock);
-		HAL_KickOutMgmtTx(pAd, Q_IDX_BCN, pkt, buf, len);
+		/*
+		*	Bcn_buf->bcn_state should set before kickout,
+		*	to avoid beacon sending process breaked and Txs received
+		*	before bcn_buf->bcn_state set to BCN_TX_WRITE_TO_DMA,
+		*	which makes bcn_state over-written.
+		*/
 		bcn_buf->bcn_state = BCN_TX_WRITE_TO_DMA;
+		HAL_KickOutMgmtTx(pAd, Q_IDX_BCN, pkt, buf, len);
+		/*bcn_buf->bcn_state = BCN_TX_WRITE_TO_DMA;*/
 		RTMP_SEM_UNLOCK(&pAd->BcnRingLock);
 	} else {
 		DBGPRINT(RT_DEBUG_ERROR, ("%s(): BeaconPkt is NULL!\n", __FUNCTION__));

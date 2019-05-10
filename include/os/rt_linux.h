@@ -192,16 +192,12 @@ typedef struct usb_ctrlrequest devctrlrequest;
 #define RT2880_AP_DRIVER_VERSION	"1.0.0.0"
 #endif /* RTMP_RBUS_SUPPORT */
 
-#ifdef SINGLE_SKU_V2
-#define SINGLE_SKU_TABLE_FILE_NAME	"/etc/Wireless/RT2860AP/SingleSKU.dat"
-#endif /* SINGLE_SKU_V2 */
-
 #endif /* CONFIG_AP_SUPPORT */
 
 
 #ifdef CONFIG_STA_SUPPORT
 #ifdef RTMP_MAC_PCI
-#define STA_PROFILE_PATH			"/system/etc/wifi/RT2870STA_7603.dat"
+#define STA_PROFILE_PATH			"/vendor/etc/wifi/RT2870STA_7603.dat"
 #define STA_DRIVER_VERSION			"3.0.0.0"
 #ifdef MULTIPLE_CARD_SUPPORT
 #define CARD_INFO_PATH			"/etc/Wireless/RT2860STA/RT2860STACard.dat"
@@ -210,15 +206,15 @@ typedef struct usb_ctrlrequest devctrlrequest;
 
 #ifdef RTMP_MAC_USB
 #ifdef HE_BD_CFG80211_SUPPORT 
-#define STA_PROFILE_PATH			"/system/etc/wifi/RT2870STA_7603.dat"
+#define STA_PROFILE_PATH			"/vendor/etc/wifi/RT2870STA_7603.dat"
 #else
 #ifdef USE_CHIP_DEPENDENT_PROFILE_NAME
-#define STA_PROFILE_PATH                        "/system/etc/wifi/RT2870STA_7603.dat"
+#define STA_PROFILE_PATH                        "/vendor/etc/wifi/RT2870STA_7603.dat"
 #else
-#define STA_PROFILE_PATH                        "/system/etc/wifi/RT2870STA_7603.dat"
+#define STA_PROFILE_PATH                        "/vendor/etc/wifi/RT2870STA_7603.dat"
 #endif /* USE_CHIP_DEPENDENT_PROFILE_NAME */
 #endif /* HE_BD_CFG80211_SUPPORT */
-#define STA_DRIVER_VERSION			"JEDI.L0.MP1.mt7603u.v1.8"
+#define STA_DRIVER_VERSION			"JEDI.L0.MP1.mt7603u.v1.14"
 #ifdef MULTIPLE_CARD_SUPPORT
 #define CARD_INFO_PATH			"/etc/Wireless/RT2870STA/RT2870STACard.dat"
 #endif /* MULTIPLE_CARD_SUPPORT */
@@ -227,7 +223,7 @@ typedef struct usb_ctrlrequest devctrlrequest;
 
 
 #ifdef RTMP_MAC_SDIO
-#define STA_PROFILE_PATH			"/system/etc/wifi/RT2870STA_7603.dat"
+#define STA_PROFILE_PATH			"/vendor/etc/wifi/RT2870STA_7603.dat"
 #define STA_DRIVER_VERSION			"3.0.0.0"
 #ifdef MULTIPLE_CARD_SUPPORT
 #define CARD_INFO_PATH			"/etc/Wireless/RT2870STA/RT2870STACard.dat"
@@ -244,11 +240,11 @@ typedef struct usb_ctrlrequest devctrlrequest;
 
 extern const struct iw_handler_def rt28xx_iw_handler_def;
 
+#endif /* CONFIG_STA_SUPPORT */
+
 #ifdef SINGLE_SKU_V2
 #define SINGLE_SKU_TABLE_FILE_NAME	"/etc/Wireless/RT2870STA/SingleSKU.dat"
 #endif /* SINGLE_SKU_V2 */
-
-#endif /* CONFIG_STA_SUPPORT */
 
 #ifdef CONFIG_APSTA_MIXED_SUPPORT
 extern	const struct iw_handler_def rt28xx_ap_iw_handler_def;
@@ -860,13 +856,13 @@ do{                                   \
 
 #define DBGPRINT_ERR(Fmt)           \
 {                                   \
-    printk("ERROR!!! ");          \
-    printk Fmt;                  \
+	DBGPRINT(RT_DEBUG_ERROR, ("ERROR!!! "));\
+	DBGPRINT(RT_DEBUG_ERROR, Fmt);\
 }
 
 #define DBGPRINT_S(Fmt)		\
 {									\
-	printk Fmt;					\
+	DBGPRINT(RT_DEBUG_OFF, Fmt); \
 }
 #else
 #define DBGPRINT(Level, Fmt)
@@ -881,14 +877,14 @@ do{                                   \
 {                                                                               \
     if (!(x))                                                                   \
     {                                                                           \
-        printk(KERN_WARNING __FILE__ ":%d assert " #x "failed\n", __LINE__);    \
+		DBGPRINT(RT_DEBUG_OFF, ("%s:%d assert " #x "failed\n", __FILE__, __LINE__));\
     }                                                                           \
 }
 #else
 #define ASSERT(x)
 #endif /* DBG */
 
-void hex_dump(char *str, unsigned char *pSrcBufVA, unsigned int SrcBufLen);
+void hex_dump(char *str, const unsigned char *pSrcBufVA, unsigned int SrcBufLen);
 
 
 /*********************************************************************************************************
@@ -1792,6 +1788,7 @@ USBHST_STATUS RTUSBBulkOutBCNPacketComplete(URBCompleteStatus Status, purbb_t pU
 #define	RTUSB_URB_DMA_MAPPING(pUrb)
 #endif
 
+
 #define RTUSB_CONTROL_MSG(pUsb_Dev, uEndpointAddress, Request, RequestType, Value,Index, tmpBuf, TransferBufferLength, timeout, ret)	\
   		do{	\
 			if ((RequestType == DEVICE_VENDOR_REQUEST_OUT) || (RequestType == DEVICE_CLASS_REQUEST_OUT))	\
@@ -1803,7 +1800,8 @@ USBHST_STATUS RTUSBBulkOutBCNPacketComplete(URBCompleteStatus Status, purbb_t pU
 				DBGPRINT(RT_DEBUG_ERROR, ("vendor request direction is failed\n"));	\
 				ret = -1;	\
 			}	\
-		}while(0)	
+		}while(0)
+
 #define rtusb_urb_context  context
 #define rtusb_urb_status   status
 

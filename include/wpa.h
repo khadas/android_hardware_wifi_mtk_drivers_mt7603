@@ -34,21 +34,21 @@
 	(((ULONG)((__x)+((__y)-1))) & ((ULONG)~((__y)-1)))
 #endif
 
-#define	SET_UINT16_TO_ARRARY(_V, _LEN)		\
-{											\
-	_V[0] = ((UINT16)_LEN) >> 8;			\
-	_V[1] = ((UINT16)_LEN & 0xFF);					\
+#define	SET_UINT16_TO_ARRARY(_V, _LEN)				\
+{\
+	_V[0] = (UINT8)(((UINT16)(_LEN)) >> 8);			\
+	_V[1] = (UINT8)(((UINT16)(_LEN)) & 0xFF);		\
 }
 
-#define	INC_UINT16_TO_ARRARY(_V, _LEN)			\
-{												\
-	UINT16	var_len;							\
-												\
-	var_len = (_V[0]<<8) | (_V[1]);				\
-	var_len += _LEN;							\
-												\
-	_V[0] = (var_len & 0xFF00) >> 8;			\
-	_V[1] = (var_len & 0xFF);					\
+#define	INC_UINT16_TO_ARRARY(_V, _LEN)				\
+{	\
+	UINT16	var_len;								\
+	\
+	var_len = (UINT16)(((_V[0])<<8) | (_V[1]));	\
+	var_len += (UINT16)(_LEN);						\
+	\
+	_V[0] = (UINT8)((var_len & 0xFF00) >> 8);		\
+	_V[1] = (UINT8)(var_len & 0xFF);				\
 }
 
 #define	CONV_ARRARY_TO_UINT16(_V)	((_V[0]<<8) | (_V[1]))

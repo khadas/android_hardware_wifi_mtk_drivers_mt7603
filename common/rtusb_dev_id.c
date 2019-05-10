@@ -286,7 +286,7 @@ USB_DEVICE_ID rtusb_dev_id[] = {
 #endif /* MT7601U */
 
 #ifdef MT7603
-	{USB_DEVICE(0x0e8d,0x7603)},
+	{USB_DEVICE(0x0E8D,0x7603)},
 #endif
 #ifdef MT7636
 	{USB_DEVICE(0x0E8D,0x7606)},

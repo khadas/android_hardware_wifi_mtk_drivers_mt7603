@@ -337,7 +337,7 @@ skip_check:
 				RTMP_AP_IoctlHandle(pAd, wrq, CMD_RTPRIV_IOCTL_AP_SIOCGIWESSID, 0, pIoctlSSID, 0);
 
 				pSsidStr = (PCHAR)pIoctlSSID->pSsidStr;
-				erq->length = pIoctlSSID->length;
+				erq->length = (USHORT)pIoctlSSID->length;
 
 #if 0 /* os abl move */
 #ifdef APCLI_SUPPORT

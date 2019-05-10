@@ -44,7 +44,7 @@ static int calib_robust_testModeSet(unsigned int state)
 	gCalib.stat =  state ?  CALIB_STATE_START_TEST_MODE : CALIB_STATE_STOP_TEST_MODE;
 	/*start into test mode*/
 	ret = RtmpOsRfTest(pGAd,ACTION_SWITCH_TO_RFTEST,state,0);	
-	printk("[calib] enable test mode!\n");
+	DBGPRINT(RT_DEBUG_OFF, ("[calib] enable test mode!\n"));
 	return ret;
 }
 
@@ -122,13 +122,13 @@ static int calib_state_proc_write( struct file *filp, const char *buff,unsigned 
 		break;
 		case CALIB_STATE_START_TEST_MODE:
 		{			
-			printk("[calib] goto test mode...\n");
+			DBGPRINT(RT_DEBUG_OFF, ("[calib] goto test mode...\n"));
 			calib_robust_testModeSet(1);
 		}
 		break;
 		case CALIB_STATE_CALIB_START:
 		{			
-			printk("[calib] start to test...\n");
+			DBGPRINT(RT_DEBUG_OFF, ("[calib] start to test...\n"));
 			pItem = calib_table_get(gCalib.curCalibId);
 			if(pItem)
 			{		
@@ -140,13 +140,13 @@ static int calib_state_proc_write( struct file *filp, const char *buff,unsigned 
 					calib_robust_testStart();	
 				}
 				
-				printk("[calib] count %d\n",gCalib.curCount);
+				DBGPRINT(RT_DEBUG_OFF, ("[calib] count %d\n", gCalib.curCount));
 			}
 		}
 		break;
 		case CALIB_STATE_STOP_TEST_MODE:
 		{
-			printk("[calib]  stop test mode...\n");
+			DBGPRINT(RT_DEBUG_OFF, ("[calib]  stop test mode...\n"));
 			calib_robust_testModeSet(0);			
 		}
 		break;
@@ -182,7 +182,7 @@ static int calib_times_proc_write( struct file *filp, const char *buff,unsigned 
 	if (buff && !copy_from_user(value, buff, len1)) {
 
 		 gCalib.times = simple_strtoul(value, &end, 10);
-		 printk("[calib] change calibration time to %d\n",gCalib.times);
+		 DBGPRINT(RT_DEBUG_OFF, ("[calib] change calibration time to %d\n", gCalib.times));
 		 
 	}		 
 	return len1;
@@ -210,16 +210,16 @@ static int calib_id_proc_write( struct file *filp, const char *buff,unsigned lon
 	
 	if(!buff) 
 	{
-		printk("[calib] %s():  null buffer\n",__FUNCTION__);
+		DBGPRINT(RT_DEBUG_ERROR, ("[calib] %s():  null buffer\n", __func__));
 		goto end;
 	}
 
 	if(copy_from_user(value, buff, len1)) 
 	{
-		printk("[calib] %s(), copy from user failed!\n",__FUNCTION__);
+		DBGPRINT(RT_DEBUG_ERROR, ("[calib] %s(), copy from user failed!\n", __func__));
 		goto end;
 	}
-	printk("value = %s\n",value);
+	DBGPRINT(RT_DEBUG_OFF, ("value = %s\n", value));
 	if(!strncmp(value,"24GRCAL",7))
 	{
 		 gCalib.curCalibId  =  CALIB_TEST_24GRCAL;
@@ -280,7 +280,7 @@ static int calib_id_proc_write( struct file *filp, const char *buff,unsigned lon
 	{
 		goto end;
 	}
-	printk("[calib] change calibId to %s\n",value);
+	DBGPRINT(RT_DEBUG_OFF, ("[calib] change calibId to %s\n", value));
 	pItem = calib_table_get(gCalib.curCalibId);
 	if(pItem)
 	{
@@ -361,7 +361,7 @@ static int calib_file_proc_write( struct file *filp, const char *buff,unsigned l
 	
 	if (buff && !copy_from_user(value, buff, len1)) {
 		 gCalib.fstate = simple_strtoul(value, &end, 10);
-		 printk("[calib]  change file stat  to %d\n",gCalib.fstate);
+		 DBGPRINT(RT_DEBUG_OFF, ("[calib]  change file stat  to %d\n", gCalib.fstate));
 		 calib_file_state_run(gCalib.fstate);
 	}		 
 	return len1;
@@ -391,13 +391,13 @@ static int calib_bw_proc_write( struct file *filp, const char *buff,unsigned lon
 	
 	if (buff && !copy_from_user(value, buff, len1)) {
 		 bw = simple_strtoul(value, &end, 10);
-		 printk("[calib] bw=%d\n",bw);
+		 DBGPRINT(RT_DEBUG_OFF, ("[calib] bw=%d\n", bw));
 		 if(bw!=20  && bw!=40)
 		 {
-		 	printk("[calib] only support bw 20 or 40\n");
+			DBGPRINT(RT_DEBUG_OFF, ("[calib] only support bw 20 or 40\n"));
 		 }else{
 			 gCalib.bw = bw;
-			printk("[calib]  change bw   to %d\n",gCalib.bw);
+			DBGPRINT(RT_DEBUG_OFF, ("[calib]  change bw   to %d\n", gCalib.bw));
 		 }
 	}		 
 	return len1;
@@ -475,7 +475,7 @@ int calib_test_proc_init(void)
 
 	if (!calib_proc) 
 	{
-		printk(KERN_INFO "[calib] Create cakibration test  dir failed!!!\n");
+		DBGPRINT(RT_DEBUG_ERROR, (KERN_INFO "[calib] Create cakibration test  dir failed!!!\n"));
 		return -1;
 	}
 
@@ -483,7 +483,7 @@ int calib_test_proc_init(void)
 
 	if (!state_entry) 
 	{
-		printk(KERN_INFO "[calib] Create state  entry  failed!!!\n");		
+		DBGPRINT(RT_DEBUG_ERROR, (KERN_INFO "[calib] Create state  entry  failed!!!\n"));
 		remove_proc_entry("calib_test", NULL);
 		return -1;
 	}
@@ -492,7 +492,7 @@ int calib_test_proc_init(void)
 
 	if (!times_entry) 
 	{
-		printk(KERN_INFO "[calib] Create times_entry  failed!!!\n");		
+		DBGPRINT(RT_DEBUG_ERROR, (KERN_INFO "[calib] Create times_entry  failed!!!\n"));
 		remove_proc_entry("stat", calib_proc);		
 		remove_proc_entry("calib_test", NULL);
 		return -1;
@@ -502,7 +502,7 @@ int calib_test_proc_init(void)
 
 	if (!calibId_entry) 
 	{
-		printk(KERN_INFO "[calib] Create staId_entry  failed!!!\n");		
+		DBGPRINT(RT_DEBUG_ERROR, (KERN_INFO "[calib] Create staId_entry  failed!!!\n"));
 		remove_proc_entry("stat", calib_proc);		
 		remove_proc_entry("times", calib_proc);
 		remove_proc_entry("calib_test", NULL);
@@ -514,7 +514,7 @@ int calib_test_proc_init(void)
 
 	if (!file_entry) 
 	{
-		printk(KERN_INFO "[calib] Create file_entry  failed!!!\n");		
+		DBGPRINT(RT_DEBUG_ERROR, (KERN_INFO "[calib] Create file_entry  failed!!!\n"));
 		remove_proc_entry("stat", calib_proc);		
 		remove_proc_entry("times", calib_proc);		
 		remove_proc_entry("calibId", calib_proc);
@@ -527,7 +527,7 @@ int calib_test_proc_init(void)
 
 	if (!bw_entry) 
 	{
-		printk(KERN_INFO "[calib] Create bw_entry  failed!!!\n");		
+		DBGPRINT(RT_DEBUG_ERROR, (KERN_INFO "[calib] Create bw_entry  failed!!!\n"));
 		remove_proc_entry("stat", calib_proc);		
 		remove_proc_entry("times", calib_proc);		
 		remove_proc_entry("calibId", calib_proc);		
@@ -538,7 +538,7 @@ int calib_test_proc_init(void)
 
 	calib_file_state_run(1);
 
-	printk(KERN_INFO "[calib] Create calib_test ok!!!\n");
+	DBGPRINT(RT_DEBUG_OFF, (KERN_INFO "[calib] Create calib_test ok!!!\n"));
 
 	return 0;
 }

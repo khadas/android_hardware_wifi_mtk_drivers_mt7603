@@ -70,10 +70,11 @@
 #define RT_CFG80211_LOST_AP_INFORM(__pAd) 									\
 	CFG80211_LostApInform((VOID *)__pAd);	
 #endif /*CONFIG_STA_SUPPORT*/
+
 #ifdef RT_CFG80211_P2P_CONCURRENT_DEVICE
-#define RT_CFG80211_LOST_GO_INFORM(__pAd) 									\
-	CFG80211_LostP2pGoInform((VOID *)__pAd);	
+#define RT_CFG80211_LOST_GO_INFORM(__pAd, _Reason) CFG80211_LostP2pGoInform((VOID *)__pAd, _Reason)
 #endif /*RT_CFG80211_P2P_CONCURRENT_DEVICE*/
+
 #define RT_CFG80211_REINIT(__pAd)											\
 	CFG80211_SupBandReInit((VOID *)__pAd);	
 
@@ -93,38 +94,38 @@
 
 
 #ifdef SINGLE_SKU
-#define CFG80211_BANDINFO_FILL(__pAd, __pBandInfo)							\
-{																			\
-	(__pBandInfo)->RFICType = __pAd->phy_ctrl.rf_band_cap;								\
-	(__pBandInfo)->MpduDensity = __pAd->CommonCfg.BACapability.field.MpduDensity;\
-	(__pBandInfo)->TxStream = __pAd->CommonCfg.TxStream;					\
-	(__pBandInfo)->RxStream = __pAd->CommonCfg.RxStream;					\
-	(__pBandInfo)->MaxTxPwr = __pAd->CommonCfg.DefineMaxTxPwr;				\
-	if (WMODE_EQUAL(__pAd->CommonCfg.PhyMode, WMODE_B))				\
-		(__pBandInfo)->FlgIsBMode = TRUE;									\
-	else																	\
-		(__pBandInfo)->FlgIsBMode = FALSE;									\
-	(__pBandInfo)->MaxBssTable = MAX_LEN_OF_BSS_TABLE;						\
-	(__pBandInfo)->RtsThreshold = pAd->CommonCfg.RtsThreshold;				\
-	(__pBandInfo)->FragmentThreshold = pAd->CommonCfg.FragmentThreshold;	\
-	(__pBandInfo)->RetryMaxCnt = 0;											\
+#define CFG80211_BANDINFO_FILL(__pAd, __pBandInfo)	\
+{\
+(__pBandInfo)->RFICType = (UINT8)(__pAd->phy_ctrl.rf_band_cap);	\
+	(__pBandInfo)->MpduDensity = (UINT8)(__pAd->CommonCfg.BACapability.field.MpduDensity);\
+	(__pBandInfo)->TxStream = (UINT8)(__pAd->CommonCfg.TxStream);\
+	(__pBandInfo)->RxStream = (UINT8)(__pAd->CommonCfg.RxStream);\
+	(__pBandInfo)->MaxTxPwr = (UINT32)(__pAd->CommonCfg.DefineMaxTxPwr);\
+	if (WMODE_EQUAL(__pAd->CommonCfg.PhyMode, WMODE_B))	\
+		(__pBandInfo)->FlgIsBMode = (BOOLEAN)(TRUE);	\
+	else	\
+		(__pBandInfo)->FlgIsBMode = (BOOLEAN)(FALSE);	\
+	(__pBandInfo)->MaxBssTable = (UINT32)(MAX_LEN_OF_BSS_TABLE);\
+	(__pBandInfo)->RtsThreshold = (UINT16)(pAd->CommonCfg.RtsThreshold);\
+	(__pBandInfo)->FragmentThreshold = (UINT16)(pAd->CommonCfg.FragmentThreshold);\
+	(__pBandInfo)->RetryMaxCnt = (UINT32)0;			\
 }
 #else
-#define CFG80211_BANDINFO_FILL(__pAd, __pBandInfo)							\
-{																			\
-	(__pBandInfo)->RFICType = __pAd->phy_ctrl.rf_band_cap;								\
-	(__pBandInfo)->MpduDensity = __pAd->CommonCfg.BACapability.field.MpduDensity;\
-	(__pBandInfo)->TxStream = __pAd->CommonCfg.TxStream;					\
-	(__pBandInfo)->RxStream = __pAd->CommonCfg.RxStream;					\
-	(__pBandInfo)->MaxTxPwr = 0;											\
-	if (WMODE_EQUAL(__pAd->CommonCfg.PhyMode, WMODE_B))				\
-		(__pBandInfo)->FlgIsBMode = TRUE;									\
-	else																	\
-		(__pBandInfo)->FlgIsBMode = FALSE;									\
-	(__pBandInfo)->MaxBssTable = MAX_LEN_OF_BSS_TABLE;						\
-	(__pBandInfo)->RtsThreshold = pAd->CommonCfg.RtsThreshold;				\
-	(__pBandInfo)->FragmentThreshold = pAd->CommonCfg.FragmentThreshold;	\
-	(__pBandInfo)->RetryMaxCnt = 0;											\
+#define CFG80211_BANDINFO_FILL(__pAd, __pBandInfo)	\
+{	\
+	(__pBandInfo)->RFICType = (UINT8)(__pAd->phy_ctrl.rf_band_cap);\
+	(__pBandInfo)->MpduDensity = (UINT8)(__pAd->CommonCfg.BACapability.field.MpduDensity);\
+	(__pBandInfo)->TxStream = (UINT8)(__pAd->CommonCfg.TxStream);\
+	(__pBandInfo)->RxStream = (UINT8)(__pAd->CommonCfg.RxStream);\
+	(__pBandInfo)->MaxTxPwr = (UINT32)0;\
+	if (WMODE_EQUAL(__pAd->CommonCfg.PhyMode, WMODE_B))	\
+		(__pBandInfo)->FlgIsBMode = (BOOLEAN)(TRUE);\
+	else	\
+		(__pBandInfo)->FlgIsBMode = (BOOLEAN)(FALSE);\
+	(__pBandInfo)->MaxBssTable = (UINT32)(MAX_LEN_OF_BSS_TABLE);\
+	(__pBandInfo)->RtsThreshold = (UINT16)(pAd->CommonCfg.RtsThreshold);\
+	(__pBandInfo)->FragmentThreshold = (UINT16)(pAd->CommonCfg.FragmentThreshold);\
+	(__pBandInfo)->RetryMaxCnt = (UINT32)0;\
 }
 #endif /* SINGLE_SKU */
 
@@ -173,14 +174,14 @@ VOID CFG80211_ConnectResultInform(VOID *pAdCB, UCHAR *pBSSID,
 VOID CFG80211DRV_PmkidConfig(VOID *pAdOrg, VOID *pData);
 
 #ifdef RT_CFG80211_P2P_CONCURRENT_DEVICE
-VOID CFG80211_LostP2pGoInform(VOID *pAdCB);
+VOID CFG80211_LostP2pGoInform(VOID *pAdCB, UINT16 Reason);
 #endif /*RT_CFG80211_P2P_CONCURRENT_DEVICE*/
 VOID CFG80211_LostApInform(VOID *pAdCB);
 
-INT CFG80211_StaPortSecured(VOID *pAdCB, UCHAR *pMac, UINT flag);	
+INT CFG80211_StaPortSecured(VOID *pAdCB, const UCHAR *pMac, UINT flag);
 
 /* AP Related*/
-INT CFG80211_ApStaDel(VOID *pAdCB, UCHAR *pMac);
+INT CFG80211_ApStaDel(VOID *pAdCB, const u8 *pMac);
 
 VOID CFG80211_UpdateBeacon(VOID *pAdOrg,
    UCHAR *beacon_head_buf, UINT32 beacon_head_len,
@@ -274,7 +275,7 @@ VOID CFG80211_RFKillStatusUpdate(
 /* P2P Related */
 VOID CFG80211DRV_SetP2pCliAssocIe(
 	VOID						*pAdOrg,
-	VOID						*pData,
+	VOID						const *pData,
 	UINT                         ie_len);	
 
 VOID CFG80211DRV_P2pClientKeyAdd(
@@ -328,6 +329,8 @@ BOOLEAN CFG80211_CheckActionFrameType(
 BOOLEAN CFG80211_SyncPacketWmmIe(RTMP_ADAPTER *pAd, VOID *pData, ULONG dataLen);
 
 BOOLEAN CFG80211_HandleP2pMgmtFrame(RTMP_ADAPTER *pAd, RX_BLK *pRxBlk, UCHAR OpMode);
+
+INT CFG80211_SetTxNdev(RTMP_ADAPTER *pAd, PNET_DEV pNetdev);
 
 INT CFG80211_SendMgmtFrame(RTMP_ADAPTER *pAd, VOID *pData, ULONG Data);
 
@@ -388,15 +391,17 @@ VOID CFG80211DRV_DisableApInterface(PRTMP_ADAPTER pAd);
 BOOLEAN CFG80211DRV_OpsVifAdd(VOID *pAdOrg, VOID *pData);
 
 #ifdef CFG_TDLS_SUPPORT
-BOOLEAN CFG80211DRV_StaTdlsInsertDeletepEntry(VOID *pAdOrg, VOID *pData, UINT Data);
+BOOLEAN CFG80211DRV_StaTdlsInsertDeletepEntry(VOID *pAdOrg, const VOID *pData, UINT Data);
 BOOLEAN CFG80211_HandleTdlsDiscoverRespFrame(RTMP_ADAPTER *pAd, RX_BLK *pRxBlk, UCHAR OpMode);
 VOID cfg_tdls_send_PeerTrafficIndication(PRTMP_ADAPTER pAd, u8 *peer);
 VOID cfg_tdls_rcv_PeerTrafficIndication(PRTMP_ADAPTER pAd,u8 dialog_token,u8 *peer);
 VOID cfg_tdls_rcv_PeerTrafficResponse(PRTMP_ADAPTER pAd,u8 *peer);
 INT cfg_tdls_search_wcid(PRTMP_ADAPTER pAd, u8 *peer);
 INT cfg_tdls_search_ValidLinkIndex(PRTMP_ADAPTER pAd, u8 *peer);
-INT cfg_tlds_build_frame(PRTMP_ADAPTER	pAd,u8 *peer,u8 dialog_token,u8 action_code,u16 status_code
-	,const u8 *extra_ies,size_t extra_ies_len,BOOLEAN send_by_tdls_link,u8 tdls_entry_wcid,u8 reason_code);
+INT cfg_tlds_build_frame(PRTMP_ADAPTER	pAd, const u8 *peer,
+	u8 dialog_token, u8 action_code, u16 status_code,
+	const u8 *extra_ies, size_t extra_ies_len, BOOLEAN send_by_tdls_link,
+	u8 tdls_entry_wcid, u8 reason_code);
 VOID cfg_tdls_UAPSDP_PsmModeChange(PRTMP_ADAPTER pAd,USHORT	PsmOld,USHORT PsmNew);
 BOOLEAN cfg_tdls_UAPSDP_AsicCanSleep(PRTMP_ADAPTER	pAd);
 INT cfg_tdls_EntryInfo_Display_Proc(PRTMP_ADAPTER pAd, PUCHAR arg);
@@ -407,8 +412,10 @@ VOID cfg_tdls_rx_parsing(PRTMP_ADAPTER pAd,RX_BLK *pRxBlk);
 INT cfg_tdls_chsw_req(PRTMP_ADAPTER	pAd,u8 *peer,u8 target_channel,u8 target_bw);
 INT cfg_tdls_chsw_resp(PRTMP_ADAPTER	pAd,u8 *peer,UINT32 ch_sw_time,UINT32 ch_sw_timeout,u8 reason_code);
 VOID cfg_tdls_prepare_null_frame(PRTMP_ADAPTER	pAd,BOOLEAN powersave,UCHAR dir,UCHAR *peerAddr);
-VOID cfg_tdls_TunneledProbeRequest(PRTMP_ADAPTER pAd, PUCHAR pMacAddr, const u8  *extra_ies,	size_t extra_ies_len);
-VOID cfg_tdls_TunneledProbeResponse(PRTMP_ADAPTER pAd, PUCHAR pMacAddr, const u8  *extra_ies,	size_t extra_ies_len);
+VOID cfg_tdls_TunneledProbeRequest(PRTMP_ADAPTER pAd, const u8 *pMacAddr,
+						const u8  *extra_ies,	size_t extra_ies_len);
+VOID cfg_tdls_TunneledProbeResponse(PRTMP_ADAPTER pAd, const u8 *pMacAddr,
+						const u8  *extra_ies,	size_t extra_ies_len);
 VOID cfg_tdls_auto_teardown(PRTMP_ADAPTER pAd,UCHAR *peerAddr);
 
 int cfg_tdls_send_CH_SW_SETUP(RTMP_ADAPTER *ad,UCHAR cmd,UINT8 basech,UINT8 offch,UCHAR bw_base,UCHAR bw_off,UCHAR responder

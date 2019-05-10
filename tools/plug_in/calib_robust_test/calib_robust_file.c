@@ -31,12 +31,12 @@ int calib_test_fileOpen(char *fname)
 		filp = filp_open(fname, O_RDWR | O_CREAT, 0);
 	}else
 	{
-		printk("[calib] file is exist!!\n");
+		DBGPRINT(RT_DEBUG_ERROR, ("[calib] file is exist!!\n"));
 		result = -1;
 	}
 	if (IS_ERR(filp)) 
 	{
-		printk("[calib]  error occured while opening file %s, exiting...\n",fname);
+		DBGPRINT(RT_DEBUG_ERROR, ("[calib] error occurred while opening file %s, exiting...\n", fname));
 		result = -1;
 	}
 	return result;

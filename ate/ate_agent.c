@@ -352,7 +352,7 @@ INT32 SetATETxPower0(RTMP_ADAPTER *pAd, RTMP_STRING *Arg)
 
 	DBGPRINT(RT_DEBUG_OFF, ("%s: Power0 = %s\n", __FUNCTION__, Arg));
 
-	Power = simple_strtol(Arg, 0, 10);
+	Power = (CHAR)simple_strtol(Arg, 0, 10);
 
     ATECtrl->TxPower0 = Power;
 
@@ -374,7 +374,7 @@ INT32 SetATETxPower1(RTMP_ADAPTER *pAd, RTMP_STRING *Arg)
 
 	DBGPRINT(RT_DEBUG_OFF, ("%s: Power1 = %s\n", __FUNCTION__, Arg));
 
-	Power = simple_strtol(Arg, 0, 10);
+	Power = (CHAR)simple_strtol(Arg, 0, 10);
 
 	ATECtrl->TxPower1 = Power;
 
@@ -410,7 +410,7 @@ INT32 SetATETxAntenna(RTMP_ADAPTER *pAd, RTMP_STRING *Arg)
 
 	DBGPRINT(RT_DEBUG_OFF, ("%s: Ant = %s\n", __FUNCTION__, Arg));
 
-	Ant = simple_strtol(Arg, 0, 10);
+	Ant = (CHAR)simple_strtol(Arg, 0, 10);
 
 	Ret = ATEOp->SetTxAntenna(pAd, Ant);
 
@@ -430,7 +430,7 @@ INT32 SetATERxAntenna(RTMP_ADAPTER *pAd, RTMP_STRING *Arg)
 
 	DBGPRINT(RT_DEBUG_OFF, ("%s: Ant = %s\n", __FUNCTION__, Arg));
 
-	Ant = simple_strtol(Arg, 0, 10);
+	Ant = (CHAR)simple_strtol(Arg, 0, 10);
 
 	Ret = ATEOp->SetRxAntenna(pAd, Ant);
 
@@ -577,7 +577,7 @@ INT32 SetATETxMcs(RTMP_ADAPTER *pAd, RTMP_STRING *Arg)
 
 	PhyMode = ATECtrl->PhyMode;
 
-	Mcs = simple_strtol(Arg, 0, 10);
+	Mcs = (UCHAR)simple_strtol(Arg, 0, 10);
 
 	Ret = CheckMCSValid(pAd, PhyMode, Mcs);
 
@@ -602,7 +602,7 @@ INT32 SetATETxStbc(RTMP_ADAPTER *pAd, RTMP_STRING *Arg)
 
 	DBGPRINT(RT_DEBUG_OFF, ("%s: Stbc = %s\n", __FUNCTION__, Arg));
 
-	Stbc = simple_strtol(Arg, 0, 10);
+	Stbc = (UCHAR)simple_strtol(Arg, 0, 10);
 
 	if (Stbc > 1)
 	{
@@ -625,7 +625,7 @@ INT32 SetATETxMode(RTMP_ADAPTER *pAd, RTMP_STRING *Arg)
 
 	DBGPRINT(RT_DEBUG_OFF, ("%s: TxMode = %s\n", __FUNCTION__, Arg));
 
-	PhyMode = simple_strtol(Arg, 0, 10);
+	PhyMode = (UCHAR)simple_strtol(Arg, 0, 10);
 
 	if (PhyMode > MODE_HTGREENFIELD)
 	{
@@ -649,7 +649,7 @@ INT32 SetATETxGi(RTMP_ADAPTER *pAd, RTMP_STRING *Arg)
 
 	DBGPRINT(RT_DEBUG_OFF, ("%s: Sgi = %s\n", __FUNCTION__, Arg));
 
-	Sgi = simple_strtol(Arg, 0, 10);
+	Sgi = (UCHAR)simple_strtol(Arg, 0, 10);
 
 	if (Sgi > 1)
 	{
@@ -846,22 +846,25 @@ INT32 SetATELoadE2pFromBuf(RTMP_ADAPTER *pAd, RTMP_STRING *Arg)
 
 INT32 SetATEReadE2p(RTMP_ADAPTER *pAd, RTMP_STRING *Arg)
 {
-	UINT16 Buffer[EEPROM_SIZE >> 1];
+	USHORT *buffer;
 	UINT16 *p;
 	int i;
 
-	EEReadAll(pAd, (UINT16 *)Buffer);
+	buffer = vmalloc(EEPROM_SIZE >> 1);
+	if (!buffer)
+		return FALSE;
 
-	p = Buffer;
+	EEReadAll(pAd, (UINT16 *)buffer);
+	p = buffer;
 
-	for (i = 0; i < (EEPROM_SIZE >> 1); i++)
-	{
+	for (i = 0; i < (EEPROM_SIZE >> 1); i++) {
 		DBGPRINT(RT_DEBUG_OFF, ("%4.4x ", *p));
 		if (((i+1) % 16) == 0)
 			DBGPRINT(RT_DEBUG_OFF, ("\n"));
 		p++;
 	}
 
+	vfree(buffer);
 	return TRUE;
 }
 
@@ -1345,11 +1348,11 @@ INT32 SetATEChannel(
 	INT32 Ret = 0;
 	ATE_CTRL *ATECtrl = &(pAd->ATECtrl);
 	ATE_OPERATION *ATEOp = ATECtrl->ATEOp;
-	INT16 Channel;
+	UCHAR Channel;
 
 	DBGPRINT(RT_DEBUG_OFF, ("%s: Channel = %s\n", __FUNCTION__, Arg));
 
-	Channel = simple_strtol(Arg, 0, 10);
+	Channel = (UCHAR)simple_strtol(Arg, 0, 10);
 
 	ATECtrl->Channel = Channel;
 
@@ -1378,9 +1381,9 @@ INT32 SetATETxBw(
 
 	DBGPRINT(RT_DEBUG_OFF, ("%s: Bw = %s\n", __FUNCTION__, Arg));
 
-	BW = simple_strtol(Arg, 0, 10);
+	BW = (INT16)simple_strtol(Arg, 0, 10);
 
-	ATECtrl->BW = BW;
+	ATECtrl->BW = (UCHAR)BW;
 
 	if (ATECtrl->BW == BW_20)
 		ATECtrl->ControlChl = ATECtrl->Channel;

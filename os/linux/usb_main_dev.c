@@ -281,7 +281,6 @@ static int rt2870_probe(
 	if (USBDevConfigInit(usb_dev, intf, pAd) == FALSE)
 		goto err_out_free_radev;
 
-
 	RTMP_DRIVER_USB_INIT(pAd, usb_dev, dev_id->driver_info);
 	
 	net_dev = RtmpPhyNetDevInit(pAd, &netDevHook);
@@ -323,7 +322,7 @@ static int rt2870_probe(
 #endif /* RT_CFG80211_SUPPORT */
 
 	RTMP_DRIVER_OP_MODE_GET(pAd, &OpMode);
-	status = RtmpOSNetDevAttach(OpMode, net_dev, &netDevHook);
+	status = RtmpOSNetDevAttach((UCHAR)OpMode, net_dev, &netDevHook);
 	if (status != 0)
 		goto err_out_free_netdev;
 
@@ -632,7 +631,7 @@ static int rtusb_suspend(struct usb_interface *intf, pm_message_t state)
 //during the 2nd suspend, cfg80211->ops_suspend() would not be called;
 //So we need make WOW enable here;
 //In normal case, wow_enable will be double called, and the 2nd call will not send wow_enable CMD beacause wow_running flag.
-#ifdef RESUME_WITH_USB_RESET_SUPPORT
+#ifdef MT_WOW_SUPPORT
 	RTMP_DRIVER_ADAPTER_RT28XX_WOW_ENABLE(pAd);
 #endif
 
@@ -696,6 +695,7 @@ static int rtusb_resume(struct usb_interface *intf)
 
 /*	pAd->PM_FlgSuspend = 0; */
 	RTMP_DRIVER_USB_RESUME(pAd);
+	RTMP_DRIVER_ADAPTER_RT28XX_WOW_DISABLE(pAd);
 
 /*	net_dev = pAd->net_dev; */
 	RTMP_DRIVER_NET_DEV_GET(pAd, &net_dev);
@@ -722,6 +722,7 @@ static int rtusb_reset_resume(struct usb_interface *intf)
 
 /*	pAd->PM_FlgSuspend = 0; */
 	RTMP_DRIVER_USB_RESUME(pAd);
+	RTMP_DRIVER_ADAPTER_RT28XX_WOW_DISABLE(pAd);
 
 /*	net_dev = pAd->net_dev; */
 	RTMP_DRIVER_NET_DEV_GET(pAd, &net_dev);

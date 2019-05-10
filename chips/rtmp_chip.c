@@ -256,6 +256,7 @@ VOID mt_bcn_buf_init(RTMP_ADAPTER *pAd)
 	pChipCap->FlgIsSupSpecBcnBuf = FALSE;
 	pChipCap->BcnMaxHwNum = 16;
 	pChipCap->BcnMaxNum = 16;
+
 #if defined(MT7603_FPGA) || defined(MT7628_FPGA) || defined(MT7636_FPGA)
 	pChipCap->WcidHwRsvNum = 20;
 #else

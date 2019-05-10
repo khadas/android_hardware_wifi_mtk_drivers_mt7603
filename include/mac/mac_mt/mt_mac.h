@@ -1937,7 +1937,7 @@ typedef INT32 (*TXS_HANDLER)(struct _RTMP_ADAPTER *pAd, CHAR *Data, UINT32 Priv)
 
 INT32 InitTxSTypeTable(struct _RTMP_ADAPTER *pAd);
 INT32 ExitTxSTypeTable(struct _RTMP_ADAPTER *pAd);
-INT32 AddTxSTypePerPkt(struct _RTMP_ADAPTER *pAd, UINT32 Pid, UINT8 Format, 
+INT32 AddTxSTypePerPkt(struct _RTMP_ADAPTER *pAd, UINT8 Pid, UINT8 Format,
 						TXS_HANDLER TxSHandler);
 INT32 RemoveTxSTypePerPkt(struct _RTMP_ADAPTER *pAd, UINT32 Pid, UINT8 Format);
 INT32 TxSTypeCtlPerPkt(struct _RTMP_ADAPTER *pAd, UINT32 Pid, UINT8 Format, 
@@ -1964,7 +1964,7 @@ INT32 TxSTypeCtlPerPktType(struct _RTMP_ADAPTER *pAd, UINT8 Type, UINT8 Subtype,
 							BOOLEAN DumpTxSReport, ULONG DumpTxSReportTimes);
 UINT8 AddTxSStatus(struct _RTMP_ADAPTER *pAd, UINT8 Type, UINT8 PktPid, UINT8 PktType,
 						UINT8 PktSubType, UINT16 TxRate, UINT32 Priv);
-INT32 RemoveTxSStatus(struct _RTMP_ADAPTER *pAd, UINT8 TxSPid, UINT8 *Type, UINT8 *PktPid, 
+INT32 RemoveTxSStatus(struct _RTMP_ADAPTER *pAd, UINT32 TxSPid, UINT8 *Type, UINT8 *PktPid,
 								UINT8 *PktType, UINT8 *PktSubType, UINT16 *TxRate, UINT32 *Priv);
 
 #ifdef CONFIG_TSO_SUPPORT

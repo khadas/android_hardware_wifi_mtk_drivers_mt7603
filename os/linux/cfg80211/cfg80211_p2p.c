@@ -401,7 +401,7 @@ INT CFG80211_setPowerMgmt(VOID *pAdCB, UINT Enable)
 	DBGPRINT(RT_DEBUG_TRACE, ("@@@ %s: %d\n", __FUNCTION__, Enable));
 
 #ifdef RT_CFG80211_P2P_SUPPORT		
-	pAd->cfg80211_ctrl.bP2pCliPmEnable = Enable;
+	pAd->cfg80211_ctrl.bP2pCliPmEnable = (BOOLEAN)Enable;
 #endif /* RT_CFG80211_P2P_SUPPORT */
 
 	return 0;	
@@ -424,7 +424,7 @@ VOID CFG80211_P2pClientSendNullFrame(VOID *pAdCB, INT PwrMgmt)
             ApCliRTMPSendNullFrame(pAd,
                                    RATE_6,
                                    (CLIENT_STATUS_TEST_FLAG(pEntry, fCLIENT_STATUS_WMM_CAPABLE)) ? TRUE:FALSE,
-                                   pEntry, PwrMgmt);
+									pEntry, (USHORT)PwrMgmt);
             OS_WAIT(20);
     }
 }
@@ -464,18 +464,20 @@ VOID CFG80211DRV_P2pClientKeyAdd(VOID *pAdOrg, VOID *pData)
 			
 			if (pApCliEntry->wdev.WepStatus == Ndis802_11Encryption3Enabled)
 			{
-				printk("APCLI: Set AES Security Set. [%d] (GROUP) %d\n", BssIdx, pKeyInfo->KeyLen);
+				DBGPRINT(RT_DEBUG_OFF,
+					("APCLI: Set AES Security Set. [%d] (GROUP) %d\n",
+					BssIdx, pKeyInfo->KeyLen));
 				NdisZeroMemory(&pApCliEntry->SharedKey[pKeyInfo->KeyId], sizeof(CIPHER_KEY));  
 				pApCliEntry->SharedKey[pKeyInfo->KeyId].KeyLen = LEN_TK;
 				NdisMoveMemory(pApCliEntry->SharedKey[pKeyInfo->KeyId].Key, pKeyInfo->KeyBuf, pKeyInfo->KeyLen);
 				
 				pApCliEntry->SharedKey[pKeyInfo->KeyId].CipherAlg = CIPHER_AES;
 
-				AsicAddSharedKeyEntry(pAd, BssIdx, pKeyInfo->KeyId, 
+				AsicAddSharedKeyEntry(pAd, (UCHAR)BssIdx, pKeyInfo->KeyId,
 						      &pApCliEntry->SharedKey[pKeyInfo->KeyId]);
 
 					
-				RTMPAddWcidAttributeEntry(pAd, BssIdx, pKeyInfo->KeyId, 
+				RTMPAddWcidAttributeEntry(pAd, (UCHAR)BssIdx, pKeyInfo->KeyId,
 							  pApCliEntry->SharedKey[pKeyInfo->KeyId].CipherAlg, 
 							  NULL);				
 
@@ -510,7 +512,9 @@ VOID CFG80211DRV_P2pClientKeyAdd(VOID *pAdOrg, VOID *pData)
 		{	
 			if(pMacEntry)
 			{
-				printk("APCLI: Set AES Security Set. [%d] (PAIRWISE) %d\n", BssIdx, pKeyInfo->KeyLen);
+				DBGPRINT(RT_DEBUG_OFF,
+					("APCLI: Set AES Security Set. [%d] (PAIRWISE) %d\n",
+					BssIdx, pKeyInfo->KeyLen));
 				NdisZeroMemory(&pMacEntry->PairwiseKey, sizeof(CIPHER_KEY));  
 				pMacEntry->PairwiseKey.KeyLen = LEN_TK;
 				
@@ -520,7 +524,9 @@ VOID CFG80211DRV_P2pClientKeyAdd(VOID *pAdOrg, VOID *pData)
 				pMacEntry->PairwiseKey.CipherAlg = CIPHER_AES;
 				
 				AsicAddPairwiseKeyEntry(pAd, (UCHAR)pMacEntry->Aid, &pMacEntry->PairwiseKey);
-				RTMPSetWcidSecurityInfo(pAd, BssIdx, 0, pMacEntry->PairwiseKey.CipherAlg, pMacEntry->Aid, PAIRWISEKEYTABLE);
+				RTMPSetWcidSecurityInfo(pAd, (UINT8)BssIdx, 0,
+					pMacEntry->PairwiseKey.CipherAlg,
+					(UINT8)(pMacEntry->Aid), PAIRWISEKEYTABLE);
 
 #ifdef MT_MAC
     			if (pAd->chipCap.hif_type == HIF_MT)
@@ -579,13 +585,14 @@ VOID CFG80211DRV_P2pClientKeyAdd(VOID *pAdOrg, VOID *pData)
 			}
 			else	
 			{
-				printk("APCLI: Set AES Security Set. (PAIRWISE) But pMacEntry NULL\n");
+				DBGPRINT(RT_DEBUG_OFF,
+					("APCLI: Set AES Security Set. But pMacEntry NULL\n"));
 			}			
 		}		
 	}
 }
 
-VOID CFG80211DRV_SetP2pCliAssocIe(VOID *pAdOrg, VOID *pData, UINT ie_len)
+VOID CFG80211DRV_SetP2pCliAssocIe(VOID *pAdOrg, const VOID *pData, UINT ie_len)
 {
 	PRTMP_ADAPTER pAd = (PRTMP_ADAPTER)pAdOrg;
 	APCLI_STRUCT *apcli_entry;
@@ -660,7 +667,7 @@ BOOLEAN CFG80211DRV_P2pClientConnect(VOID *pAdOrg, VOID *pData)
 	/* Set authentication mode */
 	if (pConnInfo->WpaVer == 2)
 	{
-		if (!pConnInfo->FlgIs8021x == TRUE) 
+		if (!pConnInfo->FlgIs8021x)
 		{
 			DBGPRINT(RT_DEBUG_TRACE,("APCLI WPA2PSK\n"));
 			Set_ApCli_AuthMode_Proc(pAd, "WPA2PSK");
@@ -721,7 +728,8 @@ VOID CFG80211_P2pClientConnectResultInform(
 	pAd->cfg80211_ctrl.FlgCfg80211Connecting = FALSE;
 }
 
-VOID CFG80211_LostP2pGoInform(VOID *pAdCB)
+VOID CFG80211_LostP2pGoInform(VOID *pAdCB, UINT16 Reason)
+
 {
 	PRTMP_ADAPTER pAd = (PRTMP_ADAPTER)pAdCB;
 	PNET_DEV pNetDev = NULL;
@@ -742,7 +750,8 @@ VOID CFG80211_LostP2pGoInform(VOID *pAdCB)
 #if 0 //MCC
         if(pAd->cfg80211_ctrl.isMccOn)
         {
-                printk("MCC:==============================> off by GC\n");
+				DBGPRINT(RT_DEBUG_OFF,
+					("MCC:==============================> off by GC\n"));
                 pAd->cfg80211_ctrl.isMccOn = FALSE;
                 CmdMccStop(pAd, NULL);
         }
@@ -758,7 +767,12 @@ VOID CFG80211_LostP2pGoInform(VOID *pAdCB)
                    cfg80211_disconnected(pNetDev, WLAN_REASON_DEAUTH_LEAVING, NULL, 0, GFP_KERNEL);
         	}
 #else
-		cfg80211_disconnected(pNetDev, 0, NULL, 0, GFP_KERNEL);	
+					cfg80211_disconnected(pNetDev, Reason, NULL, 0,
+#if (LINUX_VERSION_CODE >= KERNEL_VERSION(4, 2, 0))
+						FALSE,/* locally_generated */
+#endif
+						GFP_KERNEL);
+
 #endif
 	}
 	else

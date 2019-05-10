@@ -1398,6 +1398,7 @@ VOID UserCfgInit(RTMP_ADAPTER *pAd)
 #endif /* RTMP_INTERNAL_TX_ALC || RTMP_TEMPERATURE_COMPENSATION */
 
 #ifdef THERMAL_PROTECT_SUPPORT
+	pAd->switch_tx_stream = FALSE;
 	pAd->force_one_tx_stream = FALSE;
 	pAd->last_thermal_pro_temp = 0;
 #endif /* THERMAL_PROTECT_SUPPORT */
@@ -2397,7 +2398,7 @@ RTMP_SET_PSFLAG(pAd, fRTMP_PS_CAN_GO_SLEEP);
 	NdisZeroMemory(pAd->WOW_Cfg.PTK, LEN_PTK);
     NdisZeroMemory(pAd->WOW_Cfg.ReplayCounter, LEN_KEY_DESC_REPLAY);
 	//DBGPRINT(RT_DEBUG_OFF, ("WOW Enable %d, WOWFirmware %d\n", pAd->WOW_Cfg.bEnable, pAd->WOW_Cfg.bWOWFirmware));
-#endif /* (defined(WOW_SUPPORT) && defined(RTMP_MAC_USB)) || defined(NEW_WOW_SUPPORT) || defined(MT_WOW_SUPPORT) */
+#endif /* (defined(WOW_SUPPORT) && defined(RTMP_MAC_USB)) || defined(MT_WOW_SUPPORT) */
 
 	/* 802.11H and DFS related params*/
 	pAd->Dot11_H.CSCount = 0;
@@ -2567,6 +2568,19 @@ RTMP_SET_PSFLAG(pAd, fRTMP_PS_CAN_GO_SLEEP);
 	pAd->FWLoad = 0;
 #endif /* LOAD_FW_ONE_TIME */
 
+#ifdef SMART_CARRIER_SENSE_SUPPORT
+	pAd->SCSCtrl.SCSEnable = SCS_ENABLE;
+	pAd->SCSCtrl.SCSMinRssi = 0;
+	pAd->SCSCtrl.SCSStatus = SCS_STATUS_DEFAULT;
+	pAd->SCSCtrl.SCSTrafficThreshold = 62500; /* 500Kbps */
+	pAd->SCSCtrl.CurrSensitivity = -102;
+	pAd->SCSCtrl.AdjustSensitivity = -102;
+	pAd->SCSCtrl.FixedRssiBond = -72;
+	pAd->SCSCtrl.FalseCcaUpBond = 600;
+	pAd->SCSCtrl.FalseCcaLowBond = 60;
+	pAd->SCSCtrl.SCSMinRssiTolerance = 10;
+	pAd->SCSCtrl.ForceMode = 0;
+#endif
     pAd->bPS_Retrieve =1;
 
 	pAd->CommonCfg.bTXRX_RXV_ON = 0;
@@ -3161,7 +3175,6 @@ INT RtmpRaDevCtrlInit(VOID *pAdSrc, RTMP_INF_TYPE infType)
 #ifdef CONFIG_STA_SUPPORT
 	pAd->OpMode = OPMODE_STA;
 	DBGPRINT(RT_DEBUG_OFF, ("STA Driver version-%s\n", STA_DRIVER_VERSION));
-//	DBGPRINT(RT_DEBUG_OFF, ("Compile time-%s,%s\n", __DATE__, __TIME__));
 #endif /* CONFIG_STA_SUPPORT */
 
 #ifdef CONFIG_AP_SUPPORT
@@ -3265,7 +3278,6 @@ INT RtmpRaDevCtrlInit(VOID *pAdSrc, RTMP_INF_TYPE infType)
 	if (pAd->chipCap.hif_type != HIF_MT) 
 #endif		
 	{
-		printk("JERRY:prepare load_patch..\n");
 		if (load_patch(pAd) != NDIS_STATUS_SUCCESS) {
 			DBGPRINT_ERR(("load patch failed!\n"));
 			return FALSE;
@@ -3490,8 +3502,9 @@ VOID CMDHandler(RTMP_ADAPTER *pAd)
                 case HWCMD_ID_BMC_CNT_UPDATE:
                     {
 						CHAR idx = 0;
-                        printk("cmd HWCMD_ID_BMC_CNT_UPDATE \n");
-                        NdisMoveMemory(&idx , pData, sizeof(CHAR));
+						DBGPRINT(RT_DEBUG_INFO,
+							"cmd HWCMD_ID_BMC_CNT_UPDATE \n");
+						NdisMoveMemory(&idx, pData, sizeof(CHAR));
 
                         /* BMC start */
                         AsicSetBmcQCR(pAd, BMC_CNT_UPDATE, CR_WRITE, idx, NULL);

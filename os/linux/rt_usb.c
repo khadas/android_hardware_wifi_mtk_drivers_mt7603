@@ -61,7 +61,9 @@ NDIS_STATUS	 RtmpMgmtTaskInit(
 	status = RtmpOSTaskAttach(pTask, RtmpTimerQThread, (ULONG)pTask);
 	if (status == NDIS_STATUS_FAILURE) 
 	{
-		printk (KERN_WARNING "%s: unable to start RtmpTimerQThread\n", RTMP_OS_NETDEV_GET_DEVNAME(pAd->net_dev));
+		DBGPRINT(RT_DEBUG_OFF,
+			(KERN_WARNING "%s: unable to start RtmpTimerQThread\n",
+			RTMP_OS_NETDEV_GET_DEVNAME(pAd->net_dev)));
 		return NDIS_STATUS_FAILURE;
 	}
 
@@ -71,7 +73,9 @@ NDIS_STATUS	 RtmpMgmtTaskInit(
 	status = RtmpOSTaskAttach(pTask, RTUSBCmdThread, (ULONG)pTask);
 	if (status == NDIS_STATUS_FAILURE) 
 	{
-		printk (KERN_WARNING "%s: unable to start RTUSBCmdThread\n", RTMP_OS_NETDEV_GET_DEVNAME(pAd->net_dev));
+		DBGPRINT(RT_DEBUG_OFF,
+			(KERN_WARNING "%s: unable to start RTUSBCmdThread\n",
+			RTMP_OS_NETDEV_GET_DEVNAME(pAd->net_dev)));
 		return NDIS_STATUS_FAILURE;
 	}
 
@@ -160,7 +164,7 @@ static void rtusb_dataout_complete(unsigned long data)
 	PHT_TX_CONTEXT		pHTTXContext;
 	UCHAR				BulkOutPipeId;
 	NTSTATUS			Status;
-	unsigned long		IrqFlags;
+	unsigned long		IrqFlags = 0;
 #ifdef USB_BULK_BUF_ALIGMENT
 		unsigned long	IrqFlags2 = 0;
 #endif /* USB_BULK_BUF_ALIGMENT */
@@ -618,7 +622,7 @@ static void rtusb_mgmt_dma_done_tasklet(unsigned long data)
 	PNDIS_PACKET	pPacket;
 	purbb_t			pUrb;
 	NTSTATUS		Status;
-	unsigned long	IrqFlags;
+	unsigned long	IrqFlags = 0;
 #ifdef WMM_ACM_SUPPORT
 #ifdef CONFIG_AP_SUPPORT
 	UINT8 TXWISize = pAd->chipCap.TXWISize;
@@ -1159,10 +1163,16 @@ static void rtusb_bcn_dma_done_tasklet(unsigned long data)
 	PNDIS_PACKET	pPacket;
 	purbb_t			pUrb;
 	NTSTATUS		Status;
-	unsigned long	IrqFlags;
+	unsigned long	IrqFlags = 0;
 
     UCHAR           *ppkt_tail;
     UCHAR           padding_length;
+#if defined(RT_CFG80211_P2P_SUPPORT) || defined(SOFTAP_SUPPORT)
+	UINT			apidx = CFG_GO_BSSID_IDX;
+#else
+	UINT			apidx = MAIN_MBSSID;
+#endif /*RT_CFG80211_P2P_SUPPORT*/
+	BSS_STRUCT		*pMbss;
 
 #ifdef RELEASE_EXCLUDE
 	DBGPRINT_RAW(RT_DEBUG_INFO, ("--->rtusb_bcn_dma_done_tasklet\n"));
@@ -1173,6 +1183,7 @@ static void rtusb_bcn_dma_done_tasklet(unsigned long data)
 	Status			= RTMP_USB_URB_STATUS_GET(pUrb);
 	pAd 			= pBcnContext->pAd;
 	index 			= pBcnContext->SelfIdx;
+	pMbss			= &pAd->ApCfg.MBSSID[apidx];
 
 	ASSERT((pAd->BcnRing.TxDmaIdx == index));
 
@@ -1205,15 +1216,24 @@ static void rtusb_bcn_dma_done_tasklet(unsigned long data)
 	pPacket = pAd->BcnRing.Cell[index].pNdisPacket;
 
     ppkt_tail = GET_OS_PKT_DATATAIL(pPacket);
-    padding_length = ppkt_tail - pBcnContext->ppkt_tail_before_padding;
+	padding_length = (UCHAR)(ppkt_tail - pBcnContext->ppkt_tail_before_padding);
 
-    OS_PKT_TAIL_ADJUST(pPacket, padding_length);
-
+    /*
+    *	OS_PKT_TAIL_ADJUST(pPacket, padding_length);
+	*
+	*	If set tail position at bulkout function,
+	*	tail_adjust is not necessary
+	*/
     //because MT7603 doesn't free bcn_buf. if we don't push 4 byte after kickout done,
     //next time tx will put extra 4byte.
     //what if we keep put but without push back, it will cause overflow.
 
 	pAd->BcnRing.Cell[index].pNdisPacket = NULL;
+	/*
+	*	Bcn_state should set to DMA_DONE, if Txs not received;
+	*/
+	if (pMbss->bcn_buf.bcn_state == BCN_TX_WRITE_TO_DMA)
+		pMbss->bcn_buf.bcn_state = BCN_TX_DMA_DONE;
 
 	/* Increase MgmtRing Index */
 	INC_RING_INDEX(pAd->BcnRing.TxDmaIdx, BCN_RING_SIZE);
@@ -1480,6 +1500,7 @@ INT RTUSBCmdThread(
 {
 	RTMP_ADAPTER *pAd;
 	RTMP_OS_TASK *pTask;
+	CmdQElmt *pCmdQElmt = NULL;
 	int status;
 	status = 0;
 
@@ -1515,34 +1536,25 @@ INT RTUSBCmdThread(
 			CMDHandler(pAd);
 	}
 
-	if (!pAd->PM_FlgSuspend)
-	{	/* Clear the CmdQElements. */
-		CmdQElmt	*pCmdQElmt = NULL;
-
-		NdisAcquireSpinLock(&pAd->CmdQLock);
-		pAd->CmdQ.CmdQState = RTMP_TASK_STAT_STOPED;
-		while(pAd->CmdQ.size)
-		{
-			RTThreadDequeueCmd(&pAd->CmdQ, &pCmdQElmt);
-			if (pCmdQElmt)
-			{
-				if (pCmdQElmt->CmdFromNdis == TRUE)
-				{
-					if (pCmdQElmt->buffer != NULL)
-						os_free_mem(pAd, pCmdQElmt->buffer);
-					os_free_mem(pAd, (PUCHAR)pCmdQElmt);
-				}
-				else
-				{
-					if ((pCmdQElmt->buffer != NULL) && (pCmdQElmt->bufferlength != 0))
-						os_free_mem(pAd, pCmdQElmt->buffer);
-					os_free_mem(pAd, (PUCHAR)pCmdQElmt);
-				}
+	/* Clear the CmdQElements. */
+	NdisAcquireSpinLock(&pAd->CmdQLock);
+	pAd->CmdQ.CmdQState = RTMP_TASK_STAT_STOPED;
+	while (pAd->CmdQ.size) {
+		RTThreadDequeueCmd(&pAd->CmdQ, &pCmdQElmt);
+		if (pCmdQElmt) {
+			if (pCmdQElmt->CmdFromNdis == TRUE) {
+				if (pCmdQElmt->buffer != NULL)
+					os_free_mem(pAd, pCmdQElmt->buffer);
+				os_free_mem(pAd, (PUCHAR)pCmdQElmt);
+			} else {
+				if ((pCmdQElmt->buffer != NULL) && (pCmdQElmt->bufferlength != 0))
+					os_free_mem(pAd, pCmdQElmt->buffer);
+				os_free_mem(pAd, (PUCHAR)pCmdQElmt);
 			}
 		}
-
-		NdisReleaseSpinLock(&pAd->CmdQLock);
 	}
+	NdisReleaseSpinLock(&pAd->CmdQLock);
+
 	/* notify the exit routine that we're actually exiting now 
 	 *
 	 * complete()/wait_for_completion() is similar to up()/down(),

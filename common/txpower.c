@@ -749,8 +749,8 @@ VOID AsicGetAutoAgcOffsetForExternalTxAlc(
 				}
 #endif /* RT3883 */
 
-				*pTxAgcCompensate = -(TxAgcStep * (idx-1));			
-				DeltaPwr += (*pTxAgcCompensate);
+				*pTxAgcCompensate = (CHAR)(-(TxAgcStep * (idx-1)));
+				DeltaPwr += (CHAR)(*pTxAgcCompensate);
 				DBGPRINT(RT_DEBUG_TRACE, ("-- Tx Power, BBP R49=%x, TssiRef=%x, TxAgcStep=%x, step = -%d\n",
 					                BbpR49.byte, TssiRef, TxAgcStep, idx-1));                    
 			}
@@ -774,7 +774,7 @@ VOID AsicGetAutoAgcOffsetForExternalTxAlc(
 #endif /* RT3883 */
 
 				/* The index is the step we should increase, idx = 0 means there is nothing to compensate */
-				*pTxAgcCompensate = TxAgcStep * (idx-1);
+				*pTxAgcCompensate = (CHAR)(TxAgcStep * (idx-1));
 				DeltaPwr += (*pTxAgcCompensate);
 				DBGPRINT(RT_DEBUG_TRACE, ("++ Tx Power, BBP R49=%x, TssiRef=%x, TxAgcStep=%x, step = +%d\n",
 				                	BbpR49.byte, TssiRef, TxAgcStep, idx-1));
@@ -1660,70 +1660,70 @@ VOID RTMPReadTxPwrPerRate(RTMP_ADAPTER *pAd)
 
 			if (bApwrdeltaMinus == FALSE)
 			{
-				t1 = value_1+(Apwrdelta);
+				t1 = (UCHAR)(value_1+(Apwrdelta));
 				if (t1 > 0xf)
 					t1 = 0xf;
-				t2 = value_2+(Apwrdelta);
+				t2 = (UCHAR)(value_2+(Apwrdelta));
 				if (t2 > 0xf)
 					t2 = 0xf;
-				t3 = value_3+(Apwrdelta);
+				t3 = (UCHAR)(value_3+(Apwrdelta));
 				if (t3 > 0xf)
 					t3 = 0xf;
-				t4 = value_4+(Apwrdelta);
+				t4 = (UCHAR)(value_4+(Apwrdelta));
 				if (t4 > 0xf)
 					t4 = 0xf;
 			}
 			else
 			{
 				if (value_1 > Apwrdelta)
-					t1 = value_1-(Apwrdelta);
+					t1 = (UCHAR)(value_1-(Apwrdelta));
 				else
 					t1 = 0;
 				if (value_2 > Apwrdelta)
-					t2 = value_2-(Apwrdelta);
+					t2 = (UCHAR)(value_2-(Apwrdelta));
 				else
 					t2 = 0;
 				if (value_3 > Apwrdelta)
-					t3 = value_3-(Apwrdelta);
+					t3 = (UCHAR)(value_3-(Apwrdelta));
 				else
 					t3 = 0;
 				if (value_4 > Apwrdelta)
-					t4 = value_4-(Apwrdelta);
+					t4 = (UCHAR)(value_4-(Apwrdelta));
 				else
 					t4 = 0;
 			}				
 			Adata = t1 + (t2<<4) + (t3<<8) + (t4<<12);
 			if (bGpwrdeltaMinus == FALSE)
 			{
-				t1 = value_1+(Gpwrdelta);
+				t1 = (UCHAR)(value_1+(Gpwrdelta));
 				if (t1 > 0xf)
 					t1 = 0xf;
-				t2 = value_2+(Gpwrdelta);
+				t2 = (UCHAR)(value_2+(Gpwrdelta));
 				if (t2 > 0xf)
 					t2 = 0xf;
-				t3 = value_3+(Gpwrdelta);
+				t3 = (UCHAR)(value_3+(Gpwrdelta));
 				if (t3 > 0xf)
 					t3 = 0xf;
-				t4 = value_4+(Gpwrdelta);
+				t4 = (UCHAR)(value_4+(Gpwrdelta));
 				if (t4 > 0xf)
 					t4 = 0xf;
 			}
 			else
 			{
 				if (value_1 > Gpwrdelta)
-					t1 = value_1-(Gpwrdelta);
+					t1 = (UCHAR)(value_1-(Gpwrdelta));
 				else
 					t1 = 0;
 				if (value_2 > Gpwrdelta)
-					t2 = value_2-(Gpwrdelta);
+					t2 = (UCHAR)(value_2-(Gpwrdelta));
 				else
 					t2 = 0;
 				if (value_3 > Gpwrdelta)
-					t3 = value_3-(Gpwrdelta);
+					t3 = (UCHAR)(value_3-(Gpwrdelta));
 				else
 					t3 = 0;
 				if (value_4 > Gpwrdelta)
-					t4 = value_4-(Gpwrdelta);
+					t4 = (UCHAR)(value_4-(Gpwrdelta));
 				else
 					t4 = 0;
 			}				
@@ -1739,70 +1739,70 @@ VOID RTMPReadTxPwrPerRate(RTMP_ADAPTER *pAd)
 
 			if (bApwrdeltaMinus == FALSE)
 			{
-				t1 = value_1+(Apwrdelta);
+				t1 = (UCHAR)(value_1+(Apwrdelta));
 				if (t1 > 0xf)
 					t1 = 0xf;
-				t2 = value_2+(Apwrdelta);
+				t2 = (UCHAR)(value_2+(Apwrdelta));
 				if (t2 > 0xf)
 					t2 = 0xf;
-				t3 = value_3+(Apwrdelta);
+				t3 = (UCHAR)(value_3+(Apwrdelta));
 				if (t3 > 0xf)
 					t3 = 0xf;
-				t4 = value_4+(Apwrdelta);
+				t4 = (UCHAR)(value_4+(Apwrdelta));
 				if (t4 > 0xf)
 					t4 = 0xf;
 			}
 			else
 			{
 				if (value_1 > Apwrdelta)
-					t1 = value_1-(Apwrdelta);
+					t1 = (UCHAR)(value_1-(Apwrdelta));
 				else
 					t1 = 0;
 				if (value_2 > Apwrdelta)
-					t2 = value_2-(Apwrdelta);
+					t2 = (UCHAR)(value_2-(Apwrdelta));
 				else
 					t2 = 0;
 				if (value_3 > Apwrdelta)
-					t3 = value_3-(Apwrdelta);
+					t3 = (UCHAR)(value_3-(Apwrdelta));
 				else
 					t3 = 0;
 				if (value_4 > Apwrdelta)
-					t4 = value_4-(Apwrdelta);
+					t4 = (UCHAR)(value_4-(Apwrdelta));
 				else
 					t4 = 0;
 			}				
 			Adata |= ((t1<<16) + (t2<<20) + (t3<<24) + (t4<<28));
 			if (bGpwrdeltaMinus == FALSE)
 			{
-				t1 = value_1+(Gpwrdelta);
+				t1 = (UCHAR)(value_1+(Gpwrdelta));
 				if (t1 > 0xf)
 					t1 = 0xf;
-				t2 = value_2+(Gpwrdelta);
+				t2 = (UCHAR)(value_2+(Gpwrdelta));
 				if (t2 > 0xf)
 					t2 = 0xf;
-				t3 = value_3+(Gpwrdelta);
+				t3 = (UCHAR)(value_3+(Gpwrdelta));
 				if (t3 > 0xf)
 					t3 = 0xf;
-				t4 = value_4+(Gpwrdelta);
+				t4 = (UCHAR)(value_4+(Gpwrdelta));
 				if (t4 > 0xf)
 					t4 = 0xf;
 			}
 			else
 			{
 				if (value_1 > Gpwrdelta)
-					t1 = value_1-(Gpwrdelta);
+					t1 = (UCHAR)(value_1-(Gpwrdelta));
 				else
 					t1 = 0;
 				if (value_2 > Gpwrdelta)
-					t2 = value_2-(Gpwrdelta);
+					t2 = (UCHAR)(value_2-(Gpwrdelta));
 				else
 					t2 = 0;
 				if (value_3 > Gpwrdelta)
-					t3 = value_3-(Gpwrdelta);
+					t3 = (UCHAR)(value_3-(Gpwrdelta));
 				else
 					t3 = 0;
 				if (value_4 > Gpwrdelta)
-					t4 = value_4-(Gpwrdelta);
+					t4 = (UCHAR)(value_4-(Gpwrdelta));
 				else
 					t4 = 0;
 			}				
@@ -2087,18 +2087,21 @@ VOID RTMPReadChannelPwr(RTMP_ADAPTER *pAd)
 		{
 			if (NICConfig0.field.TxPath == 3)
 			{
-				RT28xx_EEPROM_READ16(pAd, (EEPROM_EXT_TX0_OVER_2DOT4G + (i * 2)), Power.word);
-				RT28xx_EEPROM_READ16(pAd, (EEPROM_EXT_TX1_OVER_2DOT4G + (i * 2)), Power2.word);
-				RT28xx_EEPROM_READ16(pAd, (EEPROM_EXT_TX2_OVER_2DOT4G + (i * 2)), Power3.word);
+				RT28xx_EEPROM_READ16(pAd,
+					(USHORT)(EEPROM_EXT_TX0_OVER_2DOT4G + (i * 2)), Power.word);
+				RT28xx_EEPROM_READ16(pAd,
+					(USHORT)(EEPROM_EXT_TX1_OVER_2DOT4G + (i * 2)), Power2.word);
+				RT28xx_EEPROM_READ16(pAd,
+					(USHORT)(EEPROM_EXT_TX2_OVER_2DOT4G + (i * 2)), Power3.word);
 			}
 			else
 			{
-				RT28xx_EEPROM_READ16(pAd, (EEPROM_G_TX_PWR_OFFSET + i * 2), Power.word);
-				RT28xx_EEPROM_READ16(pAd, (EEPROM_G_TX2_PWR_OFFSET + i * 2), Power2.word);
+				RT28xx_EEPROM_READ16(pAd, (USHORT)(EEPROM_G_TX_PWR_OFFSET + i * 2), Power.word);
+				RT28xx_EEPROM_READ16(pAd, (USHORT)(EEPROM_G_TX2_PWR_OFFSET + i * 2), Power2.word);
 			}
 			
-			pAd->TxPower[i * 2].Channel = i * 2 + 1;
-			pAd->TxPower[i * 2 + 1].Channel = i * 2 + 2;
+			pAd->TxPower[i * 2].Channel = (UCHAR)(i * 2 + 1);
+			pAd->TxPower[i * 2 + 1].Channel = (UCHAR)(i * 2 + 2);
 
 			
 			/* Tx0 power control*/
@@ -2274,10 +2277,12 @@ VOID RTMPReadChannelPwr(RTMP_ADAPTER *pAd)
 		else /* Tx power control over RF R12 and RF R13*/
 #endif /* RT3593 */
 		{ /* Default routine. RT3070 and RT3370 run here. */
-			RT28xx_EEPROM_READ16(pAd, EEPROM_G_TX_PWR_OFFSET + i * 2, Power.word);
-			RT28xx_EEPROM_READ16(pAd, EEPROM_G_TX2_PWR_OFFSET + i * 2, Power2.word);
-			pAd->TxPower[i * 2].Channel = i * 2 + 1;
-			pAd->TxPower[i * 2 + 1].Channel = i * 2 + 2;
+			RT28xx_EEPROM_READ16(pAd,
+				(USHORT)(EEPROM_G_TX_PWR_OFFSET + i * 2), Power.word);
+			RT28xx_EEPROM_READ16(pAd,
+				(USHORT)(EEPROM_G_TX2_PWR_OFFSET + i * 2), Power2.word);
+			pAd->TxPower[i * 2].Channel = (UCHAR)(i * 2 + 1);
+			pAd->TxPower[i * 2 + 1].Channel = (UCHAR)(i * 2 + 2);
 
 			pAd->TxPower[i * 2].Power = Power.field.Byte0;
 			if(!IS_RT3390(pAd))  // 3370 has different Tx power range
@@ -2313,15 +2318,15 @@ VOID RTMPReadChannelPwr(RTMP_ADAPTER *pAd)
 		choffset = 14;
 		for (i = 0; i < 4; i++)
 		{
-			pAd->TxPower[3 * i + choffset + 0].Channel	= 36 + i * 8 + 0;
+			pAd->TxPower[3 * i + choffset + 0].Channel	= (UCHAR)(36 + i * 8 + 0);
 			pAd->TxPower[3 * i + choffset + 0].Power	= DEFAULT_RF_TX_POWER;
 			pAd->TxPower[3 * i + choffset + 0].Power2	= DEFAULT_RF_TX_POWER;
 
-			pAd->TxPower[3 * i + choffset + 1].Channel	= 36 + i * 8 + 2;
+			pAd->TxPower[3 * i + choffset + 1].Channel	= (UCHAR)(36 + i * 8 + 2);
 			pAd->TxPower[3 * i + choffset + 1].Power	= DEFAULT_RF_TX_POWER;
 			pAd->TxPower[3 * i + choffset + 1].Power2	= DEFAULT_RF_TX_POWER;
 
-			pAd->TxPower[3 * i + choffset + 2].Channel	= 36 + i * 8 + 4;
+			pAd->TxPower[3 * i + choffset + 2].Channel	= (UCHAR)(36 + i * 8 + 4);
 			pAd->TxPower[3 * i + choffset + 2].Power	= DEFAULT_RF_TX_POWER;
 			pAd->TxPower[3 * i + choffset + 2].Power2	= DEFAULT_RF_TX_POWER;
 		}
@@ -2331,8 +2336,10 @@ VOID RTMPReadChannelPwr(RTMP_ADAPTER *pAd)
 		{
 			RT28xx_EEPROM_READ16(pAd, EEPROM_A_TX_PWR_OFFSET + i * 2, Power.word);
 			RT28xx_EEPROM_READ16(pAd, EEPROM_A_TX2_PWR_OFFSET + i * 2, Power2.word);
-			printk("Power = %x\n", Power.word);
-			printk("Power2 = %x\n", Power2.word);			
+			DBGPRINT(RT_DEBUG_TRACE,
+					("Power = %x\n", Power.word));
+			DBGPRINT(RT_DEBUG_TRACE,
+					("Power2 = %x\n", Power2.word));
 
 			if ((Power.field.Byte0 < 0x2B) && (Power.field.Byte0 >= 0))
 				pAd->TxPower[i * 2 + choffset + 0].Power = Power.field.Byte0;
@@ -2352,15 +2359,15 @@ VOID RTMPReadChannelPwr(RTMP_ADAPTER *pAd)
 		choffset = 14 + 12;
 		for (i = 0; i < 5; i++)
 		{
-			pAd->TxPower[3 * i + choffset + 0].Channel	= 100 + i * 8 + 0;
+			pAd->TxPower[3 * i + choffset + 0].Channel	= (UCHAR)(100 + i * 8 + 0);
 			pAd->TxPower[3 * i + choffset + 0].Power	= DEFAULT_RF_TX_POWER;
 			pAd->TxPower[3 * i + choffset + 0].Power2	= DEFAULT_RF_TX_POWER;
 
-			pAd->TxPower[3 * i + choffset + 1].Channel	= 100 + i * 8 + 2;
+			pAd->TxPower[3 * i + choffset + 1].Channel	= (UCHAR)(100 + i * 8 + 2);
 			pAd->TxPower[3 * i + choffset + 1].Power	= DEFAULT_RF_TX_POWER;
 			pAd->TxPower[3 * i + choffset + 1].Power2	= DEFAULT_RF_TX_POWER;
 
-			pAd->TxPower[3 * i + choffset + 2].Channel	= 100 + i * 8 + 4;
+			pAd->TxPower[3 * i + choffset + 2].Channel	= (UCHAR)(100 + i * 8 + 4);
 			pAd->TxPower[3 * i + choffset + 2].Power	= DEFAULT_RF_TX_POWER;
 			pAd->TxPower[3 * i + choffset + 2].Power2	= DEFAULT_RF_TX_POWER;
 		}
@@ -2394,15 +2401,15 @@ VOID RTMPReadChannelPwr(RTMP_ADAPTER *pAd)
 		/*for (i = 0; i < 2; i++)*/
 		for (i = 0; i < 3; i++)
 		{
-			pAd->TxPower[3 * i + choffset + 0].Channel	= 149 + i * 8 + 0;
+			pAd->TxPower[3 * i + choffset + 0].Channel	= (UCHAR)(149 + i * 8 + 0);
 			pAd->TxPower[3 * i + choffset + 0].Power	= DEFAULT_RF_TX_POWER;
 			pAd->TxPower[3 * i + choffset + 0].Power2	= DEFAULT_RF_TX_POWER;
 
-			pAd->TxPower[3 * i + choffset + 1].Channel	= 149 + i * 8 + 2;
+			pAd->TxPower[3 * i + choffset + 1].Channel	= (UCHAR)(149 + i * 8 + 2);
 			pAd->TxPower[3 * i + choffset + 1].Power	= DEFAULT_RF_TX_POWER;
 			pAd->TxPower[3 * i + choffset + 1].Power2	= DEFAULT_RF_TX_POWER;
 
-			pAd->TxPower[3 * i + choffset + 2].Channel	= 149 + i * 8 + 4;
+			pAd->TxPower[3 * i + choffset + 2].Channel	= (UCHAR)(149 + i * 8 + 4);
 			pAd->TxPower[3 * i + choffset + 2].Power	= DEFAULT_RF_TX_POWER;
 			pAd->TxPower[3 * i + choffset + 2].Power2	= DEFAULT_RF_TX_POWER;
 		}
@@ -2460,17 +2467,17 @@ VOID RTMPReadChannelPwr(RTMP_ADAPTER *pAd)
 		choffset = 14;
 		for (i = 0; i < 4; i++)
 		{
-			pAd->TxPower[3 * i + choffset + 0].Channel  = 36 + i * 8 + 0;
+			pAd->TxPower[3 * i + choffset + 0].Channel  = (UCHAR)(36 + i * 8 + 0);
 			pAd->TxPower[3 * i + choffset + 0].Power     = DEFAULT_RF_TX_POWER;
 			pAd->TxPower[3 * i + choffset + 0].Power2   = DEFAULT_RF_TX_POWER;
 			pAd->TxPower[3 * i + choffset + 0].Power3	= DEFAULT_RF_TX_POWER;
 
-			pAd->TxPower[3 * i + choffset + 1].Channel  = 36 + i * 8 + 2;
+			pAd->TxPower[3 * i + choffset + 1].Channel  = (UCHAR)(36 + i * 8 + 2);
 			pAd->TxPower[3 * i + choffset + 1].Power     = DEFAULT_RF_TX_POWER;
 			pAd->TxPower[3 * i + choffset + 1].Power2   = DEFAULT_RF_TX_POWER;
 			pAd->TxPower[3 * i + choffset + 1].Power3	= DEFAULT_RF_TX_POWER;
 
-			pAd->TxPower[3 * i + choffset + 2].Channel  = 36 + i * 8 + 4;
+			pAd->TxPower[3 * i + choffset + 2].Channel  = (UCHAR)(36 + i * 8 + 4);
 			pAd->TxPower[3 * i + choffset + 2].Power     = DEFAULT_RF_TX_POWER;
 			pAd->TxPower[3 * i + choffset + 2].Power2   = DEFAULT_RF_TX_POWER;
 			pAd->TxPower[3 * i + choffset + 2].Power3	= DEFAULT_RF_TX_POWER;
@@ -2549,17 +2556,17 @@ VOID RTMPReadChannelPwr(RTMP_ADAPTER *pAd)
 		choffset = 14 + 12;
 		for (i = 0; i < 5; i++)
 		{
-			pAd->TxPower[3 * i + choffset + 0].Channel  = 100 + i * 8 + 0;
+			pAd->TxPower[3 * i + choffset + 0].Channel  = (UCHAR)(100 + i * 8 + 0);
 			pAd->TxPower[3 * i + choffset + 0].Power     = DEFAULT_RF_TX_POWER;
 			pAd->TxPower[3 * i + choffset + 0].Power2   = DEFAULT_RF_TX_POWER;
 			pAd->TxPower[3 * i + choffset + 0].Power3	= DEFAULT_RF_TX_POWER;
 
-			pAd->TxPower[3 * i + choffset + 1].Channel  = 100 + i * 8 + 2;
+			pAd->TxPower[3 * i + choffset + 1].Channel  = (UCHAR)(100 + i * 8 + 2);
 			pAd->TxPower[3 * i + choffset + 1].Power     = DEFAULT_RF_TX_POWER;
 			pAd->TxPower[3 * i + choffset + 1].Power2   = DEFAULT_RF_TX_POWER;
 			pAd->TxPower[3 * i + choffset + 1].Power3	= DEFAULT_RF_TX_POWER;
 
-			pAd->TxPower[3 * i + choffset + 2].Channel  = 100 + i * 8 + 4;
+			pAd->TxPower[3 * i + choffset + 2].Channel  = (UCHAR)(100 + i * 8 + 4);
 			pAd->TxPower[3 * i + choffset + 2].Power     = DEFAULT_RF_TX_POWER;
 			pAd->TxPower[3 * i + choffset + 2].Power2   = DEFAULT_RF_TX_POWER;
 			pAd->TxPower[3 * i + choffset + 2].Power3	= DEFAULT_RF_TX_POWER;
@@ -2573,9 +2580,12 @@ VOID RTMPReadChannelPwr(RTMP_ADAPTER *pAd)
 		// 2.2 Fill up power
 		for (i = 0; i < 8; i++)
 		{
-			RT28xx_EEPROM_READ16(pAd, (EEPROM_EXT_TX0_OVER_5G + (choffset - 14) + i * 2), Power.word);
-			RT28xx_EEPROM_READ16(pAd, (EEPROM_EXT_TX1_OVER_5G + (choffset - 14) + i * 2), Power2.word);
-			RT28xx_EEPROM_READ16(pAd, (EEPROM_EXT_TX2_OVER_5G + (choffset - 14) + i * 2), Power3.word);
+			RT28xx_EEPROM_READ16(pAd,
+				(USHORT)(EEPROM_EXT_TX0_OVER_5G + (choffset - 14) + i * 2), Power.word);
+			RT28xx_EEPROM_READ16(pAd,
+				(USHORT)(EEPROM_EXT_TX1_OVER_5G + (choffset - 14) + i * 2), Power2.word);
+			RT28xx_EEPROM_READ16(pAd,
+				(USHORT)(EEPROM_EXT_TX2_OVER_5G + (choffset - 14) + i * 2), Power3.word);
 
 			Tx0ALC = GET_TX_ALC_BIT_MASK & Power.field.Byte0;
 			if (Tx0ALC > 31)
@@ -2643,17 +2653,17 @@ VOID RTMPReadChannelPwr(RTMP_ADAPTER *pAd)
 		choffset = 14 + 12 + 16;
 		for (i = 0; i < 3; i++)
 		{
-			pAd->TxPower[3 * i + choffset + 0].Channel  = 149 + i * 8 + 0;
+			pAd->TxPower[3 * i + choffset + 0].Channel  = (UCHAR)(149 + i * 8 + 0);
 			pAd->TxPower[3 * i + choffset + 0].Power     = DEFAULT_RF_TX_POWER;
 			pAd->TxPower[3 * i + choffset + 0].Power2   = DEFAULT_RF_TX_POWER;
 			pAd->TxPower[3 * i + choffset + 0].Power3	= DEFAULT_RF_TX_POWER;
 
-			pAd->TxPower[3 * i + choffset + 1].Channel  = 149 + i * 8 + 2;
+			pAd->TxPower[3 * i + choffset + 1].Channel  = (UCHAR)(149 + i * 8 + 2);
 			pAd->TxPower[3 * i + choffset + 1].Power     = DEFAULT_RF_TX_POWER;
 			pAd->TxPower[3 * i + choffset + 1].Power2   = DEFAULT_RF_TX_POWER;
 			pAd->TxPower[3 * i + choffset + 1].Power3	= DEFAULT_RF_TX_POWER;
 
-			pAd->TxPower[3 * i + choffset + 2].Channel  = 149 + i * 8 + 4;
+			pAd->TxPower[3 * i + choffset + 2].Channel  = (UCHAR)(149 + i * 8 + 4);
 			pAd->TxPower[3 * i + choffset + 2].Power     = DEFAULT_RF_TX_POWER;
 			pAd->TxPower[3 * i + choffset + 2].Power2   = DEFAULT_RF_TX_POWER;
 			pAd->TxPower[3 * i + choffset + 2].Power3	= DEFAULT_RF_TX_POWER;
@@ -2748,15 +2758,15 @@ VOID RTMPReadChannelPwr(RTMP_ADAPTER *pAd)
 		choffset = 14;
 		for (i = 0; i < 4; i++)
 		{
-			pAd->TxPower[3 * i + choffset + 0].Channel	= 36 + i * 8 + 0;
+			pAd->TxPower[3 * i + choffset + 0].Channel	= (UCHAR)(36 + i * 8 + 0);
 			pAd->TxPower[3 * i + choffset + 0].Power	= DEFAULT_RF_TX_POWER;
 			pAd->TxPower[3 * i + choffset + 0].Power2	= DEFAULT_RF_TX_POWER;
 
-			pAd->TxPower[3 * i + choffset + 1].Channel	= 36 + i * 8 + 2;
+			pAd->TxPower[3 * i + choffset + 1].Channel	= (UCHAR)(36 + i * 8 + 2);
 			pAd->TxPower[3 * i + choffset + 1].Power	= DEFAULT_RF_TX_POWER;
 			pAd->TxPower[3 * i + choffset + 1].Power2	= DEFAULT_RF_TX_POWER;
 
-			pAd->TxPower[3 * i + choffset + 2].Channel	= 36 + i * 8 + 4;
+			pAd->TxPower[3 * i + choffset + 2].Channel	= (UCHAR)(36 + i * 8 + 4);
 			pAd->TxPower[3 * i + choffset + 2].Power	= DEFAULT_RF_TX_POWER;
 			pAd->TxPower[3 * i + choffset + 2].Power2	= DEFAULT_RF_TX_POWER;
 		}
@@ -2764,8 +2774,10 @@ VOID RTMPReadChannelPwr(RTMP_ADAPTER *pAd)
 		/* 1.2 Fill up power*/
 		for (i = 0; i < 6; i++)
 		{
-			RT28xx_EEPROM_READ16(pAd, EEPROM_A_TX_PWR_OFFSET + i * 2, Power.word);
-			RT28xx_EEPROM_READ16(pAd, EEPROM_A_TX2_PWR_OFFSET + i * 2, Power2.word);
+			RT28xx_EEPROM_READ16(pAd,
+				(USHORT)(EEPROM_A_TX_PWR_OFFSET + i * 2), Power.word);
+			RT28xx_EEPROM_READ16(pAd,
+				(USHORT)(EEPROM_A_TX2_PWR_OFFSET + i * 2), Power2.word);
 
 			if ((Power.field.Byte0 < 16) && (Power.field.Byte0 >= -7))
 				pAd->TxPower[i * 2 + choffset + 0].Power = Power.field.Byte0;
@@ -2785,15 +2797,15 @@ VOID RTMPReadChannelPwr(RTMP_ADAPTER *pAd)
 		choffset = 14 + 12;
 		for (i = 0; i < 5; i++)
 		{
-			pAd->TxPower[3 * i + choffset + 0].Channel	= 100 + i * 8 + 0;
+			pAd->TxPower[3 * i + choffset + 0].Channel	= (UCHAR)(100 + i * 8 + 0);
 			pAd->TxPower[3 * i + choffset + 0].Power	= DEFAULT_RF_TX_POWER;
 			pAd->TxPower[3 * i + choffset + 0].Power2	= DEFAULT_RF_TX_POWER;
 
-			pAd->TxPower[3 * i + choffset + 1].Channel	= 100 + i * 8 + 2;
+			pAd->TxPower[3 * i + choffset + 1].Channel	= (UCHAR)(100 + i * 8 + 2);
 			pAd->TxPower[3 * i + choffset + 1].Power	= DEFAULT_RF_TX_POWER;
 			pAd->TxPower[3 * i + choffset + 1].Power2	= DEFAULT_RF_TX_POWER;
 
-			pAd->TxPower[3 * i + choffset + 2].Channel	= 100 + i * 8 + 4;
+			pAd->TxPower[3 * i + choffset + 2].Channel	= (UCHAR)(100 + i * 8 + 4);
 			pAd->TxPower[3 * i + choffset + 2].Power	= DEFAULT_RF_TX_POWER;
 			pAd->TxPower[3 * i + choffset + 2].Power2	= DEFAULT_RF_TX_POWER;
 		}
@@ -2804,8 +2816,10 @@ VOID RTMPReadChannelPwr(RTMP_ADAPTER *pAd)
 		/* 2.2 Fill up power*/
 		for (i = 0; i < 8; i++)
 		{
-			RT28xx_EEPROM_READ16(pAd, EEPROM_A_TX_PWR_OFFSET + (choffset - 14) + i * 2, Power.word);
-			RT28xx_EEPROM_READ16(pAd, EEPROM_A_TX2_PWR_OFFSET + (choffset - 14) + i * 2, Power2.word);
+			RT28xx_EEPROM_READ16(pAd,
+				(USHORT)(EEPROM_A_TX_PWR_OFFSET + (choffset - 14) + i * 2), Power.word);
+			RT28xx_EEPROM_READ16(pAd,
+				(USHORT)(EEPROM_A_TX2_PWR_OFFSET + (choffset - 14) + i * 2), Power2.word);
 
 			if ((Power.field.Byte0 < 16) && (Power.field.Byte0 >= -7))
 				pAd->TxPower[i * 2 + choffset + 0].Power = Power.field.Byte0;
@@ -2826,15 +2840,15 @@ VOID RTMPReadChannelPwr(RTMP_ADAPTER *pAd)
 		/*for (i = 0; i < 2; i++)*/
 		for (i = 0; i < 3; i++)
 		{
-			pAd->TxPower[3 * i + choffset + 0].Channel	= 149 + i * 8 + 0;
+			pAd->TxPower[3 * i + choffset + 0].Channel	= (UCHAR)(149 + i * 8 + 0);
 			pAd->TxPower[3 * i + choffset + 0].Power	= DEFAULT_RF_TX_POWER;
 			pAd->TxPower[3 * i + choffset + 0].Power2	= DEFAULT_RF_TX_POWER;
 
-			pAd->TxPower[3 * i + choffset + 1].Channel	= 149 + i * 8 + 2;
+			pAd->TxPower[3 * i + choffset + 1].Channel	= (UCHAR)(149 + i * 8 + 2);
 			pAd->TxPower[3 * i + choffset + 1].Power	= DEFAULT_RF_TX_POWER;
 			pAd->TxPower[3 * i + choffset + 1].Power2	= DEFAULT_RF_TX_POWER;
 
-			pAd->TxPower[3 * i + choffset + 2].Channel	= 149 + i * 8 + 4;
+			pAd->TxPower[3 * i + choffset + 2].Channel	= (UCHAR)(149 + i * 8 + 4);
 			pAd->TxPower[3 * i + choffset + 2].Power	= DEFAULT_RF_TX_POWER;
 			pAd->TxPower[3 * i + choffset + 2].Power2	= DEFAULT_RF_TX_POWER;
 		}
@@ -2855,8 +2869,10 @@ VOID RTMPReadChannelPwr(RTMP_ADAPTER *pAd)
 		/*for (i = 0; i < 4; i++)*/
 		for (i = 0; i < 6; i++)
 		{
-			RT28xx_EEPROM_READ16(pAd, EEPROM_A_TX_PWR_OFFSET + (choffset - 14) + i * 2, Power.word);
-			RT28xx_EEPROM_READ16(pAd, EEPROM_A_TX2_PWR_OFFSET + (choffset - 14) + i * 2, Power2.word);
+			RT28xx_EEPROM_READ16(pAd,
+				(USHORT)(EEPROM_A_TX_PWR_OFFSET + (choffset - 14) + i * 2), Power.word);
+			RT28xx_EEPROM_READ16(pAd,
+				(USHORT)(EEPROM_A_TX2_PWR_OFFSET + (choffset - 14) + i * 2), Power2.word);
 
 			if ((Power.field.Byte0 < 16) && (Power.field.Byte0 >= -7))
 				pAd->TxPower[i * 2 + choffset + 0].Power = Power.field.Byte0;

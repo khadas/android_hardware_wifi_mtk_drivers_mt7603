@@ -61,7 +61,7 @@ static int softq_state_drop(unsigned int queIdx)
 	{
 		if (softq_statistic.swDropPacket[queIdx] == 0)
 		{
-			printk("%s():drop pkt, QueIdx=%d\n", __FUNCTION__, queIdx);
+			DBGPRINT(RT_DEBUG_OFF, ("%s():drop pkt, QueIdx=%d\n", __func__, queIdx));
 		}
 		softq_statistic.swDropPacket[queIdx] +=1;
 	}
@@ -123,40 +123,40 @@ static int softq_state_mlme(unsigned int staId,RTMP_ADAPTER *pAd )
 		unsigned int  freeNO0,freeNO1,freeNO2,freeNO3;
 		temp1 = softq_statistic.apSendPacket[0]+softq_statistic.apSendPacket[1]+softq_statistic.apSendPacket[2]+softq_statistic.apSendPacket[3];
 		temp2 = softq_statistic.apPreSendPacket[0]+softq_statistic.apPreSendPacket[1]+ softq_statistic.apPreSendPacket[2] + softq_statistic.apPreSendPacket[3] ;
-                printk(" Send from Charior: AC0=%d, AC1=%d, AC2=%d, AC3=%d, Total=%d\n"
-                        , (softq_statistic.apSendPacket[0] - softq_statistic.apPreSendPacket[0])
-                        , (softq_statistic.apSendPacket[1] - softq_statistic.apPreSendPacket[1])
-                        , (softq_statistic.apSendPacket[2] - softq_statistic.apPreSendPacket[2])
-                        , (softq_statistic.apSendPacket[3] - softq_statistic.apPreSendPacket[3])
-                        , (temp1 - temp2));
+		DBGPRINT(RT_DEBUG_OFF, (" Send from Charior: AC0=%d, AC1=%d, AC2=%d, AC3=%d, Total=%d\n"
+				, (softq_statistic.apSendPacket[0] - softq_statistic.apPreSendPacket[0])
+				, (softq_statistic.apSendPacket[1] - softq_statistic.apPreSendPacket[1])
+				, (softq_statistic.apSendPacket[2] - softq_statistic.apPreSendPacket[2])
+				, (softq_statistic.apSendPacket[3] - softq_statistic.apPreSendPacket[3])
+				, (temp1 - temp2)));
 
 		temp1 = softq_statistic.apDequeuePacket[0]+softq_statistic.apDequeuePacket[1]+softq_statistic.apDequeuePacket[2]+softq_statistic.apDequeuePacket[3];
 		temp2 = softq_statistic.apPreDequeuePacket[0]+softq_statistic.apPreDequeuePacket[1]+softq_statistic.apPreDequeuePacket[2]+softq_statistic.apPreDequeuePacket[3];
-		printk("Dequeue to Tx Ring: AC0=%d, AC1=%d, AC2=%d, AC3=%d, Total=%d\n"
+		DBGPRINT(RT_DEBUG_OFF, ("Dequeue to Tx Ring: AC0=%d, AC1=%d, AC2=%d, AC3=%d, Total=%d\n"
 			, (softq_statistic.apDequeuePacket[0] - softq_statistic.apPreDequeuePacket[0])
 			, (softq_statistic.apDequeuePacket[1] - softq_statistic.apPreDequeuePacket[1])
 			, (softq_statistic.apDequeuePacket[2] - softq_statistic.apPreDequeuePacket[2])
 			, (softq_statistic.apDequeuePacket[3] - softq_statistic.apPreDequeuePacket[3])
-			, (temp1 - temp2));
+			, (temp1 - temp2)));
 
 		temp1 = softq_statistic.swDropPacket[0]+softq_statistic.swDropPacket[1]+softq_statistic.swDropPacket[2]+softq_statistic.swDropPacket[3];
 		temp2 = softq_statistic.swPreDropPacket[0]+softq_statistic.swPreDropPacket[1]+softq_statistic.swPreDropPacket[2]+softq_statistic.swPreDropPacket[3];
-		printk("      Drop packets: AC0=%d, AC1=%d, AC2=%d, AC3=%d, Total=%d\n"
+		DBGPRINT(RT_DEBUG_OFF, ("      Drop packets: AC0=%d, AC1=%d, AC2=%d, AC3=%d, Total=%d\n"
 			, (softq_statistic.swDropPacket[0] - softq_statistic.swPreDropPacket[0])
 			, (softq_statistic.swDropPacket[1] - softq_statistic.swPreDropPacket[1])
 			, (softq_statistic.swDropPacket[2] - softq_statistic.swPreDropPacket[2])
 			, (softq_statistic.swDropPacket[3] - softq_statistic.swPreDropPacket[3])
-			, (temp1 - temp2));
+			, (temp1 - temp2)));
 
 		freeNO0 = GET_TXRING_FREENO(pAd, 0);
 		freeNO1 = GET_TXRING_FREENO(pAd, 1);
 		freeNO2 = GET_TXRING_FREENO(pAd, 2);
 		freeNO3 = GET_TXRING_FREENO(pAd, 3);
-              	printk("      Tx Ring Used: AC0=%d, AC1=%d, AC2=%d, AC3=%d\n\n"
-                            , (TX_RING_SIZE - freeNO0)
-                            , (TX_RING_SIZE - freeNO1)
-                            , (TX_RING_SIZE - freeNO2)
-                            , (TX_RING_SIZE - freeNO3));
+		DBGPRINT(RT_DEBUG_OFF, ("      Tx Ring Used: AC0=%d, AC1=%d, AC2=%d, AC3=%d\n\n"
+				, (TX_RING_SIZE - freeNO0)
+				, (TX_RING_SIZE - freeNO1)
+				, (TX_RING_SIZE - freeNO2)
+				, (TX_RING_SIZE - freeNO3)));
 
 		for(p=0;p<4;p++)
 		{
@@ -286,7 +286,7 @@ static struct mt_wlanTxRxHookOps  softq_stat_ops __read_mostly = {
  
 static int __init softq_stat_module_init(void)
 {
-	printk("%s(): module init and register callback for debug\n",__FUNCTION__);
+	DBGPRINT(RT_DEBUG_OFF, ("%s(): module init and register callback for debug\n", __func__));
 
 	/*initial global struct*/
 	sofq_stat_init();
@@ -301,7 +301,7 @@ static int __init softq_stat_module_init(void)
 
 static void __exit softq_stat_module_exit(void)
 {
-	printk("%s(): module exist\n",__FUNCTION__);
+	DBGPRINT(RT_DEBUG_OFF, ("%s(): module exist\n", __func__));
 	RtmpOsTxRxHookUnRegister(&softq_stat_ops);
 	sofq_stat_exit();
 	softq_file_exit();

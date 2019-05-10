@@ -94,18 +94,18 @@ static INT scan_ch_restore(RTMP_ADAPTER *pAd, UCHAR OpMode)
         if (INFRA_ON(pAd))
         {
 		bw = pAd->StaCfg.wdev.bw;
-		bbp_set_bw(pAd, bw);
+		bbp_set_bw(pAd, (UINT8)bw);
 
         }
  	else if (RTMP_CFG80211_VIF_P2P_GO_ON(pAd) && (ch != p2p_wdev->channel) && (p2p_wdev->CentralChannel != 0))
 	{
 		bw = p2p_wdev->bw;
-		bbp_set_bw(pAd, bw);
+		bbp_set_bw(pAd, (UINT8)bw);
 	}
 	else if (RTMP_CFG80211_VIF_P2P_CLI_ON(pAd) && (ch != p2p_wdev->channel) && (p2p_wdev->CentralChannel != 0))
 	{
 		bw = p2p_wdev->bw;
-		bbp_set_bw(pAd, bw);
+		bbp_set_bw(pAd, (UINT8)bw);
 	}
 /*If GO start, we need to change to GO Channel*/
         if (INFRA_ON(pAd))
@@ -118,11 +118,12 @@ static INT scan_ch_restore(RTMP_ADAPTER *pAd, UCHAR OpMode)
 #endif /* defined(RT_CFG80211_SUPPORT) && defined(RT_CFG80211_P2P_CONCURRENT_DEVICE) */
 
 	ASSERT((ch != 0));
-       AsicSwitchChannel(pAd, ch, FALSE); 
-       AsicLockChannel(pAd, ch);
+	AsicSwitchChannel(pAd, (UCHAR)ch, FALSE);
+	AsicLockChannel(pAd, (UCHAR)ch);
 
-	printk("SYNC - End of SCAN, restore to %dMHz channel %d, Total BSS[%02d]\n",
-				bw, ch, pAd->ScanTab.BssNr);
+	DBGPRINT(RT_DEBUG_TRACE,
+		("SYNC - End of SCAN, restore to %dMHz channel %d, Total BSS[%02d]\n",
+		bw, ch, pAd->ScanTab.BssNr));
 		
 
 		
@@ -269,6 +270,7 @@ static INT scan_active(RTMP_ADAPTER *pAd, UCHAR OpMode, UCHAR ScanType)
 #ifdef CONFIG_STA_SUPPORT
 	USHORT Status;
 #endif /* CONFIG_STA_SUPPORT */
+	UINT i;
 
 	if (MlmeAllocateMemory(pAd, &frm_buf) != NDIS_STATUS_SUCCESS)
 	{
@@ -648,8 +650,8 @@ static INT scan_active(RTMP_ADAPTER *pAd, UCHAR OpMode, UCHAR ScanType)
 	}
 #endif /* WFA_WFD_SUPPORT */
 #endif /* P2P_SUPPORT */
-
-	MiniportMMRequest(pAd, 0, frm_buf, FrameLen);
+	for (i = 0; i < 3; i++)
+		MiniportMMRequest(pAd, 0, frm_buf, FrameLen);
 
 #ifdef CONFIG_STA_SUPPORT
 	if (OpMode == OPMODE_STA)
@@ -745,10 +747,13 @@ VOID ScanNextChannel(RTMP_ADAPTER *pAd, UCHAR OpMode)
 	/* Since the Channel List is from Upper layer */
 	if (CFG80211DRV_OpsScanRunning(pAd) && !ScanPending)
 	{
+#ifndef CCN3_TV_SUPPORT
 		if (RTMP_CFG80211_VIF_P2P_GO_ON(pAd))
 		{
 			DBGPRINT(RT_DEBUG_OFF, ("%s():Scan Only Go Channel %d\n", __FUNCTION__, pAd->CommonCfg.Channel));
-			while((pAd->ScanCtrl.Channel = CFG80211DRV_OpsScanGetNextChannel(pAd)) && pAd->CommonCfg.Channel != 0)
+			while ((pAd->ScanCtrl.Channel =
+						(UCHAR)CFG80211DRV_OpsScanGetNextChannel(pAd))
+									&& pAd->CommonCfg.Channel != 0)
 			{
 				if(pAd->ScanCtrl.Channel == pAd->CommonCfg.Channel)
 				{
@@ -758,8 +763,11 @@ VOID ScanNextChannel(RTMP_ADAPTER *pAd, UCHAR OpMode)
 		}
 		else
 		{
-			pAd->ScanCtrl.Channel = CFG80211DRV_OpsScanGetNextChannel(pAd);
+#endif /* ifndef CCN3_TV_SUPPORT */
+			pAd->ScanCtrl.Channel = (UCHAR)CFG80211DRV_OpsScanGetNextChannel(pAd);
+#ifndef CCN3_TV_SUPPORT
 		}
+#endif /* ifndef CCN3_TV_SUPPORT */
 	}
 #endif /* RT_CFG80211_SUPPORT */
 #endif /* CONFIG_STA_SUPPORT */ 
@@ -924,7 +932,8 @@ VOID ScanNextChannel(RTMP_ADAPTER *pAd, UCHAR OpMode)
 				int i;
 				for (i = 0; i < pAd->MlmeAux.params.num_ssids; ++i) {
 				/* record desired BSS parameters */
-				pAd->ScanCtrl.SsidLen = pAd->MlmeAux.params.ssids[i].ssid_len;
+				pAd->ScanCtrl.SsidLen =
+					(UCHAR)pAd->MlmeAux.params.ssids[i].ssid_len;
 				NdisMoveMemory(pAd->ScanCtrl.Ssid, pAd->MlmeAux.params.ssids[i].ssid, pAd->MlmeAux.params.ssids[i].ssid_len);
 					if (scan_active(pAd, OpMode, ScanType) == FALSE)
 						return;

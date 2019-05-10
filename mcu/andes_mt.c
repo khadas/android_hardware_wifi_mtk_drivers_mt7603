@@ -1525,7 +1525,7 @@ INT32 CmdMultiPleRfRegAccessRead(RTMP_ADAPTER *pAd, MT_RF_REG_PAIR *RegPair,
 	}
 
 	AndesInitCmdMsg(msg, P1_Q0, EXT_CID, CMD_QUERY, EXT_CMD_MULTIPLE_REG_ACCESS, 
-				TRUE, 0, TRUE, TRUE, (12 * Num) + 20, (char *)RegPair, 
+				TRUE, 0, TRUE, TRUE, (UINT16)(12 * Num) + 20, (char *)RegPair,
 				CmdMultipleRfRegAccessReadCb);
 
 	for (Index = 0; Index < Num; Index++)
@@ -1583,7 +1583,7 @@ INT32 CmdMultiPleMacRegAccessRead(RTMP_ADAPTER *pAd, RTMP_REG_PAIR *RegPair,
 	}
 
 	AndesInitCmdMsg(msg, P1_Q0, EXT_CID, CMD_QUERY, EXT_CMD_MULTIPLE_REG_ACCESS, 
-				TRUE, 0, TRUE, TRUE, (12 * Num) + 20, (char *)RegPair, 
+				TRUE, 0, TRUE, TRUE, (UINT16)(12 * Num) + 20, (char *)RegPair,
 				CmdMultipleMacRegAccessReadCb);
 
 	for (Index = 0; Index < Num; Index++)
@@ -1719,7 +1719,7 @@ static VOID CmdRFRegAccessReadCb(struct cmd_msg *msg, char *Data, UINT16 Len)
 	struct _CMD_RF_REG_ACCESS_T *RFRegAccess = (struct _CMD_RF_REG_ACCESS_T *)Data;
 
 	NdisMoveMemory(msg->rsp_payload, &RFRegAccess->Data, Len - 8);
-	*msg->rsp_payload = le2cpu32(*msg->rsp_payload);
+	*((UINT32 *)msg->rsp_payload) = le2cpu32(*((UINT32 *)msg->rsp_payload));
 }
 
 
@@ -1786,6 +1786,7 @@ VOID CmdIORead32(struct _RTMP_ADAPTER *pAd, UINT32 Offset, UINT32 *Value)
 
 	struct MCU_CTRL *Ctl = &pAd->MCUCtrl;
 	RTMP_REG_PAIR RegPair;
+	RegPair.Value = 0;
 
 	if (Ctl->Stage == FW_RUN_TIME)
 	{
@@ -1818,7 +1819,7 @@ static VOID EventExtCmdResult(struct cmd_msg *msg, char *Data, UINT16 Len)
 	DBGPRINT(RT_DEBUG_INFO, ("%s: EventExtCmdResult.u4Status = 0x%x\n",
 									__FUNCTION__, EventExtCmdResult->u4Status));
 
-	RTMP_OS_TXRXHOOK_CALL(WLAN_CALIB_TEST_RSP,NULL,EventExtCmdResult->u4Status,pAd);
+	RTMP_OS_TXRXHOOK_CALL(WLAN_CALIB_TEST_RSP, NULL, (UCHAR)EventExtCmdResult->u4Status, pAd);
 }
 
 
@@ -1835,7 +1836,7 @@ VOID EventExtCmdResultHandler(RTMP_ADAPTER *pAd, char *Data, UINT16 Len)
 	DBGPRINT(RT_DEBUG_INFO, ("%s: EventExtCmdResult.u4Status = 0x%x\n",
 									__FUNCTION__, EventExtCmdResult->u4Status));
 
-	RTMP_OS_TXRXHOOK_CALL(WLAN_CALIB_TEST_RSP,NULL,EventExtCmdResult->u4Status,pAd);
+	RTMP_OS_TXRXHOOK_CALL(WLAN_CALIB_TEST_RSP, NULL, (UCHAR)EventExtCmdResult->u4Status, pAd);
 }
 
 
@@ -1861,7 +1862,7 @@ INT32 CmdIcapOverLap(RTMP_ADAPTER *pAd, UINT32 IcapLen)
 
     TestCtrl.ucAction = 0;
 
-    TestCtrl.ucIcapLen = IcapLen;
+	TestCtrl.ucIcapLen = (UINT8)IcapLen;
     
 	TestCtrl.u.u4OpMode = OPERATION_ICAP_OVERLAP;
 
@@ -1979,7 +1980,7 @@ INT32 CmdWiFiRxDisable(RTMP_ADAPTER *pAd, UINT RxDisable)
 
 	memset(&WiFiRxDisable, 0x00, sizeof(WiFiRxDisable));
 
-	WiFiRxDisable.ucWiFiRxDisableCtrl = RxDisable;
+	WiFiRxDisable.ucWiFiRxDisableCtrl = (UINT8)RxDisable;
 
 	AndesAppendCmdMsg(msg, (char *)&WiFiRxDisable, sizeof(WiFiRxDisable));
 
@@ -2012,7 +2013,7 @@ INT32 CmdP2pNoaOffloadCtrl(RTMP_ADAPTER *ad, UINT8 enable)
 
       NdisZeroMemory(&extCmdNoaCtrl, sizeof(extCmdNoaCtrl));
 
-      extCmdNoaCtrl.ucMode1 = cpu2le32(enable);
+		extCmdNoaCtrl.ucMode1 = (UINT8)cpu2le32(enable);
       //extCmdNoaCtrl.ucMode0 = cpu2le32(enable);
 
       AndesAppendCmdMsg(msg, (char *)&extCmdNoaCtrl, sizeof(extCmdNoaCtrl));
@@ -2267,10 +2268,11 @@ static VOID EventThermalProtect(RTMP_ADAPTER *pAd, UINT8 *Data, UINT32 Length)
 	}
 	else
 	{
-		DBGPRINT(RT_DEBUG_OFF, ("Switch TX to 2 stram\n"));
 		pAd->force_one_tx_stream = FALSE;
+		DBGPRINT(RT_DEBUG_OFF, ("Switch TX to 2 stram\n"));
 	}
 
+    pAd->switch_tx_stream = TRUE;
     pAd->fgThermalProtectToggle = TRUE;
 
     RTMP_SEM_EVENT_UP(&pAd->AutoRateLock);
@@ -2953,7 +2955,7 @@ INT32 AndesMTEraseFw(RTMP_ADAPTER *pAd)
 
 		if (cap->FWImageName)
 			os_free_mem(NULL, cap->FWImageName);
-			cap->FWImageName = NULL;
+		cap->FWImageName = NULL;
 	}
 
 	return 0;
@@ -3015,7 +3017,7 @@ static VOID EventExtEventHandler(RTMP_ADAPTER *pAd, UINT8 ExtEID, UINT8 *Data, U
 	switch (ExtEID)
 	{
 		case EXT_EVENT_CMD_RESULT:
-			EventExtCmdResultHandler(pAd, Data, Length);			
+			EventExtCmdResultHandler(pAd, Data, (UINT16)Length);
 			break;
 		case EXT_EVENT_FW_LOG_2_HOST:
 			ExtEventFwLog2HostHandler(pAd, Data, Length);
@@ -3100,8 +3102,10 @@ static VOID AndesMTRxProcessEvent(RTMP_ADAPTER *pAd, struct cmd_msg *rx_msg)
 			(event_rxd->fw_rxd_2.field.ext_eid == EXT_EVENT_FW_LOG_2_HOST) ||
 			(event_rxd->fw_rxd_2.field.ext_eid == EXT_EVENT_THERMAL_PROTECT)) {
 		/* if have callback function */
-		UnsolicitedEventHandler(pAd, event_rxd->fw_rxd_1.field.eid, event_rxd->fw_rxd_2.field.ext_eid, GET_OS_PKT_DATAPTR(net_pkt) + sizeof(*event_rxd),
-												event_rxd->fw_rxd_0.field.length - sizeof(*event_rxd));
+		UnsolicitedEventHandler(pAd, (UINT8)event_rxd->fw_rxd_1.field.eid
+				, (UINT8)event_rxd->fw_rxd_2.field.ext_eid
+				, GET_OS_PKT_DATAPTR(net_pkt) + sizeof(*event_rxd)
+				, event_rxd->fw_rxd_0.field.length - sizeof(*event_rxd));
 	}
 	else
 	{
@@ -3149,7 +3153,9 @@ static VOID AndesMTRxProcessEvent(RTMP_ADAPTER *pAd, struct cmd_msg *rx_msg)
 				else
 				{
 					DBGPRINT(RT_DEBUG_ERROR, ("expect response len(%d), command response len(%zu) invalid\n", msg->rsp_payload_len, event_rxd->fw_rxd_0.field.length - sizeof(*event_rxd)));
-					msg->rsp_payload_len = event_rxd->fw_rxd_0.field.length - sizeof(*event_rxd);
+					msg->rsp_payload_len =
+					(UINT16)(event_rxd->fw_rxd_0.field.length -
+					sizeof(*event_rxd));
 				}
 
 				if (msg->need_wait) {
@@ -3306,6 +3312,14 @@ static VOID CmdThemalSensorRsp(struct cmd_msg *msg, char *Data, UINT16 Len)
 static inline VOID bufferModeFieldSet(RTMP_ADAPTER *pAd,EXT_CMD_EFUSE_BUFFER_MODE_T *pCmd,UINT16 addr)
 {
 	UINT32 i = pCmd->ucCount;
+	
+	if (i >= EFUSE_CONTENT_BUFFER_SIZE) {
+		DBGPRINT(RT_DEBUG_ERROR,
+			("%s: EFUSE_CONTENT_BUFFER_SIZE Overflow\n",
+			__FUNCTION__));
+		return;
+	}
+	
 	pCmd->aBinContent[i].u2Addr = cpu2le16(addr);
 	pCmd->aBinContent[i].ucValue = pAd->EEPROMImage[addr] ;
 	pCmd->ucCount++;	
@@ -3333,7 +3347,7 @@ static VOID CmdExtPmStateCtrlRsp(struct cmd_msg *msg, char *Data, UINT16 Len)
 
 static VOID CmdFillEeprom(RTMP_ADAPTER *pAd,EXT_CMD_EFUSE_BUFFER_MODE_T *pCmd)
 {
-	int i=0;
+	UINT8 i = 0;
 	pCmd->aBinContent[i].u2Addr = NIC_CONFIGURE_0_TOP;
 	pCmd->aBinContent[i].ucValue = pAd->EEPROMImage[NIC_CONFIGURE_0_TOP] ;
 	i++;
@@ -3599,7 +3613,8 @@ VOID CmdSetTxPowerCtrl(RTMP_ADAPTER *pAd, UINT8 central_chl)
 	struct cmd_msg *msg;
 	EXT_CMD_TX_POWER_CTRL_T CmdTxPwrCtrl;
 	int ret = 0;
-	int i, j;
+	USHORT i;
+	int j;
 	UINT8 PwrPercentageDelta = 0;
 	USHORT Value;
 	struct MT_TX_PWR_CAP *cap = &pAd->chipCap.MTTxPwrCap;
@@ -3622,7 +3637,7 @@ VOID CmdSetTxPowerCtrl(RTMP_ADAPTER *pAd, UINT8 central_chl)
 	{
 		
 		RT28xx_EEPROM_READ16(pAd, NIC_CONFIGURE_1, Value);
-		CmdTxPwrCtrl.ucTSSIEnable = ((Value & 0xff00) >> 8);
+		CmdTxPwrCtrl.ucTSSIEnable = (UINT8)((Value & 0xff00) >> 8);
 
 		RT28xx_EEPROM_READ16(pAd, NIC_CONFIGURE_1, Value);
 		CmdTxPwrCtrl.ucTempCompEnable = (Value & 0xff);
@@ -3639,7 +3654,7 @@ VOID CmdSetTxPowerCtrl(RTMP_ADAPTER *pAd, UINT8 central_chl)
 			RT28xx_EEPROM_READ16(pAd, TX_PWR_CCK_1_2M + (i * 2), Value);
 			CmdTxPwrCtrl.aucRatePowerDelta[j] = Value & 0xff;
 			j++;
-			CmdTxPwrCtrl.aucRatePowerDelta[j] = ((Value & 0xff00) >> 8);
+			CmdTxPwrCtrl.aucRatePowerDelta[j] = (UINT8)((Value & 0xff00) >> 8);
 			j++;
 		}
 
@@ -3647,20 +3662,20 @@ VOID CmdSetTxPowerCtrl(RTMP_ADAPTER *pAd, UINT8 central_chl)
 		CmdTxPwrCtrl.ucBWPowerDelta = Value & 0xff;
 
 		RT28xx_EEPROM_READ16(pAd, TX0_G_BAND_TARGET_PWR, Value);
-		CmdTxPwrCtrl.aucCHPowerDelta[0] = ((Value & 0xff00) >> 8);
+		CmdTxPwrCtrl.aucCHPowerDelta[0] = (UINT8)((Value & 0xff00) >> 8);
 		
 		RT28xx_EEPROM_READ16(pAd, TX0_G_BAND_CHL_PWR_DELTA_MID, Value);
 		CmdTxPwrCtrl.aucCHPowerDelta[1] = Value & 0xff;
 		
-		CmdTxPwrCtrl.aucCHPowerDelta[2] = ((Value & 0xff00) >> 8);
+		CmdTxPwrCtrl.aucCHPowerDelta[2] = (UINT8)((Value & 0xff00) >> 8);
 		
 		RT28xx_EEPROM_READ16(pAd, TX1_G_BAND_TARGET_PWR, Value);
-		CmdTxPwrCtrl.aucCHPowerDelta[3] = ((Value & 0xff00) >> 8);
+		CmdTxPwrCtrl.aucCHPowerDelta[3] = (UINT8)((Value & 0xff00) >> 8);
 		
 		RT28xx_EEPROM_READ16(pAd, TX1_G_BAND_CHL_PWR_DELTA_MID, Value);
 		CmdTxPwrCtrl.aucCHPowerDelta[4] = Value & 0xff;
 		
-		CmdTxPwrCtrl.aucCHPowerDelta[5] = ((Value & 0xff00) >> 8);
+		CmdTxPwrCtrl.aucCHPowerDelta[5] = (UINT8)((Value & 0xff00) >> 8);
 		
 		j = 0;
 
@@ -3672,7 +3687,7 @@ VOID CmdSetTxPowerCtrl(RTMP_ADAPTER *pAd, UINT8 central_chl)
 
 			if (i != 8)
 			{
-				CmdTxPwrCtrl.aucTempCompPower[j] = ((Value & 0xff00) >> 8);
+				CmdTxPwrCtrl.aucTempCompPower[j] = (UINT8)((Value & 0xff00) >> 8);
 				j++;
 			}
 		}
@@ -3959,8 +3974,8 @@ INT32 CmdExtPwrMgtBitWifi(RTMP_ADAPTER *pAd, UINT8 ucWlanIdx, UINT8 ucPwrMgtBit)
 		goto error;
 	}
 
-	PwrMgtBitWifi.ucWlanIdx = cpu2le32(ucWlanIdx);
-	PwrMgtBitWifi.ucPwrMgtBit = cpu2le32(ucPwrMgtBit);
+	PwrMgtBitWifi.ucWlanIdx = (UINT8)cpu2le32(ucWlanIdx);
+	PwrMgtBitWifi.ucPwrMgtBit = (UINT8)cpu2le32(ucPwrMgtBit);
 
 	DBGPRINT(RT_DEBUG_OFF, ("%s:ucWlanIdx(%d), ucPwrMgtBit(%d)\n", __FUNCTION__, ucWlanIdx, ucPwrMgtBit));
 
@@ -3995,9 +4010,9 @@ INT32 CmdExtPmStateCtrl(RTMP_ADAPTER *pAd, UINT8 ucWlanIdx, UINT8 ucPmNumber, UI
 	}
 
 	/* Fill parameter here*/
-	CmdPmStateCtrl.ucWlanIdx = cpu2le32(ucWlanIdx);
-	CmdPmStateCtrl.ucPmNumber = cpu2le32(ucPmNumber);
-	CmdPmStateCtrl.ucPmState = cpu2le32(ucPmState);
+	CmdPmStateCtrl.ucWlanIdx = (UINT8)cpu2le32(ucWlanIdx);
+	CmdPmStateCtrl.ucPmNumber = (UINT8)cpu2le32(ucPmNumber);
+	CmdPmStateCtrl.ucPmState = (UINT8)cpu2le32(ucPmState);
 #ifdef CONFIG_STA_SUPPORT
 	NdisMoveMemory(CmdPmStateCtrl.aucBssid, pEntry->Addr, MAC_ADDR_LEN);
 	DBGPRINT(RT_DEBUG_OFF, ("%s:(%x, %x, %x, %x, %x, %x), BeaconPeriod(%d), DtimPeriod(%d), AID(%d)\n",
@@ -4011,8 +4026,8 @@ INT32 CmdExtPmStateCtrl(RTMP_ADAPTER *pAd, UINT8 ucWlanIdx, UINT8 ucPmNumber, UI
 #ifdef CONFIG_STA_SUPPORT
 	if (ucPmState == ENTER_PM_STATE)
 	{
-		CmdPmStateCtrl.ucDtimPeriod = cpu2le32(pAd->MlmeAux.DtimPeriod);
-		CmdPmStateCtrl.u2BcnInterval = cpu2le32(pAd->MlmeAux.BeaconPeriod);
+		CmdPmStateCtrl.ucDtimPeriod = (UINT8)cpu2le32(pAd->MlmeAux.DtimPeriod);
+		CmdPmStateCtrl.u2BcnInterval = (UINT16)cpu2le32(pAd->MlmeAux.BeaconPeriod);
 		CmdPmStateCtrl.u4Aid = cpu2le32(pAd->StaActive.Aid);
 
 		RTMP_IO_READ32(pAd, RMAC_RFCR, &u4RfCr);
@@ -4158,7 +4173,7 @@ VOID RT28xx_UpdateBeaconToMcu(
     if (HWBssidIdx > 0) //HWBssid > 0 case, no extendable bssid.
         bcn_update.ucExtBssidIdx = 0;
     else
-        bcn_update.ucExtBssidIdx = apidx;
+		bcn_update.ucExtBssidIdx = (UINT8)apidx;
 
     bcn_update.ucEnable = Enable;
     //bcn_update.ucWlanIdx = 0;//hardcode at present
@@ -4251,6 +4266,8 @@ VOID MT76xxAndesWOWEnable(
 	NdisCopyMemory(CmdGTK.PTK, pEntry->PTK, LEN_PTK);
 #else
 	NdisCopyMemory(CmdGTK.PTK, pAd->WOW_Cfg.PTK, LEN_PTK);
+	hex_dump("WOW_Cfg.KCK", pAd->WOW_Cfg.PTK, LEN_PTK_KCK);
+	hex_dump("WOW_Cfg.KEK", &pAd->WOW_Cfg.PTK[LEN_PTK_KCK], LEN_PTK_KEK);
 #endif
 
 #endif
@@ -4362,6 +4379,11 @@ VOID MT76xxAndesWOWEnable(
 	CmdPFGlobal.PFType = cpu2le32(_ENUM_TYPE_GLOBAL_EN);
 	CmdPFGlobal.FunctionSelect = cpu2le32(_ENUM_GLOBAL_WOW_EN);
 	CmdPFGlobal.Enable = cpu2le32(1); //bit0=1 mean BSS0 for staion mode
+	/* if 0: NOT to configure. non-0: set value 1~15 */
+	if (pAd->WOW_Cfg.nKeepAlivePeriod != 0) {
+		CmdPFGlobal.extParam = ((FW_KEEP_ALIVE_ENABLE_MASK)
+			| (pAd->WOW_Cfg.nKeepAlivePeriod & FW_KEEP_ALIVE_PERIOD_MASK));
+	}
 
 	AndesAppendCmdMsg(msg, (char *)&CmdPFGlobal, sizeof(CMD_PACKET_FILTER_GLOBAL_T));
 	

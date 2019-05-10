@@ -81,7 +81,8 @@ UCHAR CipherSuiteWpaNoneAesLen =
 	NdisMoveMemory(&(_pAd)->CommonCfg.APQosCapability, &(_pAd)->MlmeAux.APQosCapability, sizeof(QOS_CAPABILITY_PARM));\
 	NdisMoveMemory(&(_pAd)->CommonCfg.APQbssLoad, &(_pAd)->MlmeAux.APQbssLoad, sizeof(QBSS_LOAD_PARM));\
 	COPY_MAC_ADDR((_pAd)->MacTab.Content[BSSID_WCID].Addr, (_pAd)->MlmeAux.Bssid);      \
-	(_pAd)->MacTab.Content[BSSID_WCID].PairwiseKey.CipherAlg = (_pAd)->StaCfg.PairCipher;\
+	(_pAd)->MacTab.Content[BSSID_WCID].PairwiseKey.CipherAlg = \
+		(UCHAR)(_pAd)->StaCfg.PairCipher;\
 	COPY_MAC_ADDR((_pAd)->MacTab.Content[BSSID_WCID].PairwiseKey.BssId, (_pAd)->MlmeAux.Bssid);\
 	(_pAd)->MacTab.Content[BSSID_WCID].RateLen = (_pAd)->StaActive.SupRateLen + (_pAd)->StaActive.ExtRateLen;\
 }
@@ -471,6 +472,10 @@ VOID CntlOidScanProc(
 				       sizeof (BSS_ENTRY));
 		}
 	}
+#ifdef SMART_CARRIER_SENSE_SUPPORT
+	/*Need to set default gain for SCS when scanning, otherwise, there will be AP lost--->Add by xiaojiao*/
+	/*ScsSetDftGainAtScanBegin(pAd);*/
+#endif
 
 #if 0
 	/* clean up previous SCAN result, add current BSS back to table if any */
@@ -489,10 +494,12 @@ VOID CntlOidScanProc(
 
 #ifdef WIDI_SUPPORT
 	if (pAd->StaCfg.bWIDI)
-		ScanParmFill(pAd, &ScanReq, (RTMP_STRING *)Elem->Msg, Elem->MsgLen, BSS_ANY, SCAN_PASSIVE);
+		ScanParmFill(pAd, &ScanReq, (RTMP_STRING *)Elem->Msg,
+			(UCHAR)Elem->MsgLen, BSS_ANY, SCAN_PASSIVE);
 	else
 #endif /* WIDI_SUPPORT */
-	ScanParmFill(pAd, &ScanReq, (RTMP_STRING *) Elem->Msg, Elem->MsgLen, BSS_ANY, Elem->Priv);
+	ScanParmFill(pAd, &ScanReq, (RTMP_STRING *) Elem->Msg,
+		(UCHAR)Elem->MsgLen, BSS_ANY, (UCHAR)Elem->Priv);
 	MlmeEnqueue(pAd, SYNC_STATE_MACHINE, MT2_MLME_SCAN_REQ,
 		    sizeof (MLME_SCAN_REQ_STRUCT), &ScanReq, 0);
 	pAd->Mlme.CntlMachine.CurrState = CNTL_WAIT_OID_LIST_SCAN;
@@ -537,7 +544,7 @@ VOID CntlOidSsidProc(
 	/*save connect info*/
 	NdisZeroMemory(pAd->StaCfg.ConnectinfoSsid, MAX_LEN_OF_SSID);
 	NdisMoveMemory(pAd->StaCfg.ConnectinfoSsid, pOidSsid->Ssid, pOidSsid->SsidLength);
-	pAd->StaCfg.ConnectinfoSsidLen = pOidSsid->SsidLength;
+	pAd->StaCfg.ConnectinfoSsidLen = (UCHAR)pOidSsid->SsidLength;
 	pAd->StaCfg.ConnectinfoBssType = pAd->StaCfg.BssType;
 	
 #ifdef WSC_STA_SUPPORT
@@ -924,7 +931,7 @@ VOID CntlOidRTBssidProc(
 		pAd->StaCfg.bSkipAutoScanConn = FALSE;
 #endif /* WSC_STA_SUPPORT */
 
-	if (BssIdx == BSS_NOT_FOUND) {
+	if ((BssIdx == BSS_NOT_FOUND) || (BssIdx >= MAX_LEN_OF_BSS_TABLE)) {
 		if (((pAd->StaCfg.BssType == BSS_INFRA) && (!RTMP_TEST_FLAG(pAd, fRTMP_ADAPTER_BSS_SCAN_IN_PROGRESS))) ||
 		    (pAd->StaCfg.bNotFirstScan == FALSE)) {
 			MLME_SCAN_REQ_STRUCT ScanReq;
@@ -1860,15 +1867,20 @@ VOID CntlWaitAssocProc(
 			DBGPRINT(RT_DEBUG_TRACE,
 				 ("CNTL - Association fails on BSS #%ld\n", pAd->MlmeAux.BssIdx));
 #ifdef RT_CFG80211_SUPPORT
+			pAd->Mlme.CntlMachine.CurrState = CNTL_IDLE;
             RT_CFG80211_CONN_RESULT_INFORM(pAd, pAd->MlmeAux.Bssid, NULL, 0,
-            	                                  NULL, 0, 0);
+            	                                  NULL, 0, 0);			
 #endif /* RT_CFG80211_SUPPORT */
 			RTMP_STA_ENTRY_MAC_RESET(pAd, BSSID_WCID);
 			pAd->MlmeAux.BssIdx++;
 #ifdef MT76XX_BTCOEX_SUPPORT
                    MLMEHook(pAd, WLAN_CONNECTION_ASSOC_FAIL, QueryHashID(pAd, pAd->MlmeAux.Bssid, TRUE));      
 #endif /*MT76XX_BTCOEX_SUPPORT*/
+
+#ifndef RT_CFG80211_SUPPORT
 			IterateOnBssTab(pAd);
+#endif
+
 		}
 	}
 }
@@ -1971,7 +1983,7 @@ VOID AdhocTurnOnQos(RTMP_ADAPTER *pAd)
 VOID LinkUp_Infra(RTMP_ADAPTER *pAd, struct wifi_dev *wdev, MAC_TABLE_ENTRY *pEntry, UCHAR *tmpWscSsid, UCHAR tmpWscSsidLen)
 {
 	BOOLEAN Cancelled = TRUE;
-	INT idx;
+	UCHAR idx;
 	PSTA_ADMIN_CONFIG	pStaCfg = &pAd->StaCfg;
 	
 #if defined(STA_LP_PHASE_1_SUPPORT) || defined(STA_LP_PHASE_2_SUPPORT)
@@ -1979,7 +1991,7 @@ VOID LinkUp_Infra(RTMP_ADAPTER *pAd, struct wifi_dev *wdev, MAC_TABLE_ENTRY *pEn
 	pStaCfg->PwrMgmt.bBeaconLost = FALSE;
 
 	/* Copy DtimPeriod/BeaconPeriod to wdev */
-	pStaCfg->PwrMgmt.ucBeaconPeriod = pAd->MlmeAux.BeaconPeriod;
+	pStaCfg->PwrMgmt.ucBeaconPeriod = (UINT8)pAd->MlmeAux.BeaconPeriod;
 	pStaCfg->PwrMgmt.ucDtimPeriod = pAd->MlmeAux.DtimPeriod;
 
 	RTMPClearEnterPsmNullBit(&pAd->StaCfg.PwrMgmt);
@@ -2649,7 +2661,13 @@ VOID LinkUp(RTMP_ADAPTER *pAd, UCHAR BssType)
 	
 #ifdef DOT11_N_SUPPORT
 	DBGPRINT(RT_DEBUG_TRACE, ("!!! LINK UP !!! (Density =%d, )\n", pAd->MacTab.Content[BSSID_WCID].MpduDensity));
+	DBGPRINT(RT_DEBUG_TRACE, ("!!! LINK UP !!! (SupportRateMode =%d, )\n", pAd->MacTab.Content[BSSID_WCID].SupportRateMode));
 #endif /* DOT11_N_SUPPORT */
+
+	if (pAd->MacTab.Content[BSSID_WCID].SupportRateMode == SUPPORT_CCK_MODE)
+		pAd->bLink11b = TRUE;
+	else
+		pAd->bLink11b = FALSE;
 
 	/*
 		We cannot move AsicSetBssid to PeerBeaconAtJoinAction because 
@@ -3489,7 +3507,10 @@ VOID LinkDown(RTMP_ADAPTER *pAd, BOOLEAN IsReqFromAP)
 
 	pAd->Mlme.PeriodicRound = 0;
 	pAd->Mlme.OneSecPeriodicRound = 0;
-	pAd->Mlme.CntlMachine.CurrState = CNTL_IDLE;
+	if (pAd->Mlme.CntlMachine.CurrState != CNTL_IDLE) {
+		RTMP_MLME_RESET_STATE_MACHINE(pAd);
+		DBGPRINT(RT_DEBUG_TRACE, ("!!! MLME busy, reset MLME state machine !!!\n"));
+	}
 
 #ifdef DOT11_N_SUPPORT
 	NdisZeroMemory(&pAd->MlmeAux.HtCapability, sizeof (HT_CAPABILITY_IE));

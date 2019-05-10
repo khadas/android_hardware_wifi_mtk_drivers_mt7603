@@ -150,18 +150,18 @@ NTSTATUS RTUSB_VendorRequest(
 
 		do {
 			RTUSB_CONTROL_MSG(pObj->pUsb_Dev, 0, Request, RequestType, Value,
-								Index, pAd->UsbVendorReqBuf, TransferBufferLength,
-								CONTROL_TIMEOUT_JIFFIES, RET);
+				Index, pAd->UsbVendorReqBuf, (__u16)TransferBufferLength,
+					CONTROL_TIMEOUT_JIFFIES, RET);
 
 			if (RET < 0) {
-				DBGPRINT(RT_DEBUG_OFF, ("#RET%d\n",RET));
+				DBGPRINT(RT_DEBUG_OFF, ("#\n"));
 				if (RET == RTMP_USB_CONTROL_MSG_ENODEV)
 				{
 					RTMP_SET_FLAG(pAd, fRTMP_ADAPTER_NIC_NOT_EXIST);
 					break;
 				}
 				RetryCount++;
-				RtmpusecDelay(50000); /* wait for 5ms*/
+				RtmpusecDelay(5000); /* wait for 5ms*/
 			}
 		} while((RET < 0) && (RetryCount < MAX_VENDOR_REQ_RETRY_COUNT));
 
@@ -177,7 +177,7 @@ NTSTATUS RTUSB_VendorRequest(
 				DBGPRINT(RT_DEBUG_ERROR, ("\tRequest Value=0x%04x!\n", Value));
 
 			if ((!TransferBuffer) && (TransferBufferLength > 0))
-				hex_dump("Failed TransferBuffer value", TransferBuffer, TransferBufferLength);
+				DBGPRINT(RT_DEBUG_ERROR, ("Failed TransferBuffer value\n"));
 
 			if (RET == RTMP_USB_CONTROL_MSG_ENODEV)
 					RTMP_SET_FLAG(pAd, fRTMP_ADAPTER_NIC_NOT_EXIST);
@@ -213,8 +213,8 @@ NDIS_STATUS	RTUSBEnqueueCmdFromNdis(
 	if ((status != NDIS_STATUS_SUCCESS) || (cmdqelmt == NULL))
 		return (NDIS_STATUS_RESOURCES);
 
-		cmdqelmt->buffer = NULL;
-		if (pInformationBuffer != NULL)
+	cmdqelmt->buffer = NULL;
+	if (pInformationBuffer != NULL)
 		{
 			status = os_alloc_mem(pAd, (PUCHAR *)&cmdqelmt->buffer, InformationBufferLength);
 			if ((status != NDIS_STATUS_SUCCESS) || (cmdqelmt->buffer == NULL))
@@ -708,7 +708,9 @@ static NTSTATUS SetAsicWcidHdlr(IN PRTMP_ADAPTER pAd, IN PCmdQElmt CMDQelmt)
 		DBGPRINT_RAW(RT_DEBUG_TRACE, ("CmdThread : CMDTHREAD_SET_ASIC_WCID : WCID = %ld, Tid  = %x, SN = %d, BaSize = %d, IsAdd = %d, Ses_type = %d.\n",
 						SetAsicWcid.WCID, SetAsicWcid.Tid, SetAsicWcid.SN, SetAsicWcid.Basize, SetAsicWcid.IsAdd, SetAsicWcid.Ses_type));
 						
-		AsicUpdateBASession(pAd, SetAsicWcid.WCID, SetAsicWcid.Tid, SetAsicWcid.SN, SetAsicWcid.Basize, SetAsicWcid.IsAdd, SetAsicWcid.Ses_type);
+		AsicUpdateBASession(pAd, (UCHAR)SetAsicWcid.WCID,
+			SetAsicWcid.Tid, SetAsicWcid.SN,
+			SetAsicWcid.Basize, SetAsicWcid.IsAdd, SetAsicWcid.Ses_type);
 	}
 
 	return NDIS_STATUS_SUCCESS;
@@ -820,7 +822,7 @@ static NTSTATUS SetClientMACEntryHdlr(IN PRTMP_ADAPTER pAd, IN PCmdQElmt CMDQelm
 	PRT_SET_ASIC_WCID pInfo;
 
 	pInfo = (PRT_SET_ASIC_WCID)CMDQelmt->buffer;
-	AsicUpdateRxWCIDTable(pAd, pInfo->WCID, pInfo->Addr);
+	AsicUpdateRxWCIDTable(pAd, (USHORT)pInfo->WCID, pInfo->Addr);
 	return NDIS_STATUS_SUCCESS;
 }
 
@@ -1275,7 +1277,7 @@ static NTSTATUS HwCtrlBcnUpdate(RTMP_ADAPTER *pAd, PCmdQElmt CMDQelmt)
                             apidx,
                             &mac_val) == FALSE)
                     {
-                        printk("FLUSH fail \n");
+			DBGPRINT(RT_DEBUG_OFF, ("FLUSH fail\n"));
                         return NDIS_STATUS_FAILURE;
                     }
 
@@ -1416,12 +1418,13 @@ static NTSTATUS HwCtrlBcnUpdate(RTMP_ADAPTER *pAd, PCmdQElmt CMDQelmt)
 static NTSTATUS HwCtrlBmcCntUpdate(RTMP_ADAPTER *pAd, PCmdQElmt CMDQelmt)
 {
     CHAR *pfunc_idx, idx = 0;
-    pfunc_idx = (CHAR *)CMDQelmt->buffer;
+	UINT32 dummy = 0;
 
+    pfunc_idx = (CHAR *)CMDQelmt->buffer;
     idx = *pfunc_idx;
 
     /* BMC start */
-    if (AsicSetBmcQCR(pAd, BMC_CNT_UPDATE, CR_WRITE, idx, NULL)
+	if (AsicSetBmcQCR(pAd, BMC_CNT_UPDATE, CR_WRITE, idx, &dummy)
         == FALSE)
     {
         return NDIS_STATUS_FAILURE;
